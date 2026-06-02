@@ -1,12 +1,12 @@
-"""`skylift diff` against the lockfile — offline, no network."""
+"""`agentlift diff` against the lockfile — offline, no network."""
 import os
 import shutil
 
-from skylift.anthropic_target import Deployer
-from skylift.diff import compute_diff
-from skylift.lockfile import Lockfile
-from skylift.parser import parse_project
-from skylift.planner import build_plan
+from agentlift.anthropic_target import Deployer
+from agentlift.diff import compute_diff
+from agentlift.lockfile import Lockfile
+from agentlift.parser import parse_project
+from agentlift.planner import build_plan
 
 
 # --- a minimal fake client so we can produce a real lockfile without network ---

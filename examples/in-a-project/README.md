@@ -23,7 +23,7 @@ in-a-project/
 
 Two things this demonstrates:
 
-**Isolation.** Run `skylift plan .` here. The plan contains exactly the four agents
+**Isolation.** Run `agentlift plan .` here. The plan contains exactly the four agents
 under `.managed-agents/`. The repo's `CLAUDE.md`, `src/app.py`, and the local
 `.claude/agents/pr-reviewer.md` subagent are never read, never uploaded, never in a
 deployed agent's context. A cloud agent gets only its own folder (plus `shared/`).
@@ -32,7 +32,7 @@ deployed agent's context. A cloud agent gets only its own folder (plus `shared/`
 roster of three. Two skills are shared across the roster and upload **once** each:
 
 ```console
-$ skylift plan .
+$ agentlift plan .
 Skills to upload: 2
   - cite-sources  (…)  used by: researcher, fact-checker
   - house-style   (…)  used by: researcher, summarizer
@@ -47,8 +47,8 @@ Deployable: yes
 Deploy it like any other project:
 
 ```bash
-skylift diff .            # what would change
-skylift deploy . --yes
-skylift run orchestrator --project . --task "Is the Earth's core solid? Cite sources."
-skylift destroy . --yes
+agentlift diff .            # what would change
+agentlift deploy . --yes
+agentlift run orchestrator --project . --task "Is the Earth's core solid? Cite sources."
+agentlift destroy . --yes
 ```

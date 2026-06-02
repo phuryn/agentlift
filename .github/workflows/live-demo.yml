@@ -26,10 +26,10 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then echo "no key configured; skipping"; exit 0; fi
-          skylift plan    examples/team
-          skylift deploy  examples/team --yes
-          skylift list    examples/team
-          skylift destroy examples/team --yes
+          agentlift plan    examples/team
+          agentlift deploy  examples/team --yes
+          agentlift list    examples/team
+          agentlift destroy examples/team --yes
 
       - name: Benchmark (managed vs local) -> benchmarks/results.md
         env:

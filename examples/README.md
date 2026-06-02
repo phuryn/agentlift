@@ -1,6 +1,6 @@
 # Examples
 
-Two runnable projects. Both work with `skylift plan` offline (no key); deploying
+Two runnable projects. Both work with `agentlift plan` offline (no key); deploying
 and running needs `ANTHROPIC_API_KEY` with Managed Agents beta access.
 
 ## `quickstart/` — one agent, one skill, knowledge
@@ -10,18 +10,18 @@ allowlist (`read/glob/grep`), one uploaded skill (`receipt-stamp`), and a knowle
 file folded into the prompt.
 
 ```bash
-skylift plan   ./quickstart
-skylift deploy ./quickstart -y
-skylift run knowledge-agent --project ./quickstart --task "What is a North Star metric?"
-skylift run knowledge-agent --project ./quickstart --task "What is RICE?" --local   # same folder, locally
-skylift destroy ./quickstart -y
+agentlift plan   ./quickstart
+agentlift deploy ./quickstart -y
+agentlift run knowledge-agent --project ./quickstart --task "What is a North Star metric?"
+agentlift run knowledge-agent --project ./quickstart --task "What is RICE?" --local   # same folder, locally
+agentlift destroy ./quickstart -y
 ```
 
 The `RECEIPT:` line in the output is the uploaded skill firing inside the runtime.
 
 ## `team/` — multi-agent, shared resources, a coordinator
 
-Shows everything skylift wires:
+Shows everything agentlift wires:
 
 - **shared skill** `cite-sources` used by two agents → uploaded once
 - **shared MCP server** `docs` (remote URL) with a specific-tool allowlist
@@ -30,9 +30,9 @@ Shows everything skylift wires:
   pauses for caller approval before each `bash` call
 
 ```bash
-skylift plan ./team        # see the dedup, the coordinator ordering, the MCP wiring
-skylift deploy ./team -y
-skylift run lead --project ./team --task "Find the bug in utils.py and explain RICE."
+agentlift plan ./team        # see the dedup, the coordinator ordering, the MCP wiring
+agentlift deploy ./team -y
+agentlift run lead --project ./team --task "Find the bug in utils.py and explain RICE."
 ```
 
 > The `docs` MCP server points at `https://example.com/mcp` (a placeholder). Swap in
@@ -46,7 +46,7 @@ local `.claude/agents/pr-reviewer.md` subagent — alongside a `.managed-agents/
 folder with an `orchestrator` coordinator over three subagents sharing two skills.
 
 ```bash
-skylift plan ./in-a-project    # only the 4 managed agents appear; the repo
+agentlift plan ./in-a-project    # only the 4 managed agents appear; the repo
                                # CLAUDE.md, app code, and local subagent never do
 ```
 
@@ -63,4 +63,4 @@ validates, deploys, and commits the updated lockfile. See [docs/deploying.md](..
 
 Drop this skill into your repo's `.claude/skills/`. Then in Claude Code you can say
 "deploy my managed agents" or "run the researcher with …" and it maps your words to
-the right `skylift` command.
+the right `agentlift` command.

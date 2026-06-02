@@ -1,20 +1,20 @@
 # How it works
 
-skylift is four stages: **parse → plan → apply → run**. The first two are pure
+agentlift is four stages: **parse → plan → apply → run**. The first two are pure
 (no network); the second two talk to the API.
 
-## parse  (`skylift.parser`)
+## parse  (`agentlift.parser`)
 
 Reads the project folder into an in-memory `Project` of `AgentSpec`s. Pure file IO:
 frontmatter is split, skills are discovered and content-hashed, MCP servers are
 classified `url`/`stdio`, knowledge files are collected. No validation of API
 limits yet — just "what's on disk."
 
-## plan  (`skylift.planner`)
+## plan  (`agentlift.planner`)
 
 Turns the `Project` into a `DeployPlan`: an ordered list of API operations plus
 diagnostics. It is a **pure function of the folder** — same input, same plan. That
-property is what makes `skylift plan` a safe dry-run and makes the whole
+property is what makes `agentlift plan` a safe dry-run and makes the whole
 translation unit-testable.
 
 The plan carries *symbolic* references so it can be built and asserted on without
@@ -37,7 +37,7 @@ The planner also:
 
 A plan with any `error` diagnostic is not deployable.
 
-## apply  (`skylift.anthropic_target.Deployer`)
+## apply  (`agentlift.anthropic_target.Deployer`)
 
 The only networked module. It resolves the symbolic refs to real IDs:
 
@@ -49,7 +49,7 @@ The only networked module. It resolves the symbolic refs to real IDs:
    has its `@skill:`/`@agent:` refs replaced with real IDs, then a canonical hash is
    computed. If the lockfile already has that agent at that exact spec hash, it is
    reused — no API call. Otherwise `beta.agents.create(...)`.
-3. **Write `.skylift-lock.json`** mapping content hashes → skill IDs and agent names
+3. **Write `.agentlift-lock.json`** mapping content hashes → skill IDs and agent names
    → `{agent_id, version, spec_hash, skill_ids}`.
 
 ### Idempotency
@@ -62,7 +62,7 @@ Commit the lockfile so a teammate's deploy reuses the same remote objects. Even
 without it, content-addressed skill titles mean skills are found and reused rather
 than duplicated.
 
-## run  (`skylift.runtime`)
+## run  (`agentlift.runtime`)
 
 - `run_managed` — create an environment, open a session against the agent ID,
   stream events to collect the answer, read usage, estimate cost.

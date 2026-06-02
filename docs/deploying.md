@@ -1,15 +1,15 @@
 # Deploying: commands, workflows, and where the IDs live
 
-skylift is declarative: your `.managed-agents/` folder is the desired state, and
+agentlift is declarative: your `.managed-agents/` folder is the desired state, and
 `deploy` makes the cloud match it. *How* you trigger that deploy is up to you —
 three paths, all reusing things you already know.
 
 ## 1. A command (individuals)
 
 ```bash
-skylift plan .            # dry run — see exactly what will happen
-skylift deploy . --yes    # upload skills + create agents, write the lockfile
-skylift run lead --project . --task "..."
+agentlift plan .            # dry run — see exactly what will happen
+agentlift deploy . --yes    # upload skills + create agents, write the lockfile
+agentlift run lead --project . --task "..."
 ```
 
 Best for solo work and first runs. `plan` is a pure dry-run (no network), so you
@@ -22,10 +22,10 @@ deploys. Copy [`examples/deploy-workflow/ci-deploy.yml`](../examples/deploy-work
 to `.github/workflows/`, add an `ANTHROPIC_API_KEY` secret, and commit
 `.managed-agents/`. On every push that touches it:
 
-1. `skylift validate .` fails the build on any error (e.g. a stdio MCP server).
-2. `skylift deploy . --yes --prune` applies the change (idempotent — unchanged
+1. `agentlift validate .` fails the build on any error (e.g. a stdio MCP server).
+2. `agentlift deploy . --yes --prune` applies the change (idempotent — unchanged
    skills/agents are skipped).
-3. The updated `.skylift-lock.json` is committed back.
+3. The updated `.agentlift-lock.json` is committed back.
 
 Nothing new to learn: the workflow is `git push`. Review happens in PRs. Rollback
 is `git revert` + redeploy.
@@ -38,14 +38,14 @@ into your repo's `.claude/skills/`. Then in Claude Code:
 > "deploy my managed agents"
 > "run the researcher with: summarize the Q3 launch"
 
-The skill maps your words to the right `skylift` command and shows you the plan
+The skill maps your words to the right `agentlift` command and shows you the plan
 first. Nothing new to learn: you just ask.
 
 ---
 
 ## Where the IDs live: the lockfile
 
-When you deploy, skylift writes **`.skylift-lock.json`** next to the path you
+When you deploy, agentlift writes **`.agentlift-lock.json`** next to the path you
 deployed. It maps your local definitions to the remote objects they became:
 
 ```jsonc
@@ -61,7 +61,7 @@ deployed. It maps your local definitions to the remote objects they became:
 - **Idempotent re-deploys.** An unchanged skill is not re-uploaded; an unchanged
   agent (same resolved spec hash) is not re-created. Without the lockfile, every
   deploy would make new objects.
-- **`run` / `list` / `destroy` by name.** `skylift run lead …` resolves `lead` to
+- **`run` / `list` / `destroy` by name.** `agentlift run lead …` resolves `lead` to
   its `agent_id` from the lockfile.
 - **Team + CI reuse.** A teammate or the CI job deploying the same repo reuses the
   same cloud objects instead of duplicating them.
@@ -71,10 +71,10 @@ It is safe to commit: it holds only IDs, hashes, and titles — **no secrets**.
 Notes:
 - The lockfile is **per Anthropic account/org**. Commit it when your team shares an
   account (the common case). If two people deploy to different accounts, each gets
-  their own state — skylift self-heals skills by content hash + remote lookup, and
+  their own state — agentlift self-heals skills by content hash + remote lookup, and
   re-creates agents your account doesn't have.
 - Deploy and run with the **same path** so they read the same lockfile
-  (`skylift deploy .` then `skylift run … --project .`).
+  (`agentlift deploy .` then `agentlift run … --project .`).
 
 ---
 
@@ -89,7 +89,7 @@ CLI walks up the directory tree and leaks the repo-root `CLAUDE.md`, repo-root
 skills, and user-level MCP servers into every agent unless you pass an explicit
 skills allowlist and `strictMcpConfig: true` (see the embedded-agents playbook
 §3/§3.5). In the managed cloud there is no directory to walk: the agent only ever
-receives what skylift uploads, and skylift scopes uploads to the agent folder. So
+receives what agentlift uploads, and agentlift scopes uploads to the agent folder. So
 you get isolation **by construction** — the repo's `CLAUDE.md`, a sibling agent's
 skills, and your machine's MCP servers can't leak in. Pinned by
 [`tests/test_isolation.py`](../tests/test_isolation.py).

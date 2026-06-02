@@ -1,6 +1,6 @@
 # Limitations
 
-skylift surfaces every one of these as a `skylift plan` diagnostic — never a silent
+agentlift surfaces every one of these as a `agentlift plan` diagnostic — never a silent
 surprise. They reflect what the Managed Agents API accepts today, not gaps in the
 translation.
 
@@ -23,7 +23,7 @@ Authenticated remote MCP via the Vaults API is on the roadmap.
 ## Knowledge files are inlined
 
 A managed agent runs in a fresh sandbox with no persistent copy of your repo, so
-`knowledge/*.md` can't be read off disk the way they are locally. skylift folds
+`knowledge/*.md` can't be read off disk the way they are locally. agentlift folds
 them into the system prompt under a `# Reference material` section. This works well
 for a handful of small reference files; it is size-guarded (overflow warns and
 stops). For large reference sets, package them as a **skill** instead — skill
@@ -42,7 +42,7 @@ may be shared).
 ## Skill descriptions can't contain angle-bracket tags
 
 The API rejects a `SKILL.md` frontmatter `description` that contains XML-like tags
-(e.g. `Replace <placeholder> with ...`). skylift catches this at plan time
+(e.g. `Replace <placeholder> with ...`). agentlift catches this at plan time
 (`skill.xml_in_description`) so you get a clear error instead of a deploy-time 400.
 The skill *body* may contain anything; only the description is validated.
 

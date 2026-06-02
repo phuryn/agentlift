@@ -1,6 +1,6 @@
 # The agent convention
 
-skylift reads two layouts, auto-detected.
+agentlift reads two layouts, auto-detected.
 
 ## 1. `.managed-agents/` — the deploy folder
 
@@ -27,7 +27,7 @@ use with the Claude Agent SDK — only the parent folder name is new.
 
 ## 2. A single agent directory
 
-Point skylift straight at a folder that contains `agent.md` or `CLAUDE.md` and it
+Point agentlift straight at a folder that contains `agent.md` or `CLAUDE.md` and it
 becomes a one-agent project. This is how you deploy **one** existing Claude Code
 embedded-agent folder without moving it — point at `.claude/agents/<name>/` and its
 `CLAUDE.md`, `.mcp.json`, and `.claude/skills/<skill>/SKILL.md` are all read:
@@ -40,7 +40,7 @@ embedded-agent folder without moving it — point at `.claude/agents/<name>/` an
 └── knowledge/*.md
 ```
 
-skylift never *scans* `.claude/agents/` as a whole — it would sweep in local
+agentlift never *scans* `.claude/agents/` as a whole — it would sweep in local
 subagents (single `.md` files) and other local agents that aren't meant for the
 cloud. Pointing at one folder is an explicit, per-agent choice.
 
@@ -48,7 +48,7 @@ cloud. Pointing at one folder is an explicit, per-agent choice.
 
 Claude Code subagents are single files — `.claude/agents/<name>.md` with frontmatter
 and a prompt, invoked in-process by a parent agent via the Task tool. They are local
-delegation helpers, **not** deploy targets, so skylift does not deploy them. To run
+delegation helpers, **not** deploy targets, so agentlift does not deploy them. To run
 a capability in the managed cloud, give it its own folder under `.managed-agents/`.
 
 ---
@@ -129,11 +129,11 @@ the agent (omit the key to expose all of the server's tools). Each entry may car
 a `:ask` / `:allow` permission suffix, same as built-in tools.
 
 `stdio` servers (`"command": "npx", ...`) are valid locally but cannot deploy to a
-managed agent — skylift errors clearly (or drops them with `--skip-unsupported`).
+managed agent — agentlift errors clearly (or drops them with `--skip-unsupported`).
 
 ## Skills
 
 A skill is a directory containing `SKILL.md` (Anthropic skill format: YAML
 frontmatter with `name` + `description`, then instructions). Any sibling files are
-uploaded with it. skylift content-addresses the whole directory, so identical
+uploaded with it. agentlift content-addresses the whole directory, so identical
 skills upload once and are reused across agents and across machines.

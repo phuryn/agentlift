@@ -3,12 +3,12 @@ never the repo-root CLAUDE.md, repo-root skills, or a sibling agent's skills.
 
 In the local Agent SDK this isolation takes explicit flags (skills allowlist +
 strictMcpConfig) because the CLI walks up the directory tree. In the managed
-cloud the agent only ever gets what skylift uploads — and skylift scopes uploads
+cloud the agent only ever gets what agentlift uploads — and agentlift scopes uploads
 to the agent folder. This test pins that guarantee."""
 import os
 
-from skylift.parser import parse_project
-from skylift.planner import build_plan
+from agentlift.parser import parse_project
+from agentlift.planner import build_plan
 
 
 def test_repo_context_does_not_leak(fixtures_dir):

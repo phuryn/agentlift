@@ -1,7 +1,7 @@
 """Turn a parsed `Project` into a deterministic `DeployPlan`.
 
 A plan is a pure function of the project on disk: same folder in, same plan out,
-no network. That is what makes `skylift plan` a safe dry-run, makes the whole
+no network. That is what makes `agentlift plan` a safe dry-run, makes the whole
 translation unit-testable, and makes deploys reproducible.
 
 The plan carries *symbolic* references:

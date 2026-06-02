@@ -35,7 +35,7 @@ class RunResult:
 # --------------------------------------------------------------------------- #
 # managed
 # --------------------------------------------------------------------------- #
-def create_environment(client, betas: Optional[list[str]] = None, name: str = "skylift-env"):
+def create_environment(client, betas: Optional[list[str]] = None, name: str = "agentlift-env"):
     return client.beta.environments.create(
         name=name, config={"type": "cloud", "networking": {"type": "unrestricted"}},
         betas=betas or BETAS,

@@ -1,4 +1,4 @@
-from skylift.cost import Usage, estimate_cost, price_for
+from agentlift.cost import Usage, estimate_cost, price_for
 
 
 def test_price_for_known_and_fallback():

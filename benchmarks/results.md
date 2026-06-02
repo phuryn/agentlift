@@ -1,4 +1,4 @@
-# skylift benchmark — quickstart `knowledge-agent`
+# agentlift benchmark — quickstart `knowledge-agent`
 
 Run 2026-06-02. Model `claude-haiku-4-5`. N=5 per arm. Anthropic Managed Agents (beta).
 Same agent folder, two runtimes. Pass = the uploaded skill fired (a `RECEIPT:` line) AND the answer is on-topic. Cost is a token estimate at tier rates (managed auto-caches its context; local context is lean).

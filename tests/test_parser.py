@@ -1,6 +1,6 @@
 import os
 
-from skylift.parser import parse_project, split_frontmatter
+from agentlift.parser import parse_project, split_frontmatter
 
 
 def test_split_frontmatter():

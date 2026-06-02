@@ -1,4 +1,4 @@
-"""`skylift diff` — what would a deploy change?
+"""`agentlift diff` — what would a deploy change?
 
 Compares the deterministic plan against the lockfile (offline): which skills are
 new, which agents are new/changed/unchanged, and which lockfile entries are stale
@@ -127,5 +127,5 @@ def render_diff(d: DiffResult) -> str:
     if d.changes == 0:
         lines.append("In sync — deploy would make no changes.")
     else:
-        lines.append(f"{d.changes} change(s) pending.  Run: skylift deploy <path>")
+        lines.append(f"{d.changes} change(s) pending.  Run: agentlift deploy <path>")
     return "\n".join(lines)

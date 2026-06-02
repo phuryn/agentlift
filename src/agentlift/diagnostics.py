@@ -1,7 +1,7 @@
 """Structured warnings and errors surfaced during parse and plan.
 
 A plan with any `error` diagnostics is not deployable; warnings are advisory
-(things skylift transformed or dropped, with the reason).
+(things agentlift transformed or dropped, with the reason).
 """
 from __future__ import annotations
 

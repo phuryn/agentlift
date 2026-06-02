@@ -2,10 +2,10 @@
 (skill dedup + agent spec-hash idempotency). No network involved."""
 import os
 
-from skylift.anthropic_target import Deployer
-from skylift.lockfile import Lockfile, canonical_hash
-from skylift.parser import parse_project
-from skylift.planner import build_plan
+from agentlift.anthropic_target import Deployer
+from agentlift.lockfile import Lockfile, canonical_hash
+from agentlift.parser import parse_project
+from agentlift.planner import build_plan
 
 
 class _Obj:

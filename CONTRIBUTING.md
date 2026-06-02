@@ -1,12 +1,12 @@
 # Contributing
 
-Thanks for looking. skylift is small and deliberately layered — the front half is
+Thanks for looking. agentlift is small and deliberately layered — the front half is
 pure, the back half is the only place that touches the network.
 
 ## Layout
 
 ```
-src/skylift/
+src/agentlift/
   model.py            data classes (Project, AgentSpec, SkillSpec, McpServerSpec)
   parser.py           folder -> Project           (pure)
   planner.py          Project -> DeployPlan        (pure)
@@ -34,8 +34,8 @@ ANTHROPIC_API_KEY=... pytest -m live   # hits the real API, costs a few cents
   (`tests/test_planner.py`). The plan is the contract.
 - **New API behavior gets confirmed live first**, then encoded. Don't guess wire
   format from docs alone — the beta moves.
-- **Surface, don't swallow.** Anything skylift can't translate becomes a `Diagnostic`
-  (error or warning), visible in `skylift plan`.
+- **Surface, don't swallow.** Anything agentlift can't translate becomes a `Diagnostic`
+  (error or warning), visible in `agentlift plan`.
 
 ## Adding a provider target
 

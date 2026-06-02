@@ -3,8 +3,8 @@ built-in toolset and on specific MCP tools. This is the deployable form of a
 PreToolUse 'ask' hook."""
 import os
 
-from skylift.parser import parse_project
-from skylift.planner import build_plan
+from agentlift.parser import parse_project
+from agentlift.planner import build_plan
 
 
 def _plan(path):

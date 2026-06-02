@@ -137,7 +137,7 @@ class Deployer:
     # -- public ----------------------------------------------------------- #
     def apply(self, plan: DeployPlan, prune: bool = False, log: Optional[Callable[[str], None]] = None) -> DeployResult:
         if not plan.deployable:
-            raise ValueError("plan has errors; not deployable. Run `skylift plan` to see them.")
+            raise ValueError("plan has errors; not deployable. Run `agentlift plan` to see them.")
         log = log or (lambda *_: None)
         result = DeployResult()
         log("Uploading skills...")

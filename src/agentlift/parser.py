@@ -16,7 +16,7 @@ Supported layouts (auto-detected, in priority order):
 
 2. a single agent directory passed directly (must contain agent.md or CLAUDE.md).
    Use this to deploy exactly one agent — including an existing Claude Code
-   embedded-agent folder (`.claude/agents/<name>/`): point skylift straight at it.
+   embedded-agent folder (`.claude/agents/<name>/`): point agentlift straight at it.
 
 `.claude/agents/` is deliberately never auto-scanned: that folder holds local
 subagents (single `.md` files) and local embedded agents, which are not deploy

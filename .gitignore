@@ -15,9 +15,9 @@ venv/
 *.egg-info/
 src/*.egg-info/
 
-# skylift deploy state (per-project lockfile is meant to be committed by USERS,
+# agentlift deploy state (per-project lockfile is meant to be committed by USERS,
 # but in THIS repo's examples we keep generated lockfiles out)
-examples/**/.skylift-lock.json
+examples/**/.agentlift-lock.json
 
 # scratch
 Temp/

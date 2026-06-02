@@ -9,11 +9,11 @@ import shutil
 
 import pytest
 
-from skylift.anthropic_target import Deployer
-from skylift.graders import llm_grader, substring_grader
-from skylift.parser import parse_project
-from skylift.planner import build_plan
-from skylift.runtime import run_local, run_managed
+from agentlift.anthropic_target import Deployer
+from agentlift.graders import llm_grader, substring_grader
+from agentlift.parser import parse_project
+from agentlift.planner import build_plan
+from agentlift.runtime import run_local, run_managed
 
 pytestmark = pytest.mark.live
 

@@ -1,6 +1,6 @@
 # Local definition → Anthropic Managed Agents
 
-The exact field-by-field translation skylift performs, and the API constraints
+The exact field-by-field translation agentlift performs, and the API constraints
 behind each rule. Confirmed against `anthropic` Python SDK 0.105.x and live API
 calls on 2026-06-02.
 
@@ -51,14 +51,14 @@ referenced as `{"type": "custom", "skill_id": ...}`.
 
 - **Custom skills are not inline.** They are uploaded as a multipart bundle (every
   file under a `<name>/` top-level directory, `SKILL.md` at its root) and referenced
-  by ID. skylift handles the upload + reference for you.
+  by ID. agentlift handles the upload + reference for you.
 - **`display_title` must be globally unique per account** (the API 400s on reuse).
-  skylift suffixes the content hash (`<name>-<hash8>`) so the title is stable and
+  agentlift suffixes the content hash (`<name>-<hash8>`) so the title is stable and
   collision-free, and identical skills resolve to the same title.
 - **Dedup / sharing.** Skills are content-addressed; an identical skill used by N
   agents is uploaded once and all N reference the same `skill_id`.
 - **No XML tags in the description.** The API rejects angle-bracket tags in a
-  `SKILL.md` frontmatter `description`; skylift flags this at plan time
+  `SKILL.md` frontmatter `description`; agentlift flags this at plan time
   (`skill.xml_in_description`). The body is unrestricted.
 - Limit: 20 skills per agent.
 
@@ -84,18 +84,18 @@ frontmatter `subagents: [a, b]` → `agents.create(multiagent={"type":"coordinat
 "agents":[<ids>]})`.
 
 - Roster agents are created first; their IDs are substituted into the coordinator.
-- **Depth limit 1:** a roster agent may not itself be a coordinator. skylift errors
+- **Depth limit 1:** a roster agent may not itself be a coordinator. agentlift errors
   with `subagent.depth` if you nest.
 - Roster: 1–20 entries.
 
 ## Tool count
 
 Across the built-in toolset + every `mcp_toolset`, the API allows ≤128 tool
-configurations. skylift errors with `tools.too_many` past that.
+configurations. agentlift errors with `tools.too_many` past that.
 
 ## What is NOT yet mapped
 
 - **Vaults / secrets** — authenticated remote MCP. The agent-create shape in this
   SDK version has no `vault_ids`; on the roadmap.
-- **Environments / files / memory stores** — skylift creates a default cloud
+- **Environments / files / memory stores** — agentlift creates a default cloud
   environment at run time; richer environment config is not yet exposed.

@@ -1,12 +1,12 @@
-"""skylift command-line interface.
+"""agentlift command-line interface.
 
-    skylift validate <path>                 parse + plan, report problems
-    skylift plan     <path> [--json]        show the deterministic deploy plan (dry run, no network)
-    skylift deploy   <path> [--prune]       upload skills + create agents; write lockfile
-    skylift run      <agent> --task "..."   invoke a deployed agent (or --local)
-    skylift list     <path>                 show what is currently deployed (from the lockfile)
-    skylift destroy  <path>                 archive every agent in the lockfile
-    skylift bench    <agent> --task "..."   managed vs local: latency / tokens / cost / pass
+    agentlift validate <path>                 parse + plan, report problems
+    agentlift plan     <path> [--json]        show the deterministic deploy plan (dry run, no network)
+    agentlift deploy   <path> [--prune]       upload skills + create agents; write lockfile
+    agentlift run      <agent> --task "..."   invoke a deployed agent (or --local)
+    agentlift list     <path>                 show what is currently deployed (from the lockfile)
+    agentlift destroy  <path>                 archive every agent in the lockfile
+    agentlift bench    <agent> --task "..."   managed vs local: latency / tokens / cost / pass
 """
 from __future__ import annotations
 
@@ -167,7 +167,7 @@ def cmd_deploy(args) -> int:
         rec = deployer.lock.agent(name)
         if rec:
             print(f"    {name}: {rec['agent_id']} (v{rec['version']})")
-    print("\nRun one:  skylift run " + (project.agents[0].name if project.agents else "<agent>") +
+    print("\nRun one:  agentlift run " + (project.agents[0].name if project.agents else "<agent>") +
           ' --project "' + args.path + '" --task "your task here"')
     return 0
 
@@ -285,8 +285,8 @@ def cmd_bench(args) -> int:
 
 # --------------------------------------------------------------------------- #
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="skylift", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--version", action="version", version=f"skylift {__version__}")
+    p = argparse.ArgumentParser(prog="agentlift", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--version", action="version", version=f"agentlift {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     def add_common(sp):

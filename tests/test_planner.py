@@ -1,7 +1,7 @@
 import os
 
-from skylift.parser import parse_project
-from skylift.planner import build_plan
+from agentlift.parser import parse_project
+from agentlift.planner import build_plan
 
 
 def _plan(path, **kw):

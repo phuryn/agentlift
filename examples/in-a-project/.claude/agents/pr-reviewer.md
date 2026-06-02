@@ -5,4 +5,4 @@ tools: Read, Grep, Glob
 model: sonnet
 ---
 You are a PR reviewer. This is a NATIVE single-file Claude subagent that runs
-in-process via the Task tool. It is a local helper — skylift never deploys it.
+in-process via the Task tool. It is a local helper — agentlift never deploys it.

@@ -12,7 +12,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-LOCKFILE_NAME = ".skylift-lock.json"
+LOCKFILE_NAME = ".agentlift-lock.json"
 
 
 def canonical_hash(obj: Any) -> str:

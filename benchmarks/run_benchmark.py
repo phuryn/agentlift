@@ -20,11 +20,11 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 
-from skylift.anthropic_target import Deployer            # noqa: E402
-from skylift.graders import substring_grader             # noqa: E402
-from skylift.parser import parse_project                 # noqa: E402
-from skylift.planner import build_plan                   # noqa: E402
-from skylift.runtime import create_environment, run_local, run_managed  # noqa: E402
+from agentlift.anthropic_target import Deployer            # noqa: E402
+from agentlift.graders import substring_grader             # noqa: E402
+from agentlift.parser import parse_project                 # noqa: E402
+from agentlift.planner import build_plan                   # noqa: E402
+from agentlift.runtime import create_environment, run_local, run_managed  # noqa: E402
 
 MODEL = "claude-haiku-4-5"
 TASK = "What is a North Star metric? Answer in one sentence."
@@ -35,12 +35,12 @@ def _load_key() -> str:
     key = os.environ.get("ANTHROPIC_API_KEY")
     if key:
         return key
-    for p in (os.path.join(ROOT, ".env"), r"C:\GitHub\managed-agents-experiment\.env"):
-        if os.path.isfile(p):
-            for line in open(p, encoding="utf-8").read().splitlines():
-                if line.strip().startswith("ANTHROPIC_API_KEY"):
-                    return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise SystemExit("ANTHROPIC_API_KEY not set")
+    env_path = os.path.join(ROOT, ".env")
+    if os.path.isfile(env_path):
+        for line in open(env_path, encoding="utf-8").read().splitlines():
+            if line.strip().startswith("ANTHROPIC_API_KEY"):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    raise SystemExit("ANTHROPIC_API_KEY not set (env var or repo-root .env)")
 
 
 def main() -> None:
@@ -51,7 +51,7 @@ def main() -> None:
     import anthropic
     client = anthropic.Anthropic(api_key=_load_key())
 
-    workdir = tempfile.mkdtemp(prefix="skylift-bench-")
+    workdir = tempfile.mkdtemp(prefix="agentlift-bench-")
     proj_dir = os.path.join(workdir, "quickstart")
     shutil.copytree(os.path.join(ROOT, "examples", "quickstart"), proj_dir)
 
@@ -87,7 +87,7 @@ def main() -> None:
     # ---- write report ----
     today = datetime.date.today().isoformat()
     lines = [
-        "# skylift benchmark — quickstart `knowledge-agent`",
+        "# agentlift benchmark — quickstart `knowledge-agent`",
         "",
         f"Run {today}. Model `{MODEL}`. N={args.n} per arm. Anthropic Managed Agents (beta).",
         "Same agent folder, two runtimes. Pass = the uploaded skill fired (a `RECEIPT:` line) "

@@ -1,15 +1,15 @@
-# skylift
+# agentlift
 
 **Deploy the Claude agents you already run locally to Anthropic's Managed Agents cloud. One folder, one command.**
 
 Anthropic's Managed Agents runs your whole agent loop in the cloud — you call it by ID over REST. But there is no console: to attach a skill, wire an MCP server, or restrict a tool, you write API calls by hand. So most people never move their local agents up.
 
-skylift closes that gap. Point it at the agent folder you already use with Claude Code / the Agent SDK (`CLAUDE.md` + skills + `.mcp.json`). It uploads your skills, maps your tool allowlist, wires your remote MCP servers, and creates the hosted agent — deterministically, idempotently, no new format to learn.
+agentlift closes that gap. Point it at the agent folder you already use with Claude Code / the Agent SDK (`CLAUDE.md` + skills + `.mcp.json`). It uploads your skills, maps your tool allowlist, wires your remote MCP servers, and creates the hosted agent — deterministically, idempotently, no new format to learn.
 
 ```bash
 pip install -e .                 # PyPI release pending; install from a clone for now
-skylift deploy ./my-agent
-skylift run my-agent --task "what changed in the API this week?"
+agentlift deploy ./my-agent
+agentlift run my-agent --task "what changed in the API this week?"
 ```
 
 > The agent definition is the portable asset. The runtime is a deploy choice.
@@ -21,19 +21,19 @@ skylift run my-agent --task "what changed in the API this week?"
 
 `POST /v1/agents` is powerful and completely UI-less. A real agent has a system prompt, a few skills (each a directory of files uploaded via a separate multipart endpoint), an MCP server or two, a tool allowlist, maybe a subagent roster. Wiring all of that by hand — and keeping it in sync as the agent changes — is the reason "just deploy it to the cloud" rarely happens.
 
-skylift makes the deploy unit the same folder you develop against locally. Nothing new to learn; the thing you already have *is* the input.
+agentlift makes the deploy unit the same folder you develop against locally. Nothing new to learn; the thing you already have *is* the input.
 
 ## Install
 
 ```bash
-git clone https://github.com/phuryn/managed-agents-API && cd managed-agents-API
+git clone https://github.com/phuryn/agentlift && cd agentlift
 pip install -e .                      # PyPI release pending
 export ANTHROPIC_API_KEY=sk-ant-...   # needs Managed Agents beta access
 ```
 
 ## The folder is the agent
 
-skylift reads a convention you may already use. Minimal single-agent project:
+agentlift reads a convention you may already use. Minimal single-agent project:
 
 ```
 my-agent/
@@ -59,12 +59,12 @@ You are the Knowledge Agent. Answer product questions concisely.
 Always sign off as "Best, Knowledge Agent".
 ```
 
-Why a dedicated `.managed-agents/` folder instead of reusing `.claude/agents/`? Because that's where Claude's **local** agents and native subagents live — and those aren't deploy targets. A separate folder keeps "ship to the cloud" cleanly apart from "runs on my machine." Already have an embedded agent folder (`.claude/agents/<name>/` with `CLAUDE.md` + `.mcp.json` + `.claude/skills/...`)? Point skylift straight at it to deploy just that one — `CLAUDE.md`, `.mcp.json`, and `.claude/skills/` are all read for back-compat. See [docs/convention.md](docs/convention.md).
+Why a dedicated `.managed-agents/` folder instead of reusing `.claude/agents/`? Because that's where Claude's **local** agents and native subagents live — and those aren't deploy targets. A separate folder keeps "ship to the cloud" cleanly apart from "runs on my machine." Already have an embedded agent folder (`.claude/agents/<name>/` with `CLAUDE.md` + `.mcp.json` + `.claude/skills/...`)? Point agentlift straight at it to deploy just that one — `CLAUDE.md`, `.mcp.json`, and `.claude/skills/` are all read for back-compat. See [docs/convention.md](docs/convention.md).
 
 ## See exactly what will happen (no network)
 
 ```console
-$ skylift plan ./examples/quickstart
+$ agentlift plan ./examples/quickstart
 
 Skills to upload: 1
   - receipt-stamp  (035823c8, 1 file(s))  used by: knowledge-agent
@@ -85,14 +85,14 @@ The plan is a pure function of the folder — same input, same plan. It is the d
 ## Deploy and run
 
 ```console
-$ skylift deploy ./examples/quickstart -y
+$ agentlift deploy ./examples/quickstart -y
 Uploading skills...
   skill 'receipt-stamp': uploaded skill_01Ph... (used by knowledge-agent)
 Creating agents...
   agent 'knowledge-agent': created agent_019L... v1
-Lockfile written: ./examples/quickstart/.skylift-lock.json
+Lockfile written: ./examples/quickstart/.agentlift-lock.json
 
-$ skylift run knowledge-agent --project ./examples/quickstart \
+$ agentlift run knowledge-agent --project ./examples/quickstart \
     --task "What is a North Star metric? One sentence."
 
 [managed] knowledge-agent
@@ -120,7 +120,7 @@ The `RECEIPT:` line is the uploaded `SKILL.md` firing **inside the hosted runtim
 
 Pass = the uploaded skill fired **and** the answer was on-topic. Same folder, two runtimes, identical behavior. (The live deploy → cloud-run → skill-applied path is also pinned by `tests/live/`.)
 
-## What skylift maps
+## What agentlift maps
 
 | Local definition | → Managed Agents | Notes |
 |---|---|---|
@@ -139,7 +139,7 @@ Full table and the exact wire format: [docs/anthropic-mapping.md](docs/anthropic
 
 A deployed agent's context is exactly its own system prompt + its own (and `shared/`) skills + its own (and `shared/`) MCP servers + its inlined knowledge. The repo-root `CLAUDE.md`, a sibling agent's skills, and your machine's MCP servers **cannot leak in.**
 
-This is the same isolation the local Agent SDK has to fight for — there the CLI walks up the directory tree and pulls in the repo-root `CLAUDE.md`, repo-root skills, and user-level MCP servers unless you set an explicit skills allowlist and `strictMcpConfig: true`. In the cloud there's no tree to walk: the agent only ever gets what skylift uploads, and skylift scopes uploads to the agent folder. You get isolation **by construction** — pinned by [`tests/test_isolation.py`](tests/test_isolation.py).
+This is the same isolation the local Agent SDK has to fight for — there the CLI walks up the directory tree and pulls in the repo-root `CLAUDE.md`, repo-root skills, and user-level MCP servers unless you set an explicit skills allowlist and `strictMcpConfig: true`. In the cloud there's no tree to walk: the agent only ever gets what agentlift uploads, and agentlift scopes uploads to the agent folder. You get isolation **by construction** — pinned by [`tests/test_isolation.py`](tests/test_isolation.py).
 
 ## Permissions and hooks
 
@@ -172,7 +172,7 @@ same `.managed-agents/` folder**, so they're deploy targets too. Your local
 Claude subagents in `.claude/agents/` are never swept in.
 
 ```console
-$ skylift plan ./examples/team
+$ agentlift plan ./examples/team
 Skills to upload: 2
   - cite-sources  (417213e5, 1 file(s))  used by: bug-finder, researcher
   - bug-report    (6d58998e, 1 file(s))  used by: bug-finder
@@ -191,8 +191,8 @@ so the hosted agent pauses for caller approval before each `bash` call.
 `parse → plan → apply → run`.
 
 - **parse** — read the folder into an in-memory project. Pure file IO.
-- **plan** — produce a deterministic list of API operations with symbolic refs (`@skill:hash`, `@agent:name`), skill dedup, validation, and diagnostics. No network. This is what `skylift plan` prints and what the offline tests assert.
-- **apply** — execute the plan: upload skills (deduped), create agents in dependency order, write a `.skylift-lock.json` mapping local definitions → remote IDs.
+- **plan** — produce a deterministic list of API operations with symbolic refs (`@skill:hash`, `@agent:name`), skill dedup, validation, and diagnostics. No network. This is what `agentlift plan` prints and what the offline tests assert.
+- **apply** — execute the plan: upload skills (deduped), create agents in dependency order, write a `.agentlift-lock.json` mapping local definitions → remote IDs.
 - **run** — invoke a deployed agent by ID (or run the same folder locally with `--local`).
 
 The lockfile makes re-deploys idempotent: an unchanged skill is not re-uploaded, an unchanged agent is not re-created (verified in `tests/test_idempotency.py`, no network). Details: [docs/how-it-works.md](docs/how-it-works.md).
@@ -201,27 +201,27 @@ The lockfile makes re-deploys idempotent: an unchanged skill is not re-uploaded,
 
 Deploy is declarative: the folder is the desired state, and `deploy` makes the cloud match it. Trigger it however you already work.
 
-1. **A command** (solo): `skylift plan .` then `skylift deploy . --yes`.
+1. **A command** (solo): `agentlift plan .` then `agentlift deploy . --yes`.
 2. **Git push** (teams, recommended): commit `.managed-agents/`, copy [`examples/deploy-workflow/ci-deploy.yml`](examples/deploy-workflow/ci-deploy.yml) into `.github/workflows/`, add an `ANTHROPIC_API_KEY` secret. Every push that touches the folder validates, deploys (idempotent), and commits the updated lockfile. Review in PRs; roll back with `git revert`.
 3. **From Claude Code**: drop [`examples/claude-code-skill/deploy-managed-agents/`](examples/claude-code-skill/) into `.claude/skills/` and just say *"deploy my managed agents."*
 
 Full guide + trade-offs: [docs/deploying.md](docs/deploying.md).
 
 ```
-skylift validate <path>              parse + plan, report problems (exit 1 on errors)
-skylift plan     <path> [--json]     show the deploy plan (dry run, no network)
-skylift diff     <path> [--remote]   what a deploy would change vs the lockfile
-skylift deploy   <path> [--prune]    upload skills + create agents; write lockfile
-skylift run <agent> --task "..."     invoke a deployed agent (--local for the same folder locally)
-skylift list     <path>              what's currently deployed (from the lockfile)
-skylift destroy  <path>              archive every agent in the lockfile
-skylift bench <agent> --task "..."   managed vs local: latency / cost / pass
+agentlift validate <path>              parse + plan, report problems (exit 1 on errors)
+agentlift plan     <path> [--json]     show the deploy plan (dry run, no network)
+agentlift diff     <path> [--remote]   what a deploy would change vs the lockfile
+agentlift deploy   <path> [--prune]    upload skills + create agents; write lockfile
+agentlift run <agent> --task "..."     invoke a deployed agent (--local for the same folder locally)
+agentlift list     <path>              what's currently deployed (from the lockfile)
+agentlift destroy  <path>              archive every agent in the lockfile
+agentlift bench <agent> --task "..."   managed vs local: latency / cost / pass
 ```
 
-`skylift diff` shows new / changed / unchanged / stale before you deploy:
+`agentlift diff` shows new / changed / unchanged / stale before you deploy:
 
 ```console
-$ skylift diff .
+$ agentlift diff .
 Skills:
   + house-style  (new)
   = cite-sources  (unchanged)
@@ -231,12 +231,12 @@ Agents:
 Stale (in lockfile, not in folder — archived with --prune):
   - old-agent
 
-2 change(s) pending.  Run: skylift deploy <path>
+2 change(s) pending.  Run: agentlift deploy <path>
 ```
 
 ## Where the deployed IDs live
 
-`deploy` writes **`.skylift-lock.json`** next to the path you deployed — a map from each local definition to the remote object it became (`skill_…`, `agent_…`, version, spec hash). **Commit it.** It's what makes re-deploys idempotent (unchanged skills/agents are skipped), makes `skylift run lead …` resolve by name, and lets a teammate or CI reuse the same cloud objects instead of duplicating them. It holds only IDs/hashes/titles — no secrets. It's per Anthropic account; commit it when your team shares one. More: [docs/deploying.md](docs/deploying.md#where-the-ids-live-the-lockfile).
+`deploy` writes **`.agentlift-lock.json`** next to the path you deployed — a map from each local definition to the remote object it became (`skill_…`, `agent_…`, version, spec hash). **Commit it.** It's what makes re-deploys idempotent (unchanged skills/agents are skipped), makes `agentlift run lead …` resolve by name, and lets a teammate or CI reuse the same cloud objects instead of duplicating them. It holds only IDs/hashes/titles — no secrets. It's per Anthropic account; commit it when your team shares one. More: [docs/deploying.md](docs/deploying.md#where-the-ids-live-the-lockfile).
 
 ## Tests
 
@@ -254,7 +254,7 @@ Offline tests pin the translation (tool mapping, per-tool permissions, skill ded
 - **Knowledge files are inlined** into the system prompt (no persistent local FS in the managed sandbox). Large reference sets should become a skill bundle.
 - **Anthropic only, for now.** The planner is provider-agnostic; OpenAI / Google targets are on the roadmap.
 
-Each of these is surfaced as a `skylift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
+Each of these is surfaced as a `agentlift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
 
 ## Documentation
 
@@ -280,7 +280,7 @@ Everything is here or one click away:
 ## Roadmap
 
 - Authenticated remote MCP via the Vaults API
-- `skylift diff --remote` deeper drift detection (full account reconciliation)
+- `agentlift diff --remote` deeper drift detection (full account reconciliation)
 - Additional deploy targets (OpenAI Agent Builder, Google Managed Agents) behind the same convention
 - A skill-bundle mode for large `knowledge/` sets
 
