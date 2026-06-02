@@ -7,7 +7,7 @@ Anthropic's Managed Agents runs your whole agent loop in the cloud — you call 
 skylift closes that gap. Point it at the agent folder you already use with Claude Code / the Agent SDK (`CLAUDE.md` + skills + `.mcp.json`). It uploads your skills, maps your tool allowlist, wires your remote MCP servers, and creates the hosted agent — deterministically, idempotently, no new format to learn.
 
 ```bash
-pip install skylift
+pip install -e .                 # PyPI release pending; install from a clone for now
 skylift deploy ./my-agent
 skylift run my-agent --task "what changed in the API this week?"
 ```
@@ -26,7 +26,8 @@ skylift makes the deploy unit the same folder you develop against locally. Nothi
 ## Install
 
 ```bash
-pip install skylift            # or: pip install -e .  (from a clone)
+git clone https://github.com/phuryn/managed-agents-API && cd managed-agents-API
+pip install -e .                      # PyPI release pending
 export ANTHROPIC_API_KEY=sk-ant-...   # needs Managed Agents beta access
 ```
 
