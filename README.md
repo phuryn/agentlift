@@ -37,7 +37,7 @@ skylift reads a convention you may already use. Minimal single-agent project:
 
 ```
 my-agent/
-└── .agents/
+└── .managed-agents/              # the deploy folder — everything here is a deploy target
     └── knowledge-agent/
         ├── agent.md              # YAML frontmatter + system prompt
         ├── skills/
@@ -59,7 +59,7 @@ You are the Knowledge Agent. Answer product questions concisely.
 Always sign off as "Best, Knowledge Agent".
 ```
 
-It also reads the **Claude Code embedded-agents layout** unchanged — `.claude/agents/<name>/CLAUDE.md` + `.mcp.json` + `.claude/skills/...`. If you built local agents that way, they deploy as-is. See [docs/convention.md](docs/convention.md).
+Why a dedicated `.managed-agents/` folder instead of reusing `.claude/agents/`? Because that's where Claude's **local** agents and native subagents live — and those aren't deploy targets. A separate folder keeps "ship to the cloud" cleanly apart from "runs on my machine." Already have an embedded agent folder (`.claude/agents/<name>/` with `CLAUDE.md` + `.mcp.json` + `.claude/skills/...`)? Point skylift straight at it to deploy just that one — `CLAUDE.md`, `.mcp.json`, and `.claude/skills/` are all read for back-compat. See [docs/convention.md](docs/convention.md).
 
 ## See exactly what will happen (no network)
 
@@ -137,7 +137,7 @@ Full table and the exact wire format: [docs/anthropic-mapping.md](docs/anthropic
 ## Multi-agent, shared resources, subagents
 
 ```
-.agents/
+.managed-agents/
 ├── shared/
 │   ├── skills/cite-sources/SKILL.md     # one skill, many agents (uploaded once)
 │   └── mcp.json                         # one MCP server, many agents
@@ -145,6 +145,10 @@ Full table and the exact wire format: [docs/anthropic-mapping.md](docs/anthropic
 ├── researcher/agent.md                  # mcp: [shared/docs]
 └── lead/agent.md                        # subagents: [bug-finder, researcher]  → coordinator
 ```
+
+Subagents are unambiguous here: `lead`'s roster references other agents **in the
+same `.managed-agents/` folder**, so they're deploy targets too. Your local
+Claude subagents in `.claude/agents/` are never swept in.
 
 ```console
 $ skylift plan ./examples/team

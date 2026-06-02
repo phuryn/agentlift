@@ -2,8 +2,11 @@
 
 Supported layouts (auto-detected, in priority order):
 
-1. `.agents/`              — skylift-native, multi-agent, with optional `shared/`
-       .agents/
+1. `.managed-agents/`     — the deploy folder. Everything inside it is a deploy
+   target *by virtue of being there*. A dedicated name so managed deploy targets
+   never get confused with Claude's local agents/subagents (which live in
+   `.claude/agents/` and are intentionally NOT scanned).
+       .managed-agents/
          shared/skills/<skill>/SKILL.md      # skills shared across agents
          shared/mcp.json                     # MCP servers shared across agents
          <agent>/agent.md                    # YAML frontmatter + system prompt
@@ -11,13 +14,13 @@ Supported layouts (auto-detected, in priority order):
          <agent>/mcp.json
          <agent>/knowledge/*.md
 
-2. `.claude/agents/`      — the Claude Code embedded-agents layout (zero-friction)
-       .claude/agents/<agent>/CLAUDE.md
-       .claude/agents/<agent>/.mcp.json
-       .claude/agents/<agent>/.claude/skills/<skill>/SKILL.md
-       .claude/agents/<agent>/knowledge/*.md
+2. a single agent directory passed directly (must contain agent.md or CLAUDE.md).
+   Use this to deploy exactly one agent — including an existing Claude Code
+   embedded-agent folder (`.claude/agents/<name>/`): point skylift straight at it.
 
-3. a single agent directory passed directly (must contain agent.md or CLAUDE.md)
+`.claude/agents/` is deliberately never auto-scanned: that folder holds local
+subagents (single `.md` files) and local embedded agents, which are not deploy
+targets. Keep what you want in the cloud under `.managed-agents/`.
 
 Everything here is pure file IO — no network.
 """
@@ -289,15 +292,12 @@ def parse_project(
     diags = diags or Diagnostics()
     path = os.path.abspath(path)
 
-    dot_agents = os.path.join(path, ".agents")
-    claude_agents = os.path.join(path, ".claude", "agents")
+    managed_agents = os.path.join(path, ".managed-agents")
 
-    if os.path.isdir(dot_agents):
-        return _parse_multi(path, dot_agents, ".agents", default_model, diags, has_shared=True)
-    if os.path.isdir(claude_agents):
-        return _parse_multi(path, claude_agents, ".claude/agents", default_model, diags, has_shared=False)
+    if os.path.isdir(managed_agents):
+        return _parse_multi(path, managed_agents, ".managed-agents", default_model, diags)
 
-    # single agent dir?
+    # single agent dir? (e.g. point straight at a .claude/agents/<name>/ folder)
     if _read_agent_file(path) is not None:
         agent = load_agent(path, {}, {}, default_model, diags)
         agents = [agent] if agent else []
@@ -305,22 +305,22 @@ def parse_project(
 
     diags.error(
         "project.not_found",
-        f"no agent project at {path} (looked for .agents/, .claude/agents/, or an agent.md/CLAUDE.md here)",
+        f"no agent project at {path} (expected a .managed-agents/ folder, "
+        f"or an agent.md/CLAUDE.md directly here)",
     )
     return Project(root=path, agents=[], layout="single"), diags
 
 
 def _parse_multi(
     root: str, agents_root: str, layout: str, default_model: str,
-    diags: Diagnostics, has_shared: bool,
+    diags: Diagnostics,
 ) -> tuple[Project, Diagnostics]:
     shared_skills: dict[str, SkillSpec] = {}
     shared_mcp: dict[str, McpServerSpec] = {}
-    if has_shared:
-        shared_dir = os.path.join(agents_root, "shared")
-        if os.path.isdir(shared_dir):
-            shared_skills = discover_skills(shared_dir, shared=True)
-            shared_mcp = discover_mcp(shared_dir, shared=True)
+    shared_dir = os.path.join(agents_root, "shared")
+    if os.path.isdir(shared_dir):
+        shared_skills = discover_skills(shared_dir, shared=True)
+        shared_mcp = discover_mcp(shared_dir, shared=True)
 
     agents: list[AgentSpec] = []
     for entry in sorted(os.listdir(agents_root)):

@@ -64,13 +64,13 @@ def test_team_dedup_and_coordinator(examples_dir):
 
 
 def test_stdio_mcp_rejected_by_default(fixtures_dir):
-    project, plan = _plan(os.path.join(fixtures_dir, "claude_legacy"))
+    project, plan = _plan(os.path.join(fixtures_dir, "gmail-agent"))
     assert not plan.deployable
     assert any(d.code == "mcp.stdio_unsupported" for d in plan.diagnostics.errors)
 
 
 def test_stdio_mcp_skip_unsupported(fixtures_dir):
-    project, plan = _plan(os.path.join(fixtures_dir, "claude_legacy"), skip_unsupported=True)
+    project, plan = _plan(os.path.join(fixtures_dir, "gmail-agent"), skip_unsupported=True)
     assert plan.deployable
     assert any(d.code == "mcp.stdio_skipped" for d in plan.diagnostics.warnings)
     # the dropped server is NOT in the request

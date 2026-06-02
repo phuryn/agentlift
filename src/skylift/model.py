@@ -39,7 +39,7 @@ class SkillSpec:
     source_dir: str                # absolute path to the skill directory
     files: list[tuple[str, str]]   # (arcname, abs_path); arcname keeps the "<name>/..." prefix
     content_hash: str              # stable hash over (arcname, bytes) of all files
-    shared: bool = False           # came from .agents/shared/skills
+    shared: bool = False           # came from .managed-agents/shared/skills
 
     @property
     def display_title(self) -> str:
@@ -81,7 +81,7 @@ class Project:
     """A parsed project: the agents plus where they came from."""
     root: str
     agents: list[AgentSpec]
-    layout: str  # ".agents" | ".claude/agents" | "single"
+    layout: str  # ".managed-agents" | "single"
 
     def agent(self, name: str) -> Optional[AgentSpec]:
         for a in self.agents:

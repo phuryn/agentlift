@@ -1,13 +1,17 @@
 # The agent convention
 
-skylift reads three layouts, auto-detected in this order. You don't pick one — it
-finds whichever your project uses.
+skylift reads two layouts, auto-detected.
 
-## 1. `.agents/` (skylift-native)
+## 1. `.managed-agents/` — the deploy folder
+
+Everything inside `.managed-agents/` is a deploy target *by virtue of being there*.
+The name is deliberate: it can't be confused with `.claude/agents/`, where Claude's
+**local** agents and native subagents live. Those are not deploy targets and are
+**never auto-scanned** — keep what you want in the cloud here.
 
 ```
 <project>/
-└── .agents/
+└── .managed-agents/
     ├── shared/                              # optional, shared across all agents
     │   ├── skills/<skill-name>/SKILL.md
     │   └── mcp.json
@@ -18,23 +22,34 @@ finds whichever your project uses.
         └── knowledge/*.md                   # reference files (md/txt/json/csv)
 ```
 
-## 2. `.claude/agents/` (Claude Code embedded-agents layout)
+The structure inside each agent folder is the same embedded-agent model you already
+use with the Claude Agent SDK — only the parent folder name is new.
 
-Deploys unchanged — this is the layout from the Claude Agent SDK template.
+## 2. A single agent directory
+
+Point skylift straight at a folder that contains `agent.md` or `CLAUDE.md` and it
+becomes a one-agent project. This is how you deploy **one** existing Claude Code
+embedded-agent folder without moving it — point at `.claude/agents/<name>/` and its
+`CLAUDE.md`, `.mcp.json`, and `.claude/skills/<skill>/SKILL.md` are all read:
 
 ```
-<project>/
-└── .claude/agents/<agent-name>/
-    ├── CLAUDE.md
-    ├── .mcp.json
-    ├── .claude/skills/<skill-name>/SKILL.md
-    └── knowledge/*.md
+.claude/agents/<agent-name>/
+├── CLAUDE.md
+├── .mcp.json
+├── .claude/skills/<skill-name>/SKILL.md
+└── knowledge/*.md
 ```
 
-## 3. A single agent directory
+skylift never *scans* `.claude/agents/` as a whole — it would sweep in local
+subagents (single `.md` files) and other local agents that aren't meant for the
+cloud. Pointing at one folder is an explicit, per-agent choice.
 
-Point skylift straight at a folder that contains `agent.md` or `CLAUDE.md`. It
-becomes a one-agent project.
+## Native single-file subagents
+
+Claude Code subagents are single files — `.claude/agents/<name>.md` with frontmatter
+and a prompt, invoked in-process by a parent agent via the Task tool. They are local
+delegation helpers, **not** deploy targets, so skylift does not deploy them. To run
+a capability in the managed cloud, give it its own folder under `.managed-agents/`.
 
 ---
 
@@ -60,7 +75,7 @@ System prompt goes here.
 ### Resource references
 
 - A bare name (`summarize`) resolves to a local resource, then a shared one.
-- A `shared/<name>` prefix resolves only against `.agents/shared/`.
+- A `shared/<name>` prefix resolves only against `.managed-agents/shared/`.
 - Omitting `skills:` / `mcp:` auto-discovers the agent's **local** resources (shared
   resources attach only when referenced).
 

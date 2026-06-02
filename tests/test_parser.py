@@ -17,7 +17,7 @@ def test_split_frontmatter_none():
 
 def test_parse_quickstart(examples_dir):
     project, diags = parse_project(os.path.join(examples_dir, "quickstart"))
-    assert project.layout == ".agents"
+    assert project.layout == ".managed-agents"
     assert [a.name for a in project.agents] == ["knowledge-agent"]
     a = project.agents[0]
     assert a.model == "claude-haiku-4-5"
@@ -47,9 +47,11 @@ def test_parse_team_shared_and_coordinator(examples_dir):
     assert diags.ok
 
 
-def test_parse_claude_legacy_backcompat(fixtures_dir):
-    project, diags = parse_project(os.path.join(fixtures_dir, "claude_legacy"))
-    assert project.layout == ".claude/agents"
+def test_parse_single_dir_backcompat(fixtures_dir):
+    # point straight at one agent folder (e.g. an existing .claude/agents/<name>/);
+    # CLAUDE.md, .mcp.json, and .claude/skills/ are all read for back-compat
+    project, diags = parse_project(os.path.join(fixtures_dir, "gmail-agent"))
+    assert project.layout == "single"
     a = project.agent("gmail-agent")
     assert a is not None
     # skill discovered under .claude/skills
