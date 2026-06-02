@@ -1,6 +1,6 @@
 ---
 name: bug-report
-description: Use when reporting a bug. Format the finding as two lines exactly - "BUG: <what is wrong>" then "FIX: <the one-line change>".
+description: Use when reporting a bug. Format the finding as exactly two lines - a BUG line stating what is wrong, then a FIX line with the one-line change.
 ---
 
 # Bug Report

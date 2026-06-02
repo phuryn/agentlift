@@ -39,6 +39,7 @@ class SkillSpec:
     source_dir: str                # absolute path to the skill directory
     files: list[tuple[str, str]]   # (arcname, abs_path); arcname keeps the "<name>/..." prefix
     content_hash: str              # stable hash over (arcname, bytes) of all files
+    description: Optional[str] = None  # SKILL.md frontmatter description (validated pre-flight)
     shared: bool = False           # came from .managed-agents/shared/skills
 
     @property
@@ -55,6 +56,7 @@ class McpServerSpec:
     command: Optional[str] = None  # for stdio transport (informational only)
     args: list[str] = field(default_factory=list)
     allowed_tools: Optional[list[str]] = None  # bare tool names; None = all tools from the server
+    tool_policies: dict[str, str] = field(default_factory=dict)  # tool name -> "ask" | "allow"
     shared: bool = False
     has_inline_auth: bool = False  # env/headers present in source (can't ride along on managed URL servers)
 
@@ -68,6 +70,8 @@ class AgentSpec:
     description: Optional[str] = None
     # built-in tool allowlist as MANAGED names; None means "all builtins enabled"
     builtin_tools: Optional[list[str]] = None
+    # managed tool name -> "ask" | "allow" (gate a tool behind approval); default allow
+    builtin_tool_policies: dict[str, str] = field(default_factory=dict)
     skills: list[SkillSpec] = field(default_factory=list)
     mcp_servers: list[McpServerSpec] = field(default_factory=list)
     subagents: list[str] = field(default_factory=list)   # names of roster agents (makes this a coordinator)

@@ -97,19 +97,36 @@ System prompt goes here.
 Tools with no managed equivalent (e.g. `task`, `todowrite`) are dropped with a
 warning. MCP tools are configured through `mcp.json`, not `tools:`.
 
+### Per-tool permissions (`:ask` / `:allow`)
+
+Append `:ask` to gate a tool behind caller approval, or `:allow` (the default) to
+auto-approve. Works on built-in tools and on specific MCP tools.
+
+```yaml
+tools: [read, glob, grep, bash:ask, write:ask]
+```
+
+At runtime an `:ask` tool call pauses the session (`requires_action`) until your
+app approves or rejects it — the deployable equivalent of a PreToolUse "ask" hook.
+See [deploying.md](deploying.md#permissions-the-deployable-hook).
+
 ## `mcp.json` / `.mcp.json`
 
 ```jsonc
 {
   "mcpServers": {
     "docs": {
-      "type": "url",                       // url = deployable; stdio = rejected
+      "type": "url",                          // url = deployable; stdio = rejected
       "url": "https://example.com/mcp",
-      "allowedTools": ["search", "fetch"]  // becomes the per-server tool allowlist
+      "allowedTools": ["search", "delete:ask"] // specific tools; ':ask' gates one
     }
   }
 }
 ```
+
+`allowedTools` is a **specific-tool** allowlist: only those tools are exposed to
+the agent (omit the key to expose all of the server's tools). Each entry may carry
+a `:ask` / `:allow` permission suffix, same as built-in tools.
 
 `stdio` servers (`"command": "npx", ...`) are valid locally but cannot deploy to a
 managed agent — skylift errors clearly (or drops them with `--skip-unsupported`).

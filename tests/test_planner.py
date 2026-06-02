@@ -76,3 +76,10 @@ def test_stdio_mcp_skip_unsupported(fixtures_dir):
     # the dropped server is NOT in the request
     req = plan.agent_creates[0].request
     assert "mcp_servers" not in req
+
+
+def test_xml_in_skill_description_rejected(fixtures_dir):
+    # caught at plan time instead of as a cryptic API 400
+    project, plan = _plan(os.path.join(fixtures_dir, "bad-skill"))
+    assert not plan.deployable
+    assert any(d.code == "skill.xml_in_description" for d in plan.diagnostics.errors)

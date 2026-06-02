@@ -13,6 +13,7 @@ IDs at deploy time.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -20,6 +21,7 @@ from .diagnostics import Diagnostics
 from .model import AgentSpec, Project, SkillSpec
 
 SYSTEM_PROMPT_LIMIT = 100_000   # API max for `system`
+_XML_TAG = re.compile(r"<[^>\s][^>]*>")  # rough "looks like an XML tag" detector
 MAX_SKILLS = 20
 MAX_MCP_SERVERS = 20
 MAX_TOOLS = 128
@@ -125,22 +127,33 @@ def _inline_knowledge(agent: AgentSpec, diags: Diagnostics) -> str:
     return "".join(parts)
 
 
+_POLICY_TYPE = {"ask": "always_ask", "allow": "always_allow"}
+
+
+def _tool_config(name: str, policy: Optional[str]) -> dict:
+    cfg = {"name": name, "enabled": True}
+    if policy in _POLICY_TYPE:
+        cfg["permission_policy"] = {"type": _POLICY_TYPE[policy]}
+    return cfg
+
+
 def _build_tools(agent: AgentSpec, deployable_mcp, diags: Diagnostics) -> list[dict]:
-    """Built-in toolset (with allowlist) + one mcp_toolset per deployable server."""
+    """Built-in toolset (with allowlist + per-tool permission) + one mcp_toolset
+    per deployable server (with its specific-tool allowlist + per-tool permission)."""
     tools: list[dict] = []
 
     # built-in toolset
     if agent.builtin_tools is None:
         tools.append({"type": "agent_toolset_20260401", "default_config": {"enabled": True}})
     else:
-        configs = [{"name": t, "enabled": True} for t in agent.builtin_tools]
+        configs = [_tool_config(t, agent.builtin_tool_policies.get(t)) for t in agent.builtin_tools]
         tools.append({
             "type": "agent_toolset_20260401",
             "default_config": {"enabled": False},
             "configs": configs,
         })
 
-    # one mcp_toolset per deployable server, carrying the per-server allowlist
+    # one mcp_toolset per deployable server, carrying the specific-tool allowlist
     for srv in deployable_mcp:
         if srv.allowed_tools is None:
             tools.append({
@@ -153,7 +166,7 @@ def _build_tools(agent: AgentSpec, deployable_mcp, diags: Diagnostics) -> list[d
                 "type": "mcp_toolset",
                 "mcp_server_name": srv.name,
                 "default_config": {"enabled": False},
-                "configs": [{"name": t, "enabled": True} for t in srv.allowed_tools],
+                "configs": [_tool_config(t, srv.tool_policies.get(t)) for t in srv.allowed_tools],
             })
 
     if len(tools) > MAX_TOOLS:
@@ -275,6 +288,14 @@ def build_plan(
             ref = skill_ref(sk)
             up = uploads.get(sk.content_hash[:8])
             if up is None:
+                # pre-flight: the API rejects XML-like tags in a skill description
+                if sk.description and _XML_TAG.search(sk.description):
+                    diags.error(
+                        "skill.xml_in_description",
+                        f"skill '{sk.name}' has angle-bracket tags in its SKILL.md "
+                        f"description (the API rejects them) — rephrase without <...>",
+                        agent.name,
+                    )
                 uploads[sk.content_hash[:8]] = SkillUpload(
                     ref=ref, content_hash=sk.content_hash,
                     display_title=sk.display_title, source_dir=sk.source_dir,

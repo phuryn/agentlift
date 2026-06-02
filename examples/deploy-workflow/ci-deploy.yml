@@ -1,0 +1,50 @@
+# Deploy your managed agents on every push — "git push to deploy".
+#
+# Copy this to YOUR repo at .github/workflows/deploy-agents.yml, add an
+# ANTHROPIC_API_KEY repo secret, and commit your .managed-agents/ folder.
+# On every push that touches it, the agents are (re)deployed and the updated
+# .skylift-lock.json (your local -> remote ID map) is committed back.
+#
+# Idempotent: unchanged skills/agents are skipped, so re-deploys are cheap.
+
+name: deploy-managed-agents
+
+on:
+  push:
+    branches: [main]
+    paths: [".managed-agents/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # to commit the updated lockfile back
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install skylift
+        run: pip install skylift   # or: pip install git+https://github.com/phuryn/managed-agents-API
+
+      - name: Plan (fails the build on any error diagnostic)
+        run: skylift validate .
+
+      - name: Deploy
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: skylift deploy . --yes --prune
+
+      - name: Commit updated lockfile
+        run: |
+          if ! git diff --quiet -- .skylift-lock.json; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .skylift-lock.json
+            git commit -m "chore: update skylift deploy lockfile [skip ci]"
+            git push
+          fi

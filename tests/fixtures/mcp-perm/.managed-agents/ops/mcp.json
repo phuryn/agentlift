@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "url",
+      "url": "https://example.com/mcp",
+      "allowedTools": ["search_issues", "create_issue:ask"]
+    }
+  }
+}

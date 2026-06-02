@@ -109,12 +109,14 @@ def discover_skills(base_dir: str, shared: bool) -> dict[str, SkillSpec]:
             sdir = os.path.join(skills_root, entry)
             if not os.path.isdir(sdir):
                 continue
-            if not os.path.isfile(os.path.join(sdir, "SKILL.md")):
+            skill_md = os.path.join(sdir, "SKILL.md")
+            if not os.path.isfile(skill_md):
                 continue
             files, chash = hash_skill_dir(sdir)
+            fm, _ = split_frontmatter(open(skill_md, "r", encoding="utf-8", errors="replace").read())
             found[entry] = SkillSpec(
                 name=entry, source_dir=sdir, files=files,
-                content_hash=chash, shared=shared,
+                content_hash=chash, description=fm.get("description"), shared=shared,
             )
     return found
 
@@ -133,12 +135,21 @@ def parse_mcp_file(path: str, shared: bool) -> dict[str, McpServerSpec]:
         transport = cfg.get("type") or ("url" if url else "stdio")
         if transport not in ("url", "stdio"):
             transport = "url" if url else "stdio"
-        allowed = cfg.get("allowedTools") or cfg.get("allowed_tools")
+        raw_allowed = cfg.get("allowedTools") or cfg.get("allowed_tools")
+        allowed = None
+        policies: dict[str, str] = {}
+        if raw_allowed is not None:
+            allowed = []
+            for t in raw_allowed:
+                tname, policy = _split_policy(str(t))
+                allowed.append(tname)
+                if policy:
+                    policies[tname] = policy
         has_auth = bool(cfg.get("env") or cfg.get("headers"))
         servers[name] = McpServerSpec(
             name=name, transport=transport, url=url, command=command,
             args=list(cfg.get("args") or []), allowed_tools=allowed,
-            shared=shared, has_inline_auth=has_auth,
+            tool_policies=policies, shared=shared, has_inline_auth=has_auth,
         )
     return servers
 
@@ -172,29 +183,48 @@ def discover_knowledge(agent_dir: str) -> list[tuple[str, str]]:
 # --------------------------------------------------------------------------- #
 # tool resolution
 # --------------------------------------------------------------------------- #
+def _split_policy(token: str) -> tuple[str, Optional[str]]:
+    """Split a 'name' / 'name:ask' / 'name:allow' token into (name, policy|None)."""
+    name = token.strip()
+    policy = None
+    if ":" in name:
+        name, suffix = name.rsplit(":", 1)
+        suffix = suffix.strip().lower()
+        if suffix in ("ask", "allow"):
+            policy = suffix
+        else:
+            name = token.strip()  # not a policy suffix; leave the name intact
+    return name.strip(), policy
+
+
 def resolve_builtin_tools(
     fm_tools: Optional[list], agent_name: str, diags: Diagnostics
-) -> Optional[list[str]]:
-    """Map a frontmatter `tools:` list of local names to managed builtins.
-    Returns None (= enable all builtins) when no `tools:` key is given."""
+) -> tuple[Optional[list[str]], dict[str, str]]:
+    """Map a frontmatter `tools:` list of local names to managed builtins, parsing
+    optional ':ask' / ':allow' permission suffixes. Returns (names|None, policies).
+    None names means "enable all builtins" (no `tools:` key)."""
     if fm_tools is None:
-        return None
+        return None, {}
     managed: list[str] = []
+    policies: dict[str, str] = {}
     for t in fm_tools:
-        key = str(t).strip().lower()
+        raw, policy = _split_policy(str(t))
+        key = raw.lower()
         if key.startswith("mcp__"):
             continue  # MCP tools are handled via mcp config, not the builtin toolset
         mapped = BUILTIN_TOOL_MAP.get(key)
         if mapped is None:
             diags.warning(
                 "tools.unmapped",
-                f"tool '{t}' has no Managed Agents built-in equivalent; dropped",
+                f"tool '{raw}' has no Managed Agents built-in equivalent; dropped",
                 agent_name,
             )
             continue
         if mapped not in managed:
             managed.append(mapped)
-    return managed
+        if policy:
+            policies[mapped] = policy
+    return managed, policies
 
 
 # --------------------------------------------------------------------------- #
@@ -266,12 +296,15 @@ def load_agent(
     knowledge_mode = str(fm.get("knowledge") or "inline").lower()
     knowledge = discover_knowledge(agent_dir) if knowledge_mode != "skip" else []
 
+    builtin_tools, builtin_tool_policies = resolve_builtin_tools(fm.get("tools"), name, diags)
+
     return AgentSpec(
         name=name,
         system=body.strip(),
         model=str(fm.get("model") or default_model),
         description=fm.get("description"),
-        builtin_tools=resolve_builtin_tools(fm.get("tools"), name, diags),
+        builtin_tools=builtin_tools,
+        builtin_tool_policies=builtin_tool_policies,
         skills=skills,
         mcp_servers=mcp,
         subagents=subagents,

@@ -39,6 +39,13 @@ produces a new managed agent on the next deploy; the lockfile is updated. Pass
 skill edit uploads a new skill; the old one is left in place (skills are cheap and
 may be shared).
 
+## Skill descriptions can't contain angle-bracket tags
+
+The API rejects a `SKILL.md` frontmatter `description` that contains XML-like tags
+(e.g. `Replace <placeholder> with ...`). skylift catches this at plan time
+(`skill.xml_in_description`) so you get a clear error instead of a deploy-time 400.
+The skill *body* may contain anything; only the description is validated.
+
 ## Anthropic only, for now
 
 The parser and planner are provider-agnostic — the plan is just "operations." Only

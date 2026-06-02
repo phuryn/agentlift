@@ -24,8 +24,10 @@ The `RECEIPT:` line in the output is the uploaded skill firing inside the runtim
 Shows everything skylift wires:
 
 - **shared skill** `cite-sources` used by two agents → uploaded once
-- **shared MCP server** `docs` (remote URL) with a tool allowlist
+- **shared MCP server** `docs` (remote URL) with a specific-tool allowlist
 - a **coordinator** (`lead`) with a `subagents` roster (`bug-finder`, `researcher`)
+- a **per-tool permission**: `bug-finder` declares `bash:ask`, so the hosted agent
+  pauses for caller approval before each `bash` call
 
 ```bash
 skylift plan ./team        # see the dedup, the coordinator ordering, the MCP wiring
@@ -36,3 +38,15 @@ skylift run lead --project ./team --task "Find the bug in utils.py and explain R
 > The `docs` MCP server points at `https://example.com/mcp` (a placeholder). Swap in
 > a real remote MCP URL before relying on its tools; the agent deploys and runs
 > fine without ever calling it.
+
+## `deploy-workflow/ci-deploy.yml` — git-push-to-deploy
+
+A GitHub Actions template. Copy it to your repo's `.github/workflows/`, add an
+`ANTHROPIC_API_KEY` secret, and every push that touches `.managed-agents/`
+validates, deploys, and commits the updated lockfile. See [docs/deploying.md](../docs/deploying.md).
+
+## `claude-code-skill/deploy-managed-agents/` — deploy from Claude Code
+
+Drop this skill into your repo's `.claude/skills/`. Then in Claude Code you can say
+"deploy my managed agents" or "run the researcher with …" and it maps your words to
+the right `skylift` command.

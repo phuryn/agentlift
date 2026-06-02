@@ -26,8 +26,11 @@ ever contacting the API:
 The planner also:
 
 - maps the built-in tool allowlist to `agent_toolset_20260401` configs
-- builds an `mcp_toolset` per remote server carrying its tool allowlist
+- maps `:ask` / `:allow` tool suffixes to each config's `permission_policy`
+- builds an `mcp_toolset` per remote server carrying its specific-tool allowlist
 - rejects `stdio` MCP servers (or drops them with `--skip-unsupported`)
+- scopes every agent to its own folder + `shared/` only — the repo-root
+  `CLAUDE.md`, sibling skills, and user-level MCP servers never enter the request
 - folds `knowledge/*.md` into the system prompt (size-guarded)
 - wires `subagents` into a `multiagent` coordinator and orders roster agents first
 - validates limits (≤20 skills, ≤20 MCP servers, ≤128 tools, 100k-char system)

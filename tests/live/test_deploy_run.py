@@ -64,3 +64,24 @@ def test_same_definition_runs_locally(deployed_quickstart, live_client):
     assert res.ok, res.error
     assert res.output
     assert substring_grader(res.output, must_include=["RECEIPT:"]).passed, res.output
+
+
+def test_team_multiagent_deploys(examples_dir, tmp_path, live_client):
+    """The full multi-agent path through the real Deployer: shared-skill dedup,
+    a `bash:ask` permission, a URL MCP server, and a coordinator over a roster.
+    Deploy-only (no session run); archives everything afterward."""
+    dst = os.path.join(str(tmp_path), "team")
+    shutil.copytree(os.path.join(examples_dir, "team"), dst)
+    project, diags = parse_project(dst)
+    plan = build_plan(project, diags)
+    assert plan.deployable, diags.render()
+    deployer = Deployer(live_client, project.root)
+    try:
+        result = deployer.apply(plan, log=lambda *_: None)
+        # 2 unique skills (cite-sources shared, bug-report), 3 agents incl. coordinator
+        assert len(result.uploaded_skills) + len(result.reused_skills) == 2
+        assert len(result.created_agents) == 3
+        lead = deployer.lock.agent("lead")
+        assert lead and lead["agent_id"].startswith("agent_")
+    finally:
+        deployer.destroy(log=lambda *_: None)

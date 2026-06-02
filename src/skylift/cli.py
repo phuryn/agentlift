@@ -71,15 +71,21 @@ def print_plan(plan) -> None:
     print(f"\nAgents to create: {len(plan.agent_creates)}")
     for ac in plan.agent_creates:
         req = ac.request
+        def _fmt(c):
+            ask = (c.get("permission_policy") or {}).get("type") == "always_ask"
+            return c["name"] + ("(ask)" if ask else "")
         tools = []
         for t in req.get("tools", []):
             if t["type"] == "agent_toolset_20260401":
                 if t.get("default_config", {}).get("enabled"):
                     tools.append("builtins:all")
                 else:
-                    tools.append("builtins:" + "/".join(c["name"] for c in t.get("configs", [])))
+                    tools.append("builtins:" + "/".join(_fmt(c) for c in t.get("configs", [])))
             elif t["type"] == "mcp_toolset":
-                tools.append(f"mcp:{t['mcp_server_name']}")
+                if t.get("default_config", {}).get("enabled"):
+                    tools.append(f"mcp:{t['mcp_server_name']}:all")
+                else:
+                    tools.append(f"mcp:{t['mcp_server_name']}:" + "/".join(_fmt(c) for c in t.get("configs", [])))
         line = f"  - {ac.name}  [{req['model']}]"
         if ac.is_coordinator:
             line += "  (coordinator -> " + ", ".join(req["multiagent"]["agents"]) + ")"
