@@ -210,11 +210,28 @@ Full guide + trade-offs: [docs/deploying.md](docs/deploying.md).
 ```
 skylift validate <path>              parse + plan, report problems (exit 1 on errors)
 skylift plan     <path> [--json]     show the deploy plan (dry run, no network)
+skylift diff     <path> [--remote]   what a deploy would change vs the lockfile
 skylift deploy   <path> [--prune]    upload skills + create agents; write lockfile
 skylift run <agent> --task "..."     invoke a deployed agent (--local for the same folder locally)
 skylift list     <path>              what's currently deployed (from the lockfile)
 skylift destroy  <path>              archive every agent in the lockfile
 skylift bench <agent> --task "..."   managed vs local: latency / cost / pass
+```
+
+`skylift diff` shows new / changed / unchanged / stale before you deploy:
+
+```console
+$ skylift diff .
+Skills:
+  + house-style  (new)
+  = cite-sources  (unchanged)
+Agents:
+  ~ researcher  (changed)
+  = fact-checker  (unchanged)
+Stale (in lockfile, not in folder — archived with --prune):
+  - old-agent
+
+2 change(s) pending.  Run: skylift deploy <path>
 ```
 
 ## Where the deployed IDs live
@@ -228,7 +245,7 @@ pytest -m "not live"     # deterministic translation + idempotency — no API ke
 pytest -m live           # deploy to the real API, run, LLM-grade the output (needs ANTHROPIC_API_KEY)
 ```
 
-Offline tests pin the translation (tool mapping, per-tool permissions, skill dedup, stdio rejection, coordinator ordering, context isolation, idempotency). Live tests deploy to Anthropic and confirm the uploaded skill actually fires in the cloud, graded by an LLM. CI runs the offline suite on every push and the live suite when an `ANTHROPIC_API_KEY` secret is present. See [.github/workflows/ci.yml](.github/workflows/ci.yml).
+Offline tests pin the translation (tool mapping, per-tool permissions, skill dedup, stdio rejection, coordinator ordering, context isolation, diff, idempotency). Live tests deploy to Anthropic and confirm the uploaded skill actually fires in the cloud, graded by an LLM. CI runs the offline suite on every push and the live suite when an `ANTHROPIC_API_KEY` secret is present ([.github/workflows/ci.yml](.github/workflows/ci.yml)). A separate on-demand [live-demo workflow](.github/workflows/live-demo.yml) deploys the team example to a real account, runs the benchmark, and tears everything down — so the deploy path is demonstrably live, not just asserted.
 
 ## Limitations (read these)
 
@@ -239,10 +256,31 @@ Offline tests pin the translation (tool mapping, per-tool permissions, skill ded
 
 Each of these is surfaced as a `skylift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
 
+## Documentation
+
+Everything is here or one click away:
+
+| Doc | What's in it |
+|---|---|
+| [docs/convention.md](docs/convention.md) | The `.managed-agents/` folder spec, frontmatter, skills, MCP, `:ask` permissions, native subagents |
+| [docs/deploying.md](docs/deploying.md) | The three deploy paths, the lockfile / where IDs live, isolation, hooks |
+| [docs/how-it-works.md](docs/how-it-works.md) | `parse → plan → apply → run`, determinism, idempotency, the confirmed wire format |
+| [docs/anthropic-mapping.md](docs/anthropic-mapping.md) | Exact local → Managed Agents field mapping + API constraints |
+| [docs/limitations.md](docs/limitations.md) | Honest constraints (stdio MCP, MCP auth, knowledge inlining, skill descriptions) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Architecture and dev setup |
+
+### Examples ([examples/](examples/))
+
+- [`quickstart/`](examples/quickstart/) — one agent, one skill, knowledge, a tool allowlist
+- [`team/`](examples/team/) — multi-agent: coordinator + roster, a shared skill, a remote MCP server, a `bash:ask` permission
+- [`in-a-project/`](examples/in-a-project/) — `.managed-agents/` embedded in a real project; proves isolation (repo `CLAUDE.md`, app code, and a local `.claude/agents/` subagent are never deployed) + a coordinator with two shared-skill subagents
+- [`deploy-workflow/`](examples/deploy-workflow/) — the git-push-to-deploy GitHub Action
+- [`claude-code-skill/`](examples/claude-code-skill/) — deploy from inside Claude Code
+
 ## Roadmap
 
 - Authenticated remote MCP via the Vaults API
-- `skylift diff` against the live account
+- `skylift diff --remote` deeper drift detection (full account reconciliation)
 - Additional deploy targets (OpenAI Agent Builder, Google Managed Agents) behind the same convention
 - A skill-bundle mode for large `knowledge/` sets
 

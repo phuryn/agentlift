@@ -1,0 +1,45 @@
+# On-demand live demo: actually deploy the examples to a real Anthropic account,
+# show it works, refresh the benchmark, and clean up. Manual trigger only
+# (workflow_dispatch) so it never costs money on a normal push. Needs the
+# ANTHROPIC_API_KEY repo secret (Managed Agents beta access).
+
+name: live-demo
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"   # optional weekly smoke (Mondays 09:00 UTC)
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[dev]"
+
+      - name: Team example — plan, deploy, list, destroy (real account)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "no key configured; skipping"; exit 0; fi
+          skylift plan    examples/team
+          skylift deploy  examples/team --yes
+          skylift list    examples/team
+          skylift destroy examples/team --yes
+
+      - name: Benchmark (managed vs local) -> benchmarks/results.md
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "no key configured; skipping"; exit 0; fi
+          python benchmarks/run_benchmark.py --n 5
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmarks/results.md

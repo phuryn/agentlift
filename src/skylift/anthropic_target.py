@@ -30,6 +30,19 @@ def _content_type(arcname: str) -> str:
     return guessed or "text/plain"
 
 
+def resolve_request(request: dict, skill_ids: dict[str, str], agent_ids: dict[str, str]) -> dict:
+    """Replace the plan's symbolic refs with real IDs. Raises KeyError if a ref
+    has no mapping (used by both apply and diff). skill refs: skills[].skill_ref
+    -> skill_id; roster refs: multiagent.agents[] (@agent:name) -> agent_id."""
+    req = copy.deepcopy(request)
+    if "skills" in req:
+        req["skills"] = [{"type": "custom", "skill_id": skill_ids[s["skill_ref"]]} for s in req["skills"]]
+    if req.get("multiagent"):
+        roster = [agent_ids[r] for r in req["multiagent"]["agents"]]
+        req["multiagent"] = {"type": req["multiagent"]["type"], "agents": roster}
+    return req
+
+
 @dataclass
 class DeployResult:
     skill_ids: dict[str, str] = field(default_factory=dict)     # @skill:hash8 -> skill_id
@@ -95,24 +108,9 @@ class Deployer:
             log(f"  skill '{up.display_title}': uploaded {sid} (used by {', '.join(up.used_by)})")
 
     # -- agents ----------------------------------------------------------- #
-    def _resolve_request(self, request: dict, result: DeployResult) -> dict:
-        req = copy.deepcopy(request)
-        # skills: skill_ref -> skill_id
-        if "skills" in req:
-            resolved = []
-            for s in req["skills"]:
-                ref = s.get("skill_ref")
-                resolved.append({"type": "custom", "skill_id": result.skill_ids[ref]})
-            req["skills"] = resolved
-        # multiagent roster: @agent:name -> agent_id
-        if "multiagent" in req and req["multiagent"]:
-            roster = [result.agent_ids[r] for r in req["multiagent"]["agents"]]
-            req["multiagent"] = {"type": req["multiagent"]["type"], "agents": roster}
-        return req
-
     def _create_agents(self, plan: DeployPlan, result: DeployResult, prune: bool, log: Callable[[str], None]) -> None:
         for ac in plan.agent_creates:
-            req = self._resolve_request(ac.request, result)
+            req = resolve_request(ac.request, result.skill_ids, result.agent_ids)
             spec_hash = canonical_hash(req)
             prev = self.lock.agent(ac.name)
             if prev and prev.get("spec_hash") == spec_hash:

@@ -123,6 +123,26 @@ def cmd_plan(args) -> int:
     return 0 if plan.deployable else 1
 
 
+def cmd_diff(args) -> int:
+    from .diff import check_remote, compute_diff, render_diff
+    project, diags = parse_project(args.path, default_model=args.model)
+    plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
+    lock = Lockfile.load(os.path.abspath(args.path))
+    d = compute_diff(plan, lock)
+    if args.remote:
+        load_env(os.getcwd(), os.path.abspath(args.path))
+        from .anthropic_target import BETAS
+        client = get_client()
+        d.remote_missing_agents, d.remote_missing_skills = check_remote(lock, client, BETAS)
+    print(f"Project: {project.root}  (layout: {project.layout})")
+    print(render_diff(d))
+    if not plan.deployable:
+        print()
+        print_diagnostics(plan.diagnostics)
+        return 1
+    return 0
+
+
 def cmd_deploy(args) -> int:
     load_env(os.getcwd(), os.path.abspath(args.path))
     project, diags = parse_project(args.path, default_model=args.model)
@@ -278,6 +298,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("plan", help="show the deterministic deploy plan (no network)")
     sp.add_argument("path"); sp.add_argument("--json", action="store_true"); add_common(sp); sp.set_defaults(func=cmd_plan)
+
+    sp = sub.add_parser("diff", help="what a deploy would change (vs the lockfile)")
+    sp.add_argument("path"); sp.add_argument("--remote", action="store_true", help="also check the live account for deleted objects")
+    add_common(sp); sp.set_defaults(func=cmd_diff)
 
     sp = sub.add_parser("deploy", help="upload skills + create agents")
     sp.add_argument("path"); sp.add_argument("--prune", action="store_true", help="archive superseded agent versions")

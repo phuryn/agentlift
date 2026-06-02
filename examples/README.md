@@ -39,6 +39,20 @@ skylift run lead --project ./team --task "Find the bug in utils.py and explain R
 > a real remote MCP URL before relying on its tools; the agent deploys and runs
 > fine without ever calling it.
 
+## `in-a-project/` — `.managed-agents/` embedded in a real codebase
+
+A stand-in for an actual project: a repo-level `CLAUDE.md`, some `src/` code, and a
+local `.claude/agents/pr-reviewer.md` subagent — alongside a `.managed-agents/`
+folder with an `orchestrator` coordinator over three subagents sharing two skills.
+
+```bash
+skylift plan ./in-a-project    # only the 4 managed agents appear; the repo
+                               # CLAUDE.md, app code, and local subagent never do
+```
+
+Demonstrates context isolation (nothing outside `.managed-agents/` is read or
+uploaded) and shared-skill dedup across a roster.
+
 ## `deploy-workflow/ci-deploy.yml` — git-push-to-deploy
 
 A GitHub Actions template. Copy it to your repo's `.github/workflows/`, add an
