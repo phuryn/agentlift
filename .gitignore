@@ -1,0 +1,24 @@
+# secrets
+.env
+*.key
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+src/*.egg-info/
+
+# skylift deploy state (per-project lockfile is meant to be committed by USERS,
+# but in THIS repo's examples we keep generated lockfiles out)
+examples/**/.skylift-lock.json
+
+# scratch
+Temp/
+*.log

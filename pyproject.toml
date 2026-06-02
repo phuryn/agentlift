@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skylift"
+version = "0.1.0"
+description = "Deploy the Claude agents you already run locally to Anthropic's Managed Agents cloud. One folder, one command."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Pawel Huryn" }]
+keywords = ["anthropic", "claude", "agents", "managed-agents", "llm", "deploy", "agent-sdk", "mcp", "skills"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+    "anthropic>=0.105.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/phuryn/managed-agents-API"
+Repository = "https://github.com/phuryn/managed-agents-API"
+
+[project.scripts]
+skylift = "skylift.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+skylift = ["py.typed"]
+
+[tool.pytest.ini_options]
+markers = [
+    "live: tests that hit the real Anthropic API (require ANTHROPIC_API_KEY; cost a few cents)",
+]
+testpaths = ["tests"]

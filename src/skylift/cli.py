@@ -1,0 +1,309 @@
+"""skylift command-line interface.
+
+    skylift validate <path>                 parse + plan, report problems
+    skylift plan     <path> [--json]        show the deterministic deploy plan (dry run, no network)
+    skylift deploy   <path> [--prune]       upload skills + create agents; write lockfile
+    skylift run      <agent> --task "..."   invoke a deployed agent (or --local)
+    skylift list     <path>                 show what is currently deployed (from the lockfile)
+    skylift destroy  <path>                 archive every agent in the lockfile
+    skylift bench    <agent> --task "..."   managed vs local: latency / tokens / cost / pass
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import statistics
+import sys
+from typing import Optional
+
+from . import __version__
+from .anthropic_target import Deployer
+from .graders import llm_grader, substring_grader
+from .lockfile import Lockfile
+from .parser import DEFAULT_MODEL, parse_project
+from .planner import build_plan
+from .runtime import RunResult, create_environment, run_local, run_managed
+
+
+# --------------------------------------------------------------------------- #
+# env + client helpers
+# --------------------------------------------------------------------------- #
+def load_env(*dirs: str) -> None:
+    for d in dirs:
+        path = os.path.join(d, ".env")
+        if not os.path.isfile(path):
+            continue
+        for line in open(path, "r", encoding="utf-8").read().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+def get_client():
+    try:
+        import anthropic
+    except ImportError:
+        print("error: the 'anthropic' package is required. pip install anthropic", file=sys.stderr)
+        sys.exit(2)
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        print("error: ANTHROPIC_API_KEY not set (put it in .env or the environment).", file=sys.stderr)
+        sys.exit(2)
+    return anthropic.Anthropic(api_key=key)
+
+
+# --------------------------------------------------------------------------- #
+# pretty printers
+# --------------------------------------------------------------------------- #
+def print_diagnostics(diags) -> None:
+    if diags.items:
+        print("Diagnostics:")
+        print(diags.render())
+
+
+def print_plan(plan) -> None:
+    print(f"\nSkills to upload: {len(plan.skill_uploads)}")
+    for up in plan.skill_uploads:
+        print(f"  - {up.display_title}  ({up.content_hash[:8]}, {len(up.files)} file(s))  used by: {', '.join(up.used_by)}")
+    print(f"\nAgents to create: {len(plan.agent_creates)}")
+    for ac in plan.agent_creates:
+        req = ac.request
+        tools = []
+        for t in req.get("tools", []):
+            if t["type"] == "agent_toolset_20260401":
+                if t.get("default_config", {}).get("enabled"):
+                    tools.append("builtins:all")
+                else:
+                    tools.append("builtins:" + "/".join(c["name"] for c in t.get("configs", [])))
+            elif t["type"] == "mcp_toolset":
+                tools.append(f"mcp:{t['mcp_server_name']}")
+        line = f"  - {ac.name}  [{req['model']}]"
+        if ac.is_coordinator:
+            line += "  (coordinator -> " + ", ".join(req["multiagent"]["agents"]) + ")"
+        print(line)
+        print(f"      tools: {', '.join(tools) or '(none)'}")
+        if req.get("skills"):
+            print(f"      skills: {', '.join(s['skill_ref'] for s in req['skills'])}")
+        if req.get("mcp_servers"):
+            print(f"      mcp: {', '.join(s['name'] + '=' + s['url'] for s in req['mcp_servers'])}")
+    print()
+    print_diagnostics(plan.diagnostics)
+    print(f"\nDeployable: {'yes' if plan.deployable else 'NO (fix errors above)'}")
+
+
+# --------------------------------------------------------------------------- #
+# commands
+# --------------------------------------------------------------------------- #
+def cmd_validate(args) -> int:
+    project, diags = parse_project(args.path, default_model=args.model)
+    plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
+    print(f"Project: {project.root}  (layout: {project.layout})")
+    print(f"Agents: {', '.join(a.name for a in project.agents) or '(none)'}")
+    print_plan(plan)
+    return 0 if plan.deployable else 1
+
+
+def cmd_plan(args) -> int:
+    project, diags = parse_project(args.path, default_model=args.model)
+    plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
+    if args.json:
+        print(json.dumps(plan.to_dict(), indent=2))
+    else:
+        print(f"Project: {project.root}  (layout: {project.layout})")
+        print_plan(plan)
+    return 0 if plan.deployable else 1
+
+
+def cmd_deploy(args) -> int:
+    load_env(os.getcwd(), os.path.abspath(args.path))
+    project, diags = parse_project(args.path, default_model=args.model)
+    plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
+    if not plan.deployable:
+        print_plan(plan)
+        print("\nNot deploying: fix the errors above (or pass --skip-unsupported to drop unsupported pieces).")
+        return 1
+    print_plan(plan)
+    if not args.yes:
+        resp = input("\nProceed with deploy? [y/N] ").strip().lower()
+        if resp != "y":
+            print("aborted.")
+            return 1
+    client = get_client()
+    deployer = Deployer(client, project.root)
+    result = deployer.apply(plan, prune=args.prune, log=print)
+    print("\nDeployed.")
+    print(f"  skills uploaded: {len(result.uploaded_skills)}  reused: {len(result.reused_skills)}")
+    print(f"  agents created:  {len(result.created_agents)}  reused: {len(result.reused_agents)}")
+    for name in [a.name for a in project.agents]:
+        rec = deployer.lock.agent(name)
+        if rec:
+            print(f"    {name}: {rec['agent_id']} (v{rec['version']})")
+    print("\nRun one:  skylift run " + (project.agents[0].name if project.agents else "<agent>") +
+          ' --project "' + args.path + '" --task "your task here"')
+    return 0
+
+
+def _resolve_deployed(path: str, agent_name: str):
+    lock = Lockfile.load(os.path.abspath(path))
+    rec = lock.agent(agent_name)
+    if not rec:
+        print(f"error: agent '{agent_name}' not found in lockfile at {path}. Deploy first.", file=sys.stderr)
+        sys.exit(2)
+    return rec
+
+
+def cmd_run(args) -> int:
+    load_env(os.getcwd(), os.path.abspath(args.project))
+    client = get_client()
+    project, _ = parse_project(args.project, default_model=args.model)
+    agent = project.agent(args.agent)
+    if args.local:
+        if agent is None:
+            print(f"error: agent '{args.agent}' not found in project.", file=sys.stderr)
+            return 2
+        res = run_local(client, agent, args.task, model=args.model_override)
+    else:
+        rec = _resolve_deployed(args.project, args.agent)
+        model = args.model_override or (agent.model if agent else DEFAULT_MODEL)
+        res = run_managed(client, rec["agent_id"], rec["version"], args.task, model=model)
+    _print_run("local" if args.local else "managed", args.agent, res)
+    return 0 if res.ok else 1
+
+
+def _print_run(arm: str, name: str, res: RunResult) -> None:
+    print(f"\n[{arm}] {name}")
+    if not res.ok:
+        print(f"  ERROR: {res.error}")
+        return
+    print("  " + "-" * 60)
+    print("  " + res.output.replace("\n", "\n  "))
+    print("  " + "-" * 60)
+    print(f"  latency {res.latency_s}s | in {res.usage.input_tokens} out {res.usage.output_tokens} "
+          f"| ~${res.cost:.5f} | tool_used={res.used_tool}")
+
+
+def cmd_list(args) -> int:
+    lock = Lockfile.load(os.path.abspath(args.path))
+    if not lock.agents:
+        print("No agents deployed (no lockfile entries).")
+        return 0
+    print(f"Deployed agents (from {lock.path}):")
+    for name, rec in lock.agents.items():
+        print(f"  {name}: {rec['agent_id']} (v{rec['version']})  skills={len(rec.get('skill_ids', []))}")
+    print(f"\nUploaded skills: {len(lock.skills)}")
+    for h, rec in lock.skills.items():
+        print(f"  {rec['display_title']}: {rec['skill_id']} ({h[:8]})")
+    return 0
+
+
+def cmd_destroy(args) -> int:
+    load_env(os.getcwd(), os.path.abspath(args.path))
+    lock = Lockfile.load(os.path.abspath(args.path))
+    if not lock.agents:
+        print("Nothing to destroy.")
+        return 0
+    print(f"Will archive {len(lock.agents)} agent(s): {', '.join(lock.agents)}")
+    if not args.yes:
+        if input("Proceed? [y/N] ").strip().lower() != "y":
+            print("aborted.")
+            return 1
+    client = get_client()
+    deployer = Deployer(client, os.path.abspath(args.path))
+    archived = deployer.destroy(log=print)
+    print(f"Archived {len(archived)} agent(s).")
+    return 0
+
+
+def cmd_bench(args) -> int:
+    load_env(os.getcwd(), os.path.abspath(args.project))
+    client = get_client()
+    project, _ = parse_project(args.project, default_model=args.model)
+    agent = project.agent(args.agent)
+    rec = _resolve_deployed(args.project, args.agent)
+    model = args.model_override or (agent.model if agent else DEFAULT_MODEL)
+    must_include = args.expect.split("|") if args.expect else None
+
+    env_id = create_environment(client).id
+    arms = ["managed"] + (["local"] if (args.local and agent) else [])
+    rows = {}
+    for arm in arms:
+        results = []
+        for i in range(args.n):
+            if arm == "managed":
+                r = run_managed(client, rec["agent_id"], rec["version"], args.task, model=model, environment_id=env_id)
+            else:
+                r = run_local(client, agent, args.task, model=model)
+            if must_include:
+                r_pass = substring_grader(r.output, must_include).passed
+            elif args.rubric:
+                r_pass = llm_grader(client, args.task, r.output, args.rubric).passed
+            else:
+                r_pass = r.ok
+            results.append((r, r_pass))
+            print(f"  [{arm} {i+1}/{args.n}] {r.latency_s}s ${r.cost:.5f} pass={r_pass}")
+        rows[arm] = results
+
+    print(f"\n# Benchmark: {args.agent}  (N={args.n})\n")
+    print("| Arm | N | Pass% | Median latency | Avg cost |")
+    print("|---|---|---|---|---|")
+    for arm, results in rows.items():
+        npass = sum(1 for _, p in results if p)
+        lat = statistics.median([r.latency_s for r, _ in results]) if results else 0
+        cost = statistics.mean([r.cost for r, _ in results]) if results else 0
+        print(f"| {arm} | {len(results)} | {round(100*npass/len(results))}% | {lat}s | ${cost:.5f} |")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="skylift", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--version", action="version", version=f"skylift {__version__}")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    def add_common(sp):
+        sp.add_argument("--model", default=DEFAULT_MODEL, help="default model for agents without one in frontmatter")
+        sp.add_argument("--skip-unsupported", action="store_true", help="drop unsupported pieces (e.g. stdio MCP) instead of erroring")
+
+    sp = sub.add_parser("validate", help="parse + plan, report problems")
+    sp.add_argument("path"); add_common(sp); sp.set_defaults(func=cmd_validate)
+
+    sp = sub.add_parser("plan", help="show the deterministic deploy plan (no network)")
+    sp.add_argument("path"); sp.add_argument("--json", action="store_true"); add_common(sp); sp.set_defaults(func=cmd_plan)
+
+    sp = sub.add_parser("deploy", help="upload skills + create agents")
+    sp.add_argument("path"); sp.add_argument("--prune", action="store_true", help="archive superseded agent versions")
+    sp.add_argument("--yes", "-y", action="store_true", help="skip confirmation"); add_common(sp); sp.set_defaults(func=cmd_deploy)
+
+    sp = sub.add_parser("run", help="invoke a deployed agent (or --local)")
+    sp.add_argument("agent"); sp.add_argument("--project", default="."); sp.add_argument("--task", required=True)
+    sp.add_argument("--local", action="store_true", help="run the same definition locally instead of in the cloud")
+    sp.add_argument("--model", default=DEFAULT_MODEL); sp.add_argument("--model-override", default=None)
+    sp.set_defaults(func=cmd_run)
+
+    sp = sub.add_parser("list", help="show deployed agents (from the lockfile)")
+    sp.add_argument("path"); sp.set_defaults(func=cmd_list)
+
+    sp = sub.add_parser("destroy", help="archive every agent in the lockfile")
+    sp.add_argument("path"); sp.add_argument("--yes", "-y", action="store_true"); sp.set_defaults(func=cmd_destroy)
+
+    sp = sub.add_parser("bench", help="managed vs local: latency / tokens / cost / pass")
+    sp.add_argument("agent"); sp.add_argument("--project", default="."); sp.add_argument("--task", required=True)
+    sp.add_argument("--n", type=int, default=5); sp.add_argument("--local", action="store_true")
+    sp.add_argument("--expect", default=None, help="pipe-separated substrings that must appear (substring grader)")
+    sp.add_argument("--rubric", default=None, help="rubric for the LLM grader (used if --expect absent)")
+    sp.add_argument("--model", default=DEFAULT_MODEL); sp.add_argument("--model-override", default=None)
+    sp.set_defaults(func=cmd_bench)
+    return p
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

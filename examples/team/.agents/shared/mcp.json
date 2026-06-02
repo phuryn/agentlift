@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "docs": {
+      "type": "url",
+      "url": "https://example.com/mcp",
+      "allowedTools": ["search"]
+    }
+  }
+}

@@ -1,0 +1,54 @@
+# Limitations
+
+skylift surfaces every one of these as a `skylift plan` diagnostic — never a silent
+surprise. They reflect what the Managed Agents API accepts today, not gaps in the
+translation.
+
+## Remote MCP only
+
+Managed agents connect to **URL** MCP servers. Local `stdio` servers — the common
+`{"command": "npx", "args": [...]}` form — cannot be deployed. Host the server
+behind an HTTPS endpoint and give it a `url`.
+
+- default: hard error (`mcp.stdio_unsupported`), deploy blocked
+- `--skip-unsupported`: warning, the server is dropped, the rest deploys
+
+## No inline MCP auth
+
+The managed URL MCP server shape is `{type, name, url}` — there is no field for
+headers or env. Any `env`/`headers` in your local `mcp.json` is **not forwarded**
+(`mcp.auth_dropped` warning). The server must be public or authenticate itself.
+Authenticated remote MCP via the Vaults API is on the roadmap.
+
+## Knowledge files are inlined
+
+A managed agent runs in a fresh sandbox with no persistent copy of your repo, so
+`knowledge/*.md` can't be read off disk the way they are locally. skylift folds
+them into the system prompt under a `# Reference material` section. This works well
+for a handful of small reference files; it is size-guarded (overflow warns and
+stops). For large reference sets, package them as a **skill** instead — skill
+bundles can carry many files, and skill-bundle mode is on the roadmap.
+
+Set `knowledge: skip` in frontmatter to opt out entirely.
+
+## Idempotency is per-spec
+
+A change to an agent's resolved request (system prompt, tools, skills, roster)
+produces a new managed agent on the next deploy; the lockfile is updated. Pass
+`--prune` to archive the superseded version. Skills are content-addressed, so a
+skill edit uploads a new skill; the old one is left in place (skills are cheap and
+may be shared).
+
+## Anthropic only, for now
+
+The parser and planner are provider-agnostic — the plan is just "operations." Only
+the Anthropic target is implemented. OpenAI Agent Builder and Google Managed Agents
+targets are on the roadmap, behind the same folder convention.
+
+## Cost numbers are estimates
+
+`cost` is a token estimate at published tier rates plus Anthropic cache pricing, the
+same methodology as the managed-agents-experiment repo. Treat it as directional, not
+billing-accurate. Managed runtimes auto-cache a large context; the local runner's
+context is lean — so the two arms are not a controlled cost comparison, just a
+real-world readout of each.
