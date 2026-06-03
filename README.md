@@ -171,7 +171,7 @@ The audit's `degraded`/`unsupported` rows are exactly the lossy spots a compile 
 
 See the whole thing run offline (audit + both compiles, no API key) in [`demo/`](demo/): `./demo/portability-demo.sh`.
 
-A subagent roster is a **universal** capability, not a per-provider lottery: `native` on Anthropic (server-side coordinator), `emulated` elsewhere via agent-as-tool. Confirmed by actually running it on OpenAI (Agents SDK `as_tool`) and Google (ADK `sub_agents`) in [`experiments/subagent-composition`](experiments/subagent-composition/) — the only difference is whether the delegation loop runs in the provider's runtime or yours.
+A subagent roster is a **universal** capability, not a per-provider lottery: `native` on Anthropic (server-side coordinator), `emulated` elsewhere via agent-as-tool. Confirmed by actually running it on OpenAI (Agents SDK `as_tool`) and Google (ADK `sub_agents`) in [`experiments/subagent-composition`](experiments/subagent-composition/) — the only difference is whether the delegation loop runs in the provider's runtime or yours. Full per-platform test receipts, including a **live Google Agent Engine deploy** (a real `reasoningEngine`, server-side delegation confirmed) and the console/docs links for each provider: [`docs/tested-platforms.md`](docs/tested-platforms.md).
 
 ### Provider support
 

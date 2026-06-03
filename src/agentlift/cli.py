@@ -145,7 +145,40 @@ def cmd_diff(args) -> int:
     return 0
 
 
+def _cmd_deploy_google(args) -> int:
+    from .google_target import deploy_google
+    load_env(os.getcwd(), os.path.abspath(args.path))
+    project, diags = parse_project(args.path, default_model=args.model)
+    if not project.agents:
+        print_diagnostics(diags)
+        print("No agents to deploy.")
+        return 1
+    gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    bucket = os.environ.get("AGENTLIFT_GCP_STAGING_BUCKET")
+    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+    if not gcp_project or not bucket:
+        print("error: set GOOGLE_CLOUD_PROJECT and AGENTLIFT_GCP_STAGING_BUCKET (gs://...) in the "
+              "env, plus ADC (gcloud auth application-default login). See docs/deploy-google.md.",
+              file=sys.stderr)
+        return 2
+    print(f"Deploying {project.root} to Google Vertex AI Agent Engine")
+    print(f"  project={gcp_project}  region={location}  staging={bucket}")
+    resource = deploy_google(
+        project, gcp_project=gcp_project, location=location,
+        staging_bucket=bucket, model=args.google_model, log=print,
+    )
+    out = os.path.join(os.path.abspath(args.path), ".agentlift-google.json")
+    with open(out, "w", encoding="utf-8") as fh:
+        json.dump({"reasoning_engine": resource, "project": gcp_project, "location": location}, fh, indent=2)
+        fh.write("\n")
+    print(f"\nDeployed. reasoningEngine: {resource}")
+    print(f"  wrote {out}")
+    return 0
+
+
 def cmd_deploy(args) -> int:
+    if getattr(args, "target", "anthropic") == "google":
+        return _cmd_deploy_google(args)
     load_env(os.getcwd(), os.path.abspath(args.path))
     project, diags = parse_project(args.path, default_model=args.model)
     plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
@@ -361,8 +394,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("path"); sp.add_argument("--remote", action="store_true", help="also check the live account for deleted objects")
     add_common(sp); sp.set_defaults(func=cmd_diff)
 
-    sp = sub.add_parser("deploy", help="upload skills + create agents")
+    sp = sub.add_parser("deploy", help="deploy to a managed runtime (Anthropic, or --target google)")
     sp.add_argument("path"); sp.add_argument("--prune", action="store_true", help="archive superseded agent versions")
+    sp.add_argument("--target", default="anthropic", choices=["anthropic", "google"], help="managed runtime to deploy to")
+    sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder are mapped to this")
     sp.add_argument("--yes", "-y", action="store_true", help="skip confirmation"); add_common(sp); sp.set_defaults(func=cmd_deploy)
 
     sp = sub.add_parser("run", help="invoke a deployed agent (or --local)")
