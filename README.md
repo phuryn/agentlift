@@ -201,8 +201,10 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 | Runtime | How agentlift targets it | Notes |
 |---|---|---|
 | **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
-| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | I deployed the team folder to a live `reasoningEngine` (server-side delegation confirmed — see [tested-platforms](docs/tested-platforms.md)). `:ask` + the bash/web sandbox degrade; Claude models map to Gemini. |
+| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | Live `reasoningEngine` with confirmed server-side coordinator→subagent delegation. **The preview deploy ships system prompts + the coordinator/`sub_agents` structure + model only — skills, MCP servers, and built-in tools are skipped** (the deploy logs each as `not mapped to Agent Engine yet`); Claude models map to Gemini. So `audit` rates Google MCP `native` (the platform supports it), but `deploy` does not wire it up yet. See [tested-platforms](docs/tested-platforms.md). |
 | **OpenAI** | `export openai-agents` (preview, self-host) | subagents emulated via agent-as-tool (the delegation loop runs in your app); no code-define + OpenAI-host path, so `export`, never `deploy`. |
+
+> **What "live, preview" means for Google — read this before assuming parity.** The deploy proves the *orchestration shape* is portable: a coordinator and its subagents become one hosted `reasoningEngine` that delegates server-side. It does **not** yet carry the agent's capabilities — **skills, MCP servers, and built-in tools are skipped** (each printed as `not mapped to Agent Engine yet`). So today **Anthropic is the only target with full feature mapping**; Google deploys a prompt-and-structure skeleton on a real hosted runtime, and OpenAI is export/self-host (no hosted engine at all). This is the deliberate gap between what `audit` reports (each *platform's* capability) and what `deploy` currently delivers (agentlift's preview implementation). Closing it is on the roadmap.
 
 ## Isolation: each agent gets only its folder
 
@@ -366,7 +368,7 @@ Everything is here or one click away:
 
 ## Roadmap
 
-- **Google deploy parity** — the live `deploy --target google` is preview (Claude→Gemini model mapping; MCP, skills, and `:ask` not mapped yet). Bring it to full parity (MCP/skills, Claude-on-Vertex models, per-agent IDs via A2A).
+- **Google deploy parity** — the live `deploy --target google` is preview: it ships prompts + coordinator/`sub_agents` + model and **skips skills, MCP servers, built-in tools, and `:ask`** (Claude→Gemini model mapping). Bring it to full parity (skills/MCP/tools, Claude-on-Vertex models, per-agent IDs via A2A).
 - **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)
