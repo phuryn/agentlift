@@ -161,9 +161,10 @@ $ agentlift audit ./examples/team --targets anthropic,google,openai
         reason: not enforced with VertexAiSessionService on the deployed runtime
   degraded:
     ! Built-in tool sandbox (bash / files / glob-grep / web)
-== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 4 degraded, 1 unsupported]
-  unsupported:
-    x Subagents -> coordinator (deployed roster)
+== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 5 degraded]
+  degraded:
+    ! Subagents -> coordinator (deployed roster)
+        reason: multi-agent runs as nodes in ONE Agent Builder workflow, not a roster of separately-deployable agents
 ```
 
 The audit's `degraded`/`unsupported` rows are exactly the lossy spots a compile would hit — so `audit` tells you what survives before `export` or `deploy` runs.

@@ -46,7 +46,7 @@ def test_audit_tiers_match_research(examples_dir):
     assert goog["remote_mcp"] == "native"
 
     oai = {r["id"]: r["tier"] for r in report["targets"]["openai"]}
-    assert oai["subagents"] == "unsupported"        # no deployable roster
+    assert oai["subagents"] == "degraded"           # multi-agent only as one workflow graph, not a deployable roster
     assert oai["hosted_runtime"] == "degraded"      # graph-only / self-host
 
 

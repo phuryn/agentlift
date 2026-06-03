@@ -49,15 +49,14 @@ Capabilities this folder uses: 8
         reason: ADK tool-confirmation is not enforced with VertexAiSessionService (the Agent Engine session service)
         fix:    enforce approval client-side, or keep :ask agents on the Anthropic target
 
-== OpenAI (Agent Builder / Agents SDK) ==   [3 native, 4 degraded, 1 unsupported]
+== OpenAI (Agent Builder / Agents SDK) ==   [3 native, 5 degraded]
   degraded:
     ! Hosted runtime (provider runs the loop, callable by id)
         reason: only the Agent Builder visual graph runs on OpenAI; code-defined Agents-SDK agents are self-hosted
         fix:    agentlift export openai-chatkit (self-host), or author in Agent Builder
     ! Built-in tool sandbox / Per-tool approval / Durable versioned deploy
-  unsupported:
-    x Subagents -> coordinator (deployed roster)
-        reason: no deployable coordinator-over-roster; multi-agent is in-process SDK handoffs or static graph nodes
+    ! Subagents -> coordinator (deployed roster)
+        reason: multi-agent runs as nodes in ONE Agent Builder workflow (call the workflow, not each agent), not a roster of separately-deployable agents
 
 Verdict (lower is more portable):
   Anthropic Managed Agents: drops in cleanly
