@@ -158,7 +158,7 @@ The folder is provider-neutral, so agentlift treats each runtime as a back-end o
 |---|---|---|
 | `agentlift audit`  | report, per provider, what's `native` / `emulated` / `degraded` / `unsupported` | offline |
 | `agentlift export` | compile the folder to a provider artifact (`anthropic-yaml` for `ant`, `google-adk`, `openai-agents`) | offline |
-| `agentlift deploy` | push to a managed runtime via API (Anthropic today) | yes |
+| `agentlift deploy` | push to a managed runtime via API (Anthropic + Google `--target google`, both live) | yes |
 
 ```console
 $ agentlift audit ./examples/team --targets anthropic,google,openai
@@ -186,7 +186,7 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 | Runtime | How agentlift targets it | Notes |
 |---|---|---|
 | **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
-| **Google Vertex AI Agent Engine** | `export google-adk` (preview); `deploy` on the roadmap | a true hosted runtime with deployable subagents. `:ask` and the bash/web sandbox degrade — the audit shows where. |
+| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | I deployed the team folder to a live `reasoningEngine` (server-side delegation confirmed — see [tested-platforms](docs/tested-platforms.md)). `:ask` + the bash/web sandbox degrade; Claude models map to Gemini. |
 | **OpenAI** | `export openai-agents` (preview, self-host) | subagents emulated via agent-as-tool (the delegation loop runs in your app); no code-define + OpenAI-host path, so `export`, never `deploy`. |
 
 ## Isolation: each agent gets only its folder
@@ -335,7 +335,7 @@ Everything is here or one click away:
 
 ## Roadmap
 
-- **Google Vertex AI Agent Engine `deploy`** (live deploy, not just `export google-adk`) — the second managed runtime
+- **Google deploy parity** — the live `deploy --target google` is preview (Claude→Gemini model mapping; MCP, skills, and `:ask` not mapped yet). Bring it to full parity (MCP/skills, Claude-on-Vertex models, per-agent IDs via A2A).
 - **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)
