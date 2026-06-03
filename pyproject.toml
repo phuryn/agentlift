@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentlift"
-version = "0.1.0"
-description = "Deploy the Claude agents you already run locally to Anthropic's Managed Agents cloud. One folder, one command."
+version = "0.2.0"
+description = "Own your agent as a neutral folder; audit its portability, compile it to provider formats (Anthropic YAML / Google ADK), and deploy it to managed runtimes. Own the definition, rent the runtime."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Pawel Huryn" }]
-keywords = ["anthropic", "claude", "agents", "managed-agents", "llm", "deploy", "agent-sdk", "mcp", "skills"]
+keywords = ["anthropic", "claude", "agents", "managed-agents", "llm", "deploy", "agent-sdk", "mcp", "skills", "portability", "vertex-ai", "adk", "agent-engine", "ant"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

@@ -1,18 +1,25 @@
-"""agentlift — deploy local Claude agents to Anthropic's Managed Agents cloud.
+"""agentlift — own your agent definition as a neutral folder; rent the runtime.
 
-One folder, one command. The agent definition you already run locally
-(CLAUDE.md / agent.md + skills + MCP config) becomes a hosted, run-by-ID
-managed agent — skills uploaded, tools allowlisted, subagents wired.
+One folder (CLAUDE.md / agent.md + skills + MCP config + a subagent roster) is the
+provider-neutral definition. agentlift is a compiler over it:
+
+    audit   how it maps across providers (native / emulated / degraded / unsupported)
+    export  compile it to a provider artifact (Anthropic YAML for `ant`, Google ADK)
+    deploy  push it to a managed runtime via API (Anthropic today)
 
 Public surface:
     from agentlift import parse_project, build_plan, Deployer
+    from agentlift import run_audit, export_anthropic_yaml, export_google_adk
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
-from .model import Project, AgentSpec, SkillSpec, McpServerSpec  # noqa: F401
+from .audit import run_audit  # noqa: F401
+from .capabilities import CAPABILITIES, FEATURES  # noqa: F401
+from .export import export_anthropic_yaml, export_google_adk  # noqa: F401
+from .model import AgentSpec, McpServerSpec, Project, SkillSpec  # noqa: F401
 from .parser import parse_project  # noqa: F401
-from .planner import build_plan, DeployPlan  # noqa: F401
+from .planner import DeployPlan, build_plan  # noqa: F401
 
 __all__ = [
     "__version__",
@@ -23,4 +30,9 @@ __all__ = [
     "parse_project",
     "build_plan",
     "DeployPlan",
+    "run_audit",
+    "export_anthropic_yaml",
+    "export_google_adk",
+    "CAPABILITIES",
+    "FEATURES",
 ]
