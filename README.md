@@ -1,5 +1,13 @@
 # agentlift
 
+![Own the definition. Rent the runtime. One neutral agent folder, deployed to Claude Managed Agents, Google Agent Engine, and OpenAI.](hero.png)
+
+[![PyPI](https://img.shields.io/pypi/v/agentlift.svg)](https://pypi.org/project/agentlift/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Claude Managed Agents](https://img.shields.io/badge/Claude-Managed%20Agents-D97757)
+![Google ADK](https://img.shields.io/badge/Google-ADK-4285F4)
+![OpenAI Agents SDK](https://img.shields.io/badge/OpenAI-Agents%20SDK-412991)
+
 **Define your agent once as a folder. Audit how portable it is, compile it to any runtime's format, and deploy it to a managed cloud. One neutral definition, many backends.**
 
 Managed-agent runtimes are arriving fast: Anthropic Managed Agents, Google Vertex AI Agent Engine, OpenAI's Agent Builder. Each wants your agent in *its* shape — Anthropic's `ant` CLI takes Anthropic YAML, Google takes ADK Python, OpenAI a visual graph. Author against one and your definition becomes that vendor's shape; moving runtimes means re-authoring it.
