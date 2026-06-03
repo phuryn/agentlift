@@ -284,6 +284,48 @@ def cmd_bench(args) -> int:
 
 
 # --------------------------------------------------------------------------- #
+def cmd_audit(args) -> int:
+    from .audit import render_audit, run_audit
+    project, diags = parse_project(args.path, default_model=args.model)
+    if not project.agents:
+        print_diagnostics(diags)
+        print("No agents found to audit.")
+        return 1
+    targets = [t.strip().lower() for t in args.targets.split(",") if t.strip()]
+    print(render_audit(project, targets, run_audit(project, targets)))
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+def cmd_export(args) -> int:
+    from .export import export_anthropic_yaml, export_google_adk
+    project, diags = parse_project(args.path, default_model=args.model)
+    plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
+    if args.target == "anthropic-yaml":
+        files = export_anthropic_yaml(project, plan)
+        if not plan.deployable:
+            print_diagnostics(plan.diagnostics)
+    elif args.target == "google-adk":
+        files = export_google_adk(project)
+    else:
+        print(f"unknown export target '{args.target}'", file=sys.stderr)
+        return 2
+    if args.out:
+        os.makedirs(args.out, exist_ok=True)
+        for fn, text in files.items():
+            with open(os.path.join(args.out, fn), "w", encoding="utf-8") as fh:
+                fh.write(text)
+        print(f"Wrote {len(files)} file(s) to {args.out}:")
+        for fn in files:
+            print(f"  {fn}")
+    else:
+        for fn, text in files.items():
+            print(f"# ===== {fn} =====")
+            print(text)
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agentlift", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--version", action="version", version=f"agentlift {__version__}")
@@ -295,6 +337,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("validate", help="parse + plan, report problems")
     sp.add_argument("path"); add_common(sp); sp.set_defaults(func=cmd_validate)
+
+    sp = sub.add_parser("audit", help="report how portable this folder is across managed-agent providers")
+    sp.add_argument("path")
+    sp.add_argument("--targets", default="anthropic,google,openai",
+                    help="comma-separated providers to check (anthropic, google, openai)")
+    add_common(sp); sp.set_defaults(func=cmd_audit)
+
+    sp = sub.add_parser("export", help="compile the folder to a provider-native artifact (no deploy)")
+    sp.add_argument("target", choices=["anthropic-yaml", "google-adk"])
+    sp.add_argument("path")
+    sp.add_argument("--out", default=None, help="write files to this directory instead of stdout")
+    add_common(sp); sp.set_defaults(func=cmd_export)
 
     sp = sub.add_parser("plan", help="show the deterministic deploy plan (no network)")
     sp.add_argument("path"); sp.add_argument("--json", action="store_true"); add_common(sp); sp.set_defaults(func=cmd_plan)
