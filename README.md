@@ -198,6 +198,8 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 
 ### Provider support
 
+![The provider map: one neutral folder, three runtimes. Anthropic Managed Agents (deploy live + export anthropic-yaml), Google Vertex AI Agent Engine (deploy preview + export google-adk; ships prompts + coordinator/subagents + model only so far), OpenAI Agents SDK (export, self-host).](providers.png)
+
 | Runtime | How agentlift targets it | Notes |
 |---|---|---|
 | **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
