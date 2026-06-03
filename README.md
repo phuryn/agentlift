@@ -168,6 +168,8 @@ $ agentlift audit ./examples/team --targets anthropic,google,openai
 
 The audit's `degraded`/`unsupported` rows are exactly the lossy spots a compile would hit — so `audit` tells you what survives before `export` or `deploy` runs.
 
+See the whole thing run offline (audit + both compiles, no API key) in [`demo/`](demo/): `./demo/portability-demo.sh`.
+
 ### Provider support
 
 | Runtime | How agentlift targets it | Notes |
