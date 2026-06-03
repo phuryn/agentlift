@@ -161,15 +161,17 @@ $ agentlift audit ./examples/team --targets anthropic,google,openai
         reason: not enforced with VertexAiSessionService on the deployed runtime
   degraded:
     ! Built-in tool sandbox (bash / files / glob-grep / web)
-== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 5 degraded]
-  degraded:
-    ! Subagents -> coordinator (deployed roster)
-        reason: multi-agent runs as nodes in ONE Agent Builder workflow, not a roster of separately-deployable agents
+== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 1 emulated, 4 degraded]
+  emulated:
+    ~ Subagents -> coordinator (deployed roster)
+        reason: agent-as-tool composition works (confirmed); the delegation loop runs in your orchestrator, not OpenAI-hosted
 ```
 
 The audit's `degraded`/`unsupported` rows are exactly the lossy spots a compile would hit — so `audit` tells you what survives before `export` or `deploy` runs.
 
 See the whole thing run offline (audit + both compiles, no API key) in [`demo/`](demo/): `./demo/portability-demo.sh`.
+
+A subagent roster is a **universal** capability, not a per-provider lottery: `native` on Anthropic (server-side coordinator), `emulated` elsewhere via agent-as-tool. Confirmed by actually running it on OpenAI (Agents SDK `as_tool`) and Google (ADK `sub_agents`) in [`experiments/subagent-composition`](experiments/subagent-composition/) — the only difference is whether the delegation loop runs in the provider's runtime or yours.
 
 ### Provider support
 
