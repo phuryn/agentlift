@@ -2,6 +2,8 @@
 
     agentlift validate <path>                 parse + plan, report problems
     agentlift plan     <path> [--json]        show the deterministic deploy plan (dry run, no network)
+    agentlift audit    <path> [--targets ...] portability report across providers (no network)
+    agentlift export   <target> <path>        compile the folder to a provider artifact (no network)
     agentlift deploy   <path> [--prune]       upload skills + create agents; write lockfile
     agentlift run      <agent> --task "..."   invoke a deployed agent (or --local)
     agentlift list     <path>                 show what is currently deployed (from the lockfile)

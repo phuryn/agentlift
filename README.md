@@ -1,15 +1,16 @@
 # agentlift
 
-**Deploy the Claude agents you already run locally to Anthropic's Managed Agents cloud. One folder, one command.**
+**Define your agent once as a folder. Audit how portable it is, compile it to any runtime's format, and deploy it to a managed cloud. One neutral definition, many backends.**
 
-Anthropic's Managed Agents runs your whole agent loop in the cloud — you call it by ID over REST. But there is no console: to attach a skill, wire an MCP server, or restrict a tool, you write API calls by hand. So most people never move their local agents up.
+Managed-agent runtimes are arriving fast: Anthropic Managed Agents, Google Vertex AI Agent Engine, OpenAI's Agent Builder. Each wants your agent in *its* shape — Anthropic's `ant` CLI takes Anthropic YAML, Google takes ADK Python, OpenAI a visual graph. Author against one and your definition becomes that vendor's shape; moving runtimes means re-authoring it.
 
-agentlift closes that gap. Point it at the agent folder you already use with Claude Code / the Agent SDK (`CLAUDE.md` + skills + `.mcp.json`). It uploads your skills, maps your tool allowlist, wires your remote MCP servers, and creates the hosted agent — deterministically, idempotently, no new format to learn.
+agentlift keeps the definition neutral. Point it at the agent folder you already use with Claude Code / the Agent SDK (`CLAUDE.md`/`agent.md` + skills + `.mcp.json` + a subagent roster), and treat each runtime as a back-end of one compiler: `deploy` it to a managed cloud, `audit` how it maps across providers, or `export` it to a provider's own format (including the YAML the official `ant` CLI consumes — agentlift sits *above* `ant`, not against it).
 
 ```bash
 pip install agentlift
-agentlift deploy ./my-agent
-agentlift run my-agent --task "what changed in the API this week?"
+agentlift audit  ./my-agent                  # how portable is it, per provider? (offline)
+agentlift deploy ./my-agent                  # ship it to Anthropic Managed Agents
+agentlift export anthropic-yaml ./my-agent   # compile it to `ant` YAML
 ```
 
 > The agent definition is the portable asset. The runtime is a deploy choice.
@@ -19,9 +20,9 @@ agentlift run my-agent --task "what changed in the API this week?"
 
 ## Why this exists
 
-`POST /v1/agents` is powerful and completely UI-less. A real agent has a system prompt, a few skills (each a directory of files uploaded via a separate multipart endpoint), an MCP server or two, a tool allowlist, maybe a subagent roster. Wiring all of that by hand — and keeping it in sync as the agent changes — is the reason "just deploy it to the cloud" rarely happens.
+A real agent is a system prompt, a few skills (each a directory of files), an MCP server or two, a tool allowlist, maybe a subagent roster. Every provider now has a way to deploy one — but each captures that definition in its own format (Anthropic YAML, Google ADK, an OpenAI graph). Adopt a provider's native tooling and your agents are now shaped by that provider; the day you want a different runtime, you re-author everything.
 
-agentlift makes the deploy unit the same folder you develop against locally. Nothing new to learn; the thing you already have *is* the input.
+agentlift makes the deploy unit the same folder you develop against locally, and keeps it provider-neutral. Nothing new to learn; the thing you already have *is* the input — and it stays yours, not a vendor's.
 
 ## Install
 
@@ -141,6 +142,40 @@ Pass = the uploaded skill fired **and** the answer was on-topic. Same folder, tw
 
 Full table and the exact wire format: [docs/anthropic-mapping.md](docs/anthropic-mapping.md).
 
+## Portability: audit + compile across runtimes
+
+The folder is provider-neutral, so agentlift treats each runtime as a back-end of one compiler. Same parsed model, three outputs:
+
+| verb | what it does | network |
+|---|---|---|
+| `agentlift audit`  | report, per provider, what's `native` / `emulated` / `degraded` / `unsupported` | offline |
+| `agentlift export` | compile the folder to a provider artifact (`anthropic-yaml` for `ant`, `google-adk`) | offline |
+| `agentlift deploy` | push to a managed runtime via API (Anthropic today) | yes |
+
+```console
+$ agentlift audit ./examples/team --targets anthropic,google,openai
+== Anthropic Managed Agents ==                   [8 native]
+== Google Vertex AI Agent Engine (ADK) ==        [4 native, 2 emulated, 1 degraded, 1 unsupported]
+  unsupported:
+    x Per-tool approval gate (:ask / human-in-the-loop)
+        reason: not enforced with VertexAiSessionService on the deployed runtime
+  degraded:
+    ! Built-in tool sandbox (bash / files / glob-grep / web)
+== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 4 degraded, 1 unsupported]
+  unsupported:
+    x Subagents -> coordinator (deployed roster)
+```
+
+The audit's `degraded`/`unsupported` rows are exactly the lossy spots a compile would hit — so `audit` tells you what survives before `export` or `deploy` runs.
+
+### Provider support
+
+| Runtime | How agentlift targets it | Notes |
+|---|---|---|
+| **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
+| **Google Vertex AI Agent Engine** | `export google-adk` (preview); `deploy` on the roadmap | a true hosted runtime with deployable subagents. `:ask` and the bash/web sandbox degrade — the audit shows where. |
+| **OpenAI** | `export openai-chatkit` (roadmap, self-host) | no code-define + OpenAI-host path today (the hosted artifact is a visual graph). `export` is the self-host escape hatch — never `deploy`. |
+
 ## Isolation: each agent gets only its folder
 
 A deployed agent's context is exactly its own system prompt + its own (and `shared/`) skills + its own (and `shared/`) MCP servers + its inlined knowledge. The repo-root `CLAUDE.md`, a sibling agent's skills, and your machine's MCP servers **cannot leak in.**
@@ -216,6 +251,8 @@ Full guide + trade-offs: [docs/deploying.md](docs/deploying.md).
 ```
 agentlift validate <path>              parse + plan, report problems (exit 1 on errors)
 agentlift plan     <path> [--json]     show the deploy plan (dry run, no network)
+agentlift audit    <path> --targets    portability report per provider (native/degraded/unsupported)
+agentlift export   <target> <path>     compile the folder to a provider artifact (anthropic-yaml, google-adk)
 agentlift diff     <path> [--remote]   what a deploy would change vs the lockfile
 agentlift deploy   <path> [--prune]    upload skills + create agents; write lockfile
 agentlift run <agent> --task "..."     invoke a deployed agent (--local for the same folder locally)
@@ -285,9 +322,10 @@ Everything is here or one click away:
 
 ## Roadmap
 
+- **Google Vertex AI Agent Engine `deploy`** (live deploy, not just `export google-adk`) — the second managed runtime
+- **`export openai-chatkit`** — a self-hostable ChatKit/Agents-SDK server (OpenAI has no code-define + host path to `deploy` to)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)
-- Additional deploy targets (OpenAI Agent Builder, Google Managed Agents) behind the same convention
 - A skill-bundle mode for large `knowledge/` sets
 
 ## License
