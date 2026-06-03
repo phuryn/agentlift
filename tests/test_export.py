@@ -63,6 +63,9 @@ def test_google_adk_is_valid_python(examples_dir):
     assert "sub_agents=[" in code
     assert "root_agent = " in code
     assert "McpToolset(" in code               # the docs MCP server maps over
+    assert "def vertex_model(" in code         # runnable model mapping, not a stale literal
+    assert "AGENTLIFT_GOOGLE_MODEL" in code     # env override for when model names change
+    assert "model=vertex_model(" in code        # every agent resolves its model through it
 
 
 def test_google_adk_annotates_the_gaps(examples_dir):
