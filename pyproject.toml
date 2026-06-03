@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentlift"
-version = "0.4.0"
+version = "0.4.1"
 description = "Own your agent as a neutral folder; audit its portability, compile it to provider formats (Anthropic YAML / Google ADK), and deploy it to managed runtimes. Own the definition, rent the runtime."
 readme = "README.md"
 requires-python = ">=3.10"

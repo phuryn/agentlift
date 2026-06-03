@@ -87,3 +87,6 @@ def test_openai_agents_is_valid_python_with_subagent_tools(examples_dir):
     assert "Runner.run(" in code               # runnable entrypoint
     # the coordinator's roster shows up as ask_<name> tools
     assert "ask_bug_finder" in code and "ask_researcher" in code
+    assert "def openai_model(" in code         # universal model mapping, mirrors google-adk
+    assert "AGENTLIFT_OPENAI_MODEL" in code
+    assert "model=openai_model(" in code

@@ -4,15 +4,16 @@ One folder (CLAUDE.md / agent.md + skills + MCP config + a subagent roster) is t
 provider-neutral definition. agentlift is a compiler over it:
 
     audit   how it maps across providers (native / emulated / degraded / unsupported)
-    export  compile it to a provider artifact (Anthropic YAML for `ant`, Google ADK)
-    deploy  push it to a managed runtime via API (Anthropic today)
+    export  compile it to a provider artifact (Anthropic YAML for `ant`, Google ADK,
+            OpenAI Agents SDK)
+    deploy  push it to a managed runtime via API (Anthropic + Google, both live)
 
 Public surface:
     from agentlift import parse_project, build_plan, Deployer
     from agentlift import run_audit, export_anthropic_yaml, export_google_adk
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 from .audit import run_audit  # noqa: F401
 from .capabilities import CAPABILITIES, FEATURES  # noqa: F401
