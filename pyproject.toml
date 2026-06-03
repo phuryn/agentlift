@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentlift"
-version = "0.4.1"
+version = "0.5.0"
 description = "Own your agent as a neutral folder; audit its portability, compile it to provider formats (Anthropic YAML / Google ADK), and deploy it to managed runtimes. Own the definition, rent the runtime."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,6 +24,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# Optional: the Google ADK / Vertex AI Agent Engine stack. Installing this makes
+# the ADK-dependent offline tests (generated-package build + import in
+# test_google_codegen.py / test_google_target.py) actually run instead of skip.
+# Kept out of `dev` so the default dev/CI install stays lean; floors are the
+# versions agentlift has been live-verified against.
+google = [
+    "google-adk>=1.34.3",
+    "google-cloud-aiplatform[adk,agent_engines]>=1.119",
+]
 
 [project.urls]
 Homepage = "https://github.com/phuryn/agentlift"

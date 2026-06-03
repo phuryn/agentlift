@@ -62,11 +62,16 @@ def test_canonical_hash_stable():
 
 
 def test_apply_is_idempotent(examples_dir, tmp_path):
-    # copy the team example into a temp dir so the lockfile lands there
+    # copy the team example into a temp dir so the lockfile lands there.
+    # Ignore any local deploy-state artifacts (lockfiles, .agentlift-*.json) so the
+    # test is hermetic regardless of whatever a live deploy left behind on disk.
     import shutil
     src = os.path.join(examples_dir, "team")
     dst = os.path.join(str(tmp_path), "team")
-    shutil.copytree(src, dst)
+    shutil.copytree(
+        src, dst,
+        ignore=shutil.ignore_patterns(".agentlift-lock.json", ".agentlift-*.json", "*.bak"),
+    )
 
     project, diags = parse_project(dst)
     plan = build_plan(project, diags)

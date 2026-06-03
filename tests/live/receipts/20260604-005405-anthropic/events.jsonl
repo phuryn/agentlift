@@ -1,0 +1,54 @@
+{"label": "researcher-direct", "event": {"type": "session.error"}}
+{"label": "researcher-direct", "event": {"type": "session.status_running"}}
+{"label": "researcher-direct", "event": {"type": "session.thread_status_running"}}
+{"label": "researcher-direct", "event": {"type": "user.message"}}
+{"label": "researcher-direct", "event": {"type": "span.model_request_start"}}
+{"label": "researcher-direct", "event": {"type": "agent.thinking"}}
+{"label": "researcher-direct", "event": {"type": "agent.message", "text": "I'll fetch the ADK Python documentation and search for the sub_agents information using my MCP tools."}}
+{"label": "researcher-direct", "event": {"type": "agent.mcp_tool_use", "name": "fetch_adk_python_documentation"}}
+{"label": "researcher-direct", "event": {"type": "agent.mcp_tool_use", "name": "search_adk_python_documentation"}}
+{"label": "researcher-direct", "event": {"type": "span.model_request_end"}}
+{"label": "researcher-direct", "event": {"type": "session.thread_status_idle"}}
+{"label": "researcher-direct", "event": {"type": "session.status_idle"}}
+{"label": "reporter-direct", "event": {"type": "user.message"}}
+{"label": "reporter-direct", "event": {"type": "span.model_request_start"}}
+{"label": "reporter-direct", "event": {"type": "agent.thinking"}}
+{"label": "reporter-direct", "event": {"type": "agent.tool_use", "name": "read"}}
+{"label": "reporter-direct", "event": {"type": "agent.tool_use", "name": "read"}}
+{"label": "reporter-direct", "event": {"type": "span.model_request_end"}}
+{"label": "reporter-direct", "event": {"type": "agent.tool_result"}}
+{"label": "reporter-direct", "event": {"type": "agent.tool_result"}}
+{"label": "reporter-direct", "event": {"type": "span.model_request_start"}}
+{"label": "reporter-direct", "event": {"type": "agent.message", "text": "REPORTFMTOK\n\n**ADK sub_agents**\n\n**Summary:** A coordinator delegates work to specialized sub-agents by creating self-contained task instructions that include all necessary context, then synthesizes the results when the sub-agents complete their work.\n\n**Details:**\n- The coordinator uses `create_agent(agent_name, task)` to spawn a sub-agent with a single, self-contained task that includes all context, constraints, and data the sub-agent needs\u2014since sub-agents cannot see conversation history.\n- The coordinator monitors sub-agent progress with `list_agents()` and sends follow-up instructions via `send_to_agent()` for iterative work, allowing the sub-agent to refine or extend its output.\n- Once sub-agents finish and report results, the coordinator synthesizes findings into a response for the user rather than relaying raw sub-agent output verbatim.\n\nREPORTER-AGENT-OK\n\nHOUSESTYLEOK"}}
+{"label": "reporter-direct", "event": {"type": "span.model_request_end"}}
+{"label": "reporter-direct", "event": {"type": "session.thread_status_idle"}}
+{"label": "reporter-direct", "event": {"type": "session.status_idle"}}
+{"label": "lead-delegation", "event": {"type": "user.message"}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_start"}}
+{"label": "lead-delegation", "event": {"type": "agent.thinking"}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_end"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_created"}}
+{"label": "lead-delegation", "event": {"type": "agent.thread_message_sent"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_created"}}
+{"label": "lead-delegation", "event": {"type": "agent.thread_message_sent"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_status_running"}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_start"}}
+{"label": "lead-delegation", "event": {"type": "agent.message", "text": "I've spawned both the researcher and reporter to work on this. The researcher will gather comprehensive information about how ADK sub_agents work, and the reporter will use those findings to craft a polished, one-paragraph briefing. Their responses will arrive shortly."}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_end"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_status_idle"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_status_running"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_status_idle"}}
+{"label": "lead-delegation", "event": {"type": "message"}}
+{"label": "lead-delegation", "event": {"type": "agent.thread_message_received"}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_start"}}
+{"label": "lead-delegation", "event": {"type": "agent.thinking"}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_end"}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_start"}}
+{"label": "lead-delegation", "event": {"type": "agent.message", "text": "The researcher is still working on gathering the information. Once they report back with their findings, I'll forward those to the reporter to write the briefing paragraph. Let me wait for the researcher's response."}}
+{"label": "lead-delegation", "event": {"type": "span.model_request_end"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_status_idle"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_status_running"}}
+{"label": "lead-delegation", "event": {"type": "session.thread_status_idle"}}
+{"label": "lead-delegation", "event": {"type": "agent.mcp_tool_use", "name": "fetch_adk_python_documentation"}}
+{"label": "lead-delegation", "event": {"type": "session.status_idle"}}
+{"label": "lead-delegation", "event": {"type": "message"}}

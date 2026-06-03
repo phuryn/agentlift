@@ -16,8 +16,22 @@ venv/
 src/*.egg-info/
 
 # agentlift deploy state (per-project lockfile is meant to be committed by USERS,
-# but in THIS repo's examples we keep generated lockfiles out)
+# but in THIS repo's examples + test fixtures we keep generated state out — it
+# carries real resource IDs and is regenerated on every deploy)
 examples/**/.agentlift-lock.json
+tests/live/**/.agentlift-lock.json
+tests/live/**/.agentlift-google.json
+# live-harness operational state (deploy bookkeeping; points at real/short-lived
+# resources). The committed *receipts* are the evidence; this scratch is not.
+tests/live/receipts/_state-*.json
+tests/live/receipts/_preflight-*.json
+
+# generated Google Agent Engine source package (rebuilt on every deploy)
+.agentlift-build/
+**/.agentlift-build/
+
+# local agent runtime state (Claude Code scheduled-task locks, etc.)
+.claude/
 
 # scratch
 Temp/

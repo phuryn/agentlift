@@ -145,11 +145,14 @@ def parse_mcp_file(path: str, shared: bool) -> dict[str, McpServerSpec]:
                 allowed.append(tname)
                 if policy:
                     policies[tname] = policy
-        has_auth = bool(cfg.get("env") or cfg.get("headers"))
+        headers = {str(k): str(v) for k, v in (cfg.get("headers") or {}).items()}
+        env = {str(k): str(v) for k, v in (cfg.get("env") or {}).items()}
+        has_auth = bool(env or headers)
         servers[name] = McpServerSpec(
             name=name, transport=transport, url=url, command=command,
             args=list(cfg.get("args") or []), allowed_tools=allowed,
             tool_policies=policies, shared=shared, has_inline_auth=has_auth,
+            headers=headers, env=env,
         )
     return servers
 

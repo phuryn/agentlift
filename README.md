@@ -198,15 +198,32 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 
 ### Provider support
 
-![The provider map: one neutral folder, three runtimes. Anthropic Managed Agents (deploy live + export anthropic-yaml), Google Vertex AI Agent Engine (deploy preview + export google-adk; ships prompts + coordinator/subagents + model only so far), OpenAI Agents SDK (export, self-host).](providers.png)
+![The provider map: one neutral folder, three runtimes. Anthropic Managed Agents (deploy live + export anthropic-yaml; all six dimensions exercised server-side), Google Vertex AI Agent Engine (deploy preview, live-verified; compiles prompts + subagents + skills + URL MCP to a real reasoningEngine, all six exercised server-side), OpenAI Agents SDK (export + self-host; subagents as agent-as-tool).](providers.png)
 
 | Runtime | How agentlift targets it | Notes |
 |---|---|---|
 | **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
-| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | Live `reasoningEngine` with confirmed server-side coordinator→subagent delegation. **The preview deploy ships system prompts + the coordinator/`sub_agents` structure + model only — skills, MCP servers, and built-in tools are skipped** (the deploy logs each as `not mapped to Agent Engine yet`); Claude models map to Gemini. So `audit` rates Google MCP `native` (the platform supports it), but `deploy` does not wire it up yet. See [tested-platforms](docs/tested-platforms.md). |
+| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | Live `reasoningEngine` with confirmed server-side coordinator→subagent delegation. The deploy now also maps **skills** (SKILL.md bundles ship inside the engine's source package, loaded via ADK `load_skill_from_dir`) and **URL MCP servers** (each an ADK `McpToolset` with a `tool_filter` allowlist; inline auth header values resolve from your local env into Agent Engine `env_vars`, never inlined into source). Idempotent create/update/skip via a spec hash. Remaining gaps: `:ask`/per-tool approval, the built-in tool sandbox (Python/JS only), and stdio MCP servers; Claude models map to Gemini. See [tested-platforms](docs/tested-platforms.md). |
 | **OpenAI** | `export openai-agents` (preview, self-host) | subagents emulated via agent-as-tool (the delegation loop runs in your app); no code-define + OpenAI-host path, so `export`, never `deploy`. |
 
-> **What "live, preview" means for Google — read this before assuming parity.** The deploy proves the *orchestration shape* is portable: a coordinator and its subagents become one hosted `reasoningEngine` that delegates server-side. It does **not** yet carry the agent's capabilities — **skills, MCP servers, and built-in tools are skipped** (each printed as `not mapped to Agent Engine yet`). So today **Anthropic is the only target with full feature mapping**; Google deploys a prompt-and-structure skeleton on a real hosted runtime, and OpenAI is export/self-host (no hosted engine at all). This is the deliberate gap between what `audit` reports (each *platform's* capability) and what `deploy` currently delivers (agentlift's preview implementation). Closing it is on the roadmap.
+> **What "live, preview" means for Google — read this before assuming parity.** The deploy carries the agent's portable capabilities onto a hosted `reasoningEngine`: the coordinator + subagents delegate server-side, **skills** ride inside the source package (loaded via ADK `load_skill_from_dir`), and **URL MCP servers** are wired as ADK `McpToolset`s with a `tool_filter` allowlist (inline auth header values resolve from your local env into Agent Engine `env_vars` — the secret never lands in the generated source). Redeploys are idempotent: a spec hash drives create / update / skip. What's still **not** mapped: the built-in tool sandbox (Vertex's is Python/JS only — no bash/web/glob-grep), `:ask`/per-tool approval (not enforced on `VertexAiSessionService`), and stdio MCP servers (host them behind HTTPS first); Claude models map to Gemini. So Anthropic remains the fullest mapping (its sandbox + `:ask` + native Claude have no Vertex equivalent), but Google is no longer a prompt-only skeleton. OpenAI is export/self-host (no hosted engine at all).
+
+#### Live coverage matrix — what actually ran, not what the docs claim
+
+One neutral [coverage fixture](tests/live/fixtures/coverage-matrix/) — a coordinator `lead` over a `researcher` (shared **DeepWiki** MCP + private **GitMCP** + shared `house-style` skill) and a `reporter` (shared `house-style` + private `report-format` skill) — was deployed and queried on each runtime. Cells are classified by what the runtime *actually did*, never by answer text:
+
+| Dimension | Anthropic — `deploy` (reference) | Google — `deploy` (preview) | OpenAI — `export`* |
+|---|---|---|---|
+| agents | ✅ EXERCISED | ✅ EXERCISED | ✅ exported |
+| subagents | ✅ EXERCISED — native delegation event | ✅ EXERCISED — `transfer_to_agent` | ✅ exported — `as_tool`, in-process (trace-verified) |
+| shared MCP | ✅ EXERCISED — `read_wiki_structure` | ✅ EXERCISED — `read_wiki_structure` | ◐ export scaffold (self-host) |
+| individual MCP | ✅ EXERCISED — GitMCP `search`/`fetch` | ✅ EXERCISED — same | ◐ export scaffold (self-host) |
+| shared skill | ✅ EXERCISED — `HOUSESTYLEOK` | ✅ EXERCISED — `load_skill` + marker | ◐ export scaffold (self-host) |
+| individual skill | ✅ EXERCISED — `REPORTFMTOK` | ✅ EXERCISED — marker | ◐ export scaffold (self-host) |
+
+> `*` **OpenAI is an export target, not a live deploy** — there is no code-define-and-OpenAI-host path. agents + subagents are real (the `as_tool` composition is trace-verified in [`experiments/subagent-composition`](experiments/subagent-composition/)); MCP and skills compile to guided self-host scaffolding (`HostedMCPTool` / Skills-API call sites), since the orchestration loop runs in *your* app. `◐` = compiled to a self-host stub, not live-exercised.
+>
+> `EXERCISED` = an objective runtime event proved it. **Both Anthropic and Google exercised all six dimensions server-side (6/6)** on a real, billable deploy. Anthropic's subagents cell keys on the native delegation event (`session.thread_created` + `agent.thread_message_sent`) because coordinator delegation is async (the worker's reply lands after a one-shot query returns). The **wired** layer is pinned offline in [`tests/test_coverage_matrix_plan.py`](tests/test_coverage_matrix_plan.py) (CI); the EXERCISED column comes from committed live receipts under [`tests/live/receipts/`](tests/live/receipts/). Full evidence + reproduce steps: [`docs/tested-platforms.md`](docs/tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking) and [`tests/live/README.md`](tests/live/README.md).
 
 ## Isolation: each agent gets only its folder
 
@@ -334,14 +351,16 @@ pytest -m "not live"     # deterministic translation + idempotency — no API ke
 pytest -m live           # deploy to the real API, run, LLM-grade the output (needs ANTHROPIC_API_KEY)
 ```
 
-Offline tests pin the translation (tool mapping, per-tool permissions, skill dedup, stdio rejection, coordinator ordering, context isolation, diff, idempotency). Live tests deploy to Anthropic and confirm the uploaded skill actually fires in the cloud, graded by an LLM. CI runs the offline suite on every push and the live suite when an `ANTHROPIC_API_KEY` secret is present ([.github/workflows/ci.yml](.github/workflows/ci.yml)). A separate on-demand [live-demo workflow](.github/workflows/live-demo.yml) deploys the team example to a real account, runs the benchmark, and tears everything down — so the deploy path is demonstrably live, not just asserted.
+Offline tests pin the translation (tool mapping, per-tool permissions, skill dedup, stdio rejection, coordinator ordering, context isolation, diff, idempotency) — including both providers' plans for the six-dimension coverage fixture ([`tests/test_coverage_matrix_plan.py`](tests/test_coverage_matrix_plan.py)). Live tests deploy to Anthropic and confirm the uploaded skill actually fires in the cloud, graded by an LLM. CI runs the offline suite on every push and the live suite when an `ANTHROPIC_API_KEY` secret is present ([.github/workflows/ci.yml](.github/workflows/ci.yml)). A separate on-demand [live-demo workflow](.github/workflows/live-demo.yml) deploys the team example to a real account, runs the benchmark, and tears everything down — so the deploy path is demonstrably live, not just asserted.
+
+Beyond that, the **live coverage matrix** ([`tests/live/`](tests/live/)) deploys one neutral fixture to **both** Anthropic and Google, queries the live engines, and records committed receipts of what each runtime *actually did* across all six portability dimensions (6/6 EXERCISED on both — see the [matrix above](#live-coverage-matrix--what-actually-ran-not-what-the-docs-claim)). It is billable, credential-gated, and skipped in CI; reproduce it with the standalone harness or the gated wrapper (`AGENTLIFT_LIVE_COVERAGE=1 pytest -m live`).
 
 ## Limitations (read these)
 
 - **Remote MCP only.** Managed agents connect to URL MCP servers; local `stdio` servers (`npx ...`) can't be deployed. Host them behind HTTPS first.
-- **No inline MCP auth.** A managed URL MCP server carries no credentials in this API shape. The server must be public or authenticate itself.
+- **No inline MCP auth on Anthropic.** A managed URL MCP server carries no credentials in the Anthropic API shape — the server must be public or authenticate itself. (The Google deploy *does* carry inline auth: the header value resolves from your local env into an Agent Engine `env_var` at deploy, never into the source.)
 - **Knowledge files are inlined** into the system prompt (no persistent local FS in the managed sandbox). Large reference sets should become a skill bundle.
-- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; MCP, skills, and `:ask` not mapped yet). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
+- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; maps skills + URL MCP with inline-auth-via-env-vars, but `:ask`, the built-in sandbox, and stdio MCP are not mapped, and Claude→Gemini). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
 
 Each of these is surfaced as a `agentlift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
 
@@ -370,7 +389,7 @@ Everything is here or one click away:
 
 ## Roadmap
 
-- **Google deploy parity** — the live `deploy --target google` is preview: it ships prompts + coordinator/`sub_agents` + model and **skips skills, MCP servers, built-in tools, and `:ask`** (Claude→Gemini model mapping). Bring it to full parity (skills/MCP/tools, Claude-on-Vertex models, per-agent IDs via A2A).
+- **Google deploy parity** — the live `deploy --target google` now ships prompts + coordinator/`sub_agents` + **skills + URL MCP (with inline-auth-via-env-vars)** + model, idempotent via a spec hash. Remaining for full parity: the built-in tool sandbox (Vertex's is Python/JS only), `:ask`/per-tool approval (not enforced on `VertexAiSessionService`), Claude-on-Vertex models (today Claude→Gemini), and per-agent IDs via A2A.
 - **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)

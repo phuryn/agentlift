@@ -1,0 +1,105 @@
+{
+  "provider": "anthropic",
+  "when": "20260604-002527",
+  "fixture": "coverage-matrix",
+  "state": {
+    "provider": "anthropic",
+    "when": "20260604-002510",
+    "uploaded_skills": 2,
+    "reused_skills": 0,
+    "created_agents": 3,
+    "agents": {
+      "lead": {
+        "agent_id": "agent_01R7PBhh5Vj8n3CwPfeMSVcJ",
+        "version": 1
+      },
+      "reporter": {
+        "agent_id": "agent_0182SpvXWGVb7YCRgXQAo3Ft",
+        "version": 1
+      },
+      "researcher": {
+        "agent_id": "agent_01JdfsmqBJPUdASBL12sA9jq",
+        "version": 1
+      }
+    },
+    "versions": {
+      "google.adk": "1.34.3",
+      "vertexai": "1.154.0",
+      "anthropic": "0.105.2",
+      "agentlift": "0.4.1"
+    }
+  },
+  "queries": [
+    {
+      "prompt": "Look up the high-level wiki structure of the GitHub repository 'google/adk-python', and also search the ADK Python documentation for how an LlmAgent declares sub_agents. Use your MCP tools; do not answer from memory.",
+      "error": "BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': \"Missing required tool: skills require the read tool to be usable (enabled and not always_deny) on the session's `agent_toolset`\"}, 'request_id': 'req_011Cbh7QivdCH7wc4KSK9EnR'}",
+      "tool_calls": [],
+      "final_text": "",
+      "label": "researcher-direct",
+      "agent": "researcher"
+    },
+    {
+      "prompt": "Write a short report titled 'ADK sub_agents' summarizing in two or three bullets how a coordinator delegates to sub-agents.",
+      "error": "BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': \"Missing required tool: skills require the read tool to be usable (enabled and not always_deny) on the session's `agent_toolset`\"}, 'request_id': 'req_011Cbh7QkrhvpxnAYLHFDXXm'}",
+      "tool_calls": [],
+      "final_text": "",
+      "label": "reporter-direct",
+      "agent": "reporter"
+    },
+    {
+      "prompt": "I need a researched, well-written one-paragraph briefing on how ADK sub_agents work. Coordinate the team to produce it.",
+      "error": "BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Missing required tool: callable_agents[0] has skills configured but its tool set does not enable the `read` tool; skills require read to open their `SKILL.md` files'}, 'request_id': 'req_011Cbh7Qnt1KoxtxNWprRaG1'}",
+      "tool_calls": [],
+      "final_text": "",
+      "label": "lead-delegation",
+      "agent": "lead"
+    }
+  ],
+  "matrix": {
+    "calls_seen": [],
+    "any_error": true,
+    "dimensions": {
+      "agents": {
+        "state": "FAIL",
+        "reason": "no agent returned text"
+      },
+      "subagents": {
+        "state": "NOT-PROVEN",
+        "reason": "no subagent trace tag in the coordinator's output",
+        "evidence": {
+          "researcher_via_lead": false,
+          "reporter_via_lead": false
+        }
+      },
+      "shared_mcp": {
+        "state": "PASS-WIRED",
+        "reason": "attached at deploy; no DeepWiki tool_use event observed",
+        "evidence": {
+          "calls": []
+        }
+      },
+      "individual_mcp": {
+        "state": "PASS-WIRED",
+        "reason": "attached at deploy; no GitMCP tool_use event observed",
+        "evidence": {
+          "calls": []
+        }
+      },
+      "shared_skill": {
+        "state": "PASS-WIRED",
+        "reason": "uploaded + attached; house-style marker not emitted",
+        "evidence": {
+          "house_style_marker": false
+        }
+      },
+      "individual_skill": {
+        "state": "PASS-WIRED",
+        "reason": "uploaded + attached; report-format marker not emitted",
+        "evidence": {
+          "report_format_marker": false
+        }
+      }
+    }
+  },
+  "note": "Live, billable. Not run in CI (credentials are not shared). States: PASS-EXERCISED (objective runtime event), PASS-WIRED (configured + deployed, no runtime event), NOT-PROVEN, FAIL."
+}

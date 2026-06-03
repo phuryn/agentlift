@@ -17,7 +17,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -m pip install -e ".[dev]"
+      # install the Google ADK stack too, so the ADK-dependent offline tests
+      # (generated-package build + import) actually run on GitHub instead of skipping
+      - run: python -m pip install -e ".[dev,google]"
       - name: run offline suite (no API key)
         run: pytest -m "not live" -q
 

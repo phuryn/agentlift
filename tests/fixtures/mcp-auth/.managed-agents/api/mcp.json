@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "secure": {
+      "type": "url",
+      "url": "https://secure.internal.example.com/mcp",
+      "allowedTools": ["lookup"],
+      "headers": {
+        "Authorization": "Bearer ${SECURE_API_TOKEN}"
+      }
+    }
+  }
+}

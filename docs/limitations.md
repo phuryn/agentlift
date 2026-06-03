@@ -13,12 +13,18 @@ behind an HTTPS endpoint and give it a `url`.
 - default: hard error (`mcp.stdio_unsupported`), deploy blocked
 - `--skip-unsupported`: warning, the server is dropped, the rest deploys
 
-## No inline MCP auth
+## No inline MCP auth (Anthropic)
 
-The managed URL MCP server shape is `{type, name, url}` — there is no field for
-headers or env. Any `env`/`headers` in your local `mcp.json` is **not forwarded**
+On **Anthropic**, the managed URL MCP server shape is `{type, name, url}` — there is no
+field for headers or env. Any `env`/`headers` in your local `mcp.json` is **not forwarded**
 (`mcp.auth_dropped` warning). The server must be public or authenticate itself.
 Authenticated remote MCP via the Vaults API is on the roadmap.
+
+On **Google** (`--target google`) inline auth *is* carried: the header value is resolved
+from the deployer's local environment at deploy time and passed as an Agent Engine
+`env_var` (named `AGENTLIFT_MCP_<SERVER>_<HEADER>`); the generated source only ever
+references `os.environ.get(...)`, so the secret never lands in source, plan, or lockfile.
+See [deploy-google.md](deploy-google.md#mcp-auth-headers-secrets-stay-out-of-the-source).
 
 ## Knowledge files are inlined
 
@@ -54,7 +60,7 @@ same folder reaches every target. What differs is how far each runtime takes it:
 | Target | Status | Limits |
 |---|---|---|
 | Anthropic Managed Agents | Live deploy | Reference target; most complete mapping (skills, MCP, `:ask`, coordinator). |
-| Google Vertex AI Agent Engine | Live deploy, preview | Deployed as a real `reasoningEngine` (server-side delegation tested live); MCP, skills, and `:ask` not mapped yet; Claude models map to Gemini. |
+| Google Vertex AI Agent Engine | Live deploy, preview | Deployed as a real `reasoningEngine`; maps **skills** (embedded + ADK `load_skill_from_dir`) and **URL MCP** (`McpToolset` + `tool_filter`, inline auth → Agent Engine `env_vars`), idempotent via a spec hash. **All six portability dimensions exercised live** (delegation, both MCP servers, both skills — see the [coverage matrix](tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking)). Not mapped: built-in tool sandbox (Vertex's is Python/JS only) and `:ask`/per-tool approval; stdio MCP refused; Claude models map to Gemini. |
 | OpenAI Agents SDK | Export / self-host | Subagents via agent-as-tool; the delegation loop runs in your app — no hosted-deploy target. |
 
 ## Cost numbers are estimates

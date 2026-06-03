@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "docs": {
+      "type": "url",
+      "url": "https://mcp.deepwiki.com/mcp",
+      "allowedTools": ["read_wiki_structure", "ask_question"]
+    }
+  }
+}

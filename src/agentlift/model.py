@@ -59,6 +59,12 @@ class McpServerSpec:
     tool_policies: dict[str, str] = field(default_factory=dict)  # tool name -> "ask" | "allow"
     shared: bool = False
     has_inline_auth: bool = False  # env/headers present in source (can't ride along on managed URL servers)
+    # Raw inline auth captured verbatim from the source config. The Anthropic path
+    # ignores these (it only reads has_inline_auth); the Google path maps header
+    # values to engine env vars by name (the literal value is never inlined into
+    # generated code). Empty dicts keep this fully backward compatible.
+    headers: dict[str, str] = field(default_factory=dict)  # HTTP headers for url transport
+    env: dict[str, str] = field(default_factory=dict)      # env passed to a stdio command
 
 
 @dataclass

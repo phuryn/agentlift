@@ -146,7 +146,22 @@ def _build_tools(agent: AgentSpec, deployable_mcp, diags: Diagnostics) -> list[d
     if agent.builtin_tools is None:
         tools.append({"type": "agent_toolset_20260401", "default_config": {"enabled": True}})
     else:
-        configs = [_tool_config(t, agent.builtin_tool_policies.get(t)) for t in agent.builtin_tools]
+        names = list(agent.builtin_tools)
+        # Anthropic Managed Agents require the `read` builtin to be enabled so the
+        # runtime can open a skill's SKILL.md. An agent that declares skills but
+        # omits `read` from an explicit allowlist is rejected at deploy time. Since
+        # skills are non-functional without it, enable `read` and surface that we
+        # did — keeping the one neutral folder portable (Google loads skills via the
+        # ADK SkillToolset and ignores builtins, so it is unaffected).
+        if agent.skills and "read" not in names:
+            names.append("read")
+            diags.warning(
+                "skills.read_enabled",
+                "agent declares skills but its tool allowlist omits `read`; enabling "
+                "the `read` builtin (Managed Agents require it to open SKILL.md)",
+                agent.name,
+            )
+        configs = [_tool_config(t, agent.builtin_tool_policies.get(t)) for t in names]
         tools.append({
             "type": "agent_toolset_20260401",
             "default_config": {"enabled": False},

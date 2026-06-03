@@ -1,5 +1,6 @@
 import os
 
+from agentlift.model import AgentSpec, Project, SkillSpec
 from agentlift.parser import parse_project
 from agentlift.planner import build_plan
 
@@ -86,3 +87,47 @@ def test_xml_in_skill_description_rejected(fixtures_dir):
     project, plan = _plan(os.path.join(fixtures_dir, "bad-skill"))
     assert not plan.deployable
     assert any(d.code == "skill.xml_in_description" for d in plan.diagnostics.errors)
+
+
+# --- skills require the `read` builtin on Anthropic (live-discovered 400) --- #
+def _skill(name="house-style"):
+    return SkillSpec(
+        name=name, source_dir=f"/x/{name}",
+        files=[(f"{name}/SKILL.md", f"/x/{name}/SKILL.md")],
+        content_hash=("a1b2c3d4" * 8), description="A skill.",
+    )
+
+
+def _solo(agent):
+    return Project(root="/x", agents=[agent], layout="single")
+
+
+def test_skills_force_read_when_allowlist_omits_it():
+    # An agent with skills but an explicit allowlist lacking `read` would be
+    # rejected by Managed Agents ("skills require the read tool"). The planner
+    # enables read for it and surfaces a warning (so the one folder stays portable).
+    agent = AgentSpec(name="r", system="hi", model="claude-haiku-4-5",
+                      builtin_tools=[], skills=[_skill()])
+    plan = build_plan(_solo(agent))
+    assert plan.deployable  # warning, not error
+    assert any(d.code == "skills.read_enabled" for d in plan.diagnostics.warnings)
+    ts = _toolset(plan.agent_creates[0].request)
+    assert ts["default_config"]["enabled"] is False
+    assert any(c["name"] == "read" and c["enabled"] for c in ts["configs"])
+
+
+def test_skills_with_explicit_read_no_duplicate_no_warning():
+    agent = AgentSpec(name="r", system="hi", model="claude-haiku-4-5",
+                      builtin_tools=["read", "grep"], skills=[_skill()])
+    plan = build_plan(_solo(agent))
+    assert not any(d.code == "skills.read_enabled" for d in plan.diagnostics.warnings)
+    ts = _toolset(plan.agent_creates[0].request)
+    assert [c["name"] for c in ts["configs"]].count("read") == 1
+
+
+def test_no_skills_does_not_force_read():
+    agent = AgentSpec(name="r", system="hi", model="claude-haiku-4-5", builtin_tools=[])
+    plan = build_plan(_solo(agent))
+    assert not any(d.code == "skills.read_enabled" for d in plan.diagnostics.warnings)
+    ts = _toolset(plan.agent_creates[0].request)
+    assert ts["configs"] == []

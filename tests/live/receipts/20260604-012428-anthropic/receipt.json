@@ -1,0 +1,144 @@
+{
+  "provider": "anthropic",
+  "when": "20260604-012428",
+  "fixture": "coverage-matrix",
+  "state": {
+    "provider": "anthropic",
+    "when": "20260604-003119",
+    "uploaded_skills": 0,
+    "reused_skills": 2,
+    "created_agents": 3,
+    "agents": {
+      "lead": {
+        "agent_id": "agent_01KAwu226RpuPKBxcXKiLE9n",
+        "version": 1
+      },
+      "reporter": {
+        "agent_id": "agent_016X2gCt3H2TcgkU6Xu6zLd5",
+        "version": 1
+      },
+      "researcher": {
+        "agent_id": "agent_017eDzeQPQpbF44u3W5W7ATq",
+        "version": 1
+      }
+    },
+    "versions": {
+      "google.adk": "1.34.3",
+      "vertexai": "1.154.0",
+      "anthropic": "0.105.2",
+      "agentlift": "0.4.1"
+    }
+  },
+  "queries": [
+    {
+      "prompt": "Do two lookups with your MCP tools, and do not answer from memory:\n1. Use your SHARED `docs` server (DeepWiki) \u2014 call its read_wiki_structure tool on the GitHub repository 'google/adk-python' to list its wiki topics.\n2. Use your PRIVATE `code-search` server to search the ADK Python documentation for how an LlmAgent declares sub_agents.\nYou MUST call both servers.",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "read_wiki_structure"
+        },
+        {
+          "name": "search_adk_python_documentation"
+        }
+      ],
+      "final_text": "",
+      "timed_out": true,
+      "label": "researcher-direct",
+      "agent": "researcher"
+    },
+    {
+      "prompt": "Write a short report titled 'ADK sub_agents' summarizing in two or three bullets how a coordinator delegates to sub-agents.",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "read"
+        }
+      ],
+      "final_text": "Now I'll write the report following both the report-format and house-style skills:\n\nREPORTFMTOK\n\n**ADK sub_agents**\n\nSummary: A coordinator delegates to sub-agents by spawning specialized agents with self-contained task descriptions, then synthesizes their independent results back into user-facing responses.\n\nDetails:\n- **Task Definition**: The coordinator creates an agent using `create_agent(agent_name, task)`, providing a self-contained task description that includes all context, constraints, and data the sub-agent needs\u2014since sub-agents cannot access the coordinator's conversation history.\n- **Independent Execution**: Each sub-agent runs in its own thread in parallel, working autonomously without requiring handoffs or approval from the coordinator.\n- **Result Synthesis**: When sub-agents complete, the coordinator receives their replies as events, then synthesizes the findings into a coherent response for the user rather than relaying raw sub-agent output verbatim.\n\n*Trace tag: REPORTER-AGENT-OK*\n\nHOUSESTYLEOK",
+      "timed_out": false,
+      "label": "reporter-direct",
+      "agent": "reporter"
+    },
+    {
+      "prompt": "I need a researched, well-written one-paragraph briefing on how ADK sub_agents work. Coordinate the team to produce it.",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "fetch_adk_python_documentation"
+        }
+      ],
+      "final_text": "I've spawned the researcher to gather detailed information on ADK sub_agents. Once they report back, I'll hand off their findings to the reporter to craft a well-written one-paragraph briefing. Stand by for the results.",
+      "timed_out": true,
+      "label": "lead-delegation",
+      "agent": "lead"
+    }
+  ],
+  "matrix": {
+    "calls_seen": [
+      "fetch_adk_python_documentation",
+      "read",
+      "read_wiki_structure",
+      "search_adk_python_documentation"
+    ],
+    "any_error": false,
+    "dimensions": {
+      "agents": {
+        "state": "PASS-EXERCISED",
+        "reason": ""
+      },
+      "subagents": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "delegation_events": {
+            "session.thread_created": 1,
+            "agent.thread_message_sent": 1,
+            "agent.thread_message_received": 0
+          },
+          "worker_thread_dispatched": true,
+          "worker_replied": false,
+          "researcher_tag_in_lead_text": false,
+          "reporter_tag_in_lead_text": false,
+          "trace_tag_surfaced": false
+        }
+      },
+      "shared_mcp": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "calls": [
+            "read_wiki_structure"
+          ]
+        }
+      },
+      "individual_mcp": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "calls": [
+            "fetch_adk_python_documentation",
+            "search_adk_python_documentation"
+          ]
+        }
+      },
+      "shared_skill": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "house_style_marker": true
+        }
+      },
+      "individual_skill": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "report_format_marker": true
+        }
+      }
+    }
+  },
+  "note": "Live, billable. Not run in CI (credentials are not shared). States: PASS-EXERCISED (objective runtime event), PASS-WIRED (configured + deployed, no runtime event), NOT-PROVEN, FAIL."
+}

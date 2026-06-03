@@ -7,13 +7,68 @@ code-define + host path, so there is nothing to "deploy" — see the audit).
 
 | Platform | What was tested | How | Result |
 |---|---|---|---|
-| **Anthropic** Managed Agents | live deploy + run + graded output | `agentlift deploy` → `agents.create`, run a session, LLM-grade | ✅ `tests/live/` + `benchmarks/` (managed vs local, 100% pass) |
-| **Google** Vertex AI Agent Engine | live deploy of a coordinator + 2 subagents | `agentlift deploy --target google` → ADK `sub_agents` → `agent_engines.create()` | ✅ live `reasoningEngine`; server-side `transfer_to_agent` confirmed |
+| **Anthropic** Managed Agents | live deploy + run + graded output; the 6-dimension coverage matrix | `agentlift deploy` → `agents.create`, run a session, LLM-grade | ✅ `tests/live/` + `benchmarks/` (managed vs local, 100% pass); coverage matrix **6/6 dimensions exercised** (native delegation event, both MCP servers, both skill markers) |
+| **Google** Vertex AI Agent Engine | live deploy **+ query** of a coordinator + 2 subagents across **all 6 portability dimensions** | `agentlift deploy --target google` → ADK `sub_agents` / `McpToolset` / embedded skills → `agent_engines.create()`, then query the engine | ✅ live `reasoningEngine`; **6/6 dimensions exercised server-side** (`transfer_to_agent`, MCP tool calls, `load_skill`) |
 | **OpenAI** Agents SDK | coordinator delegates to a subagent **as a tool** | `researcher.as_tool()`, run with `Runner.run` | ✅ trace `function_call ask_researcher` (in-process loop) |
 
 The pattern is the same across all three; what differs is **where the orchestration loop
 runs** — the provider's runtime (Anthropic, Google) or your app (OpenAI). See
 [`experiments/subagent-composition/RESULTS.md`](../experiments/subagent-composition/RESULTS.md).
+
+---
+
+## Live coverage matrix — receipt evidence, not a capability ranking
+
+One neutral fixture ([`tests/live/fixtures/coverage-matrix`](../tests/live/fixtures/coverage-matrix/))
+— a coordinator `lead` over a `researcher` (shared **DeepWiki** MCP + private **GitMCP** + shared
+`house-style` skill) and a `reporter` (shared `house-style` + private `report-format` skill) — was
+deployed to **both** runtimes and the live engines were queried. Six portability dimensions,
+classified by what the runtime *actually did* at run time:
+
+> **Anthropic Managed Agents is the reference target** — the fullest, native coordinator / skill /
+> MCP mapping. **Google is preview.** The table reports what each *billable run observed at runtime* —
+> it is **receipt evidence, not a feature ranking.** Both deployed runtimes exercised all six
+> portability dimensions server-side — for async Anthropic subagents the proof is the native
+> delegation event, not a completed worker round-trip inside the coordinator's one-shot response.
+
+| Dimension | Anthropic (reference) | Google (preview) |
+|---|---|---|
+| agents | ✅ EXERCISED | ✅ EXERCISED |
+| subagents | ✅ EXERCISED — native delegation event (`session.thread_created` + `agent.thread_message_sent`) | ✅ EXERCISED — `transfer_to_agent` → researcher, reporter |
+| shared MCP | ✅ EXERCISED — `read_wiki_structure` (DeepWiki) | ✅ EXERCISED — `read_wiki_structure` (DeepWiki) |
+| individual MCP | ✅ EXERCISED — `search`/`fetch_adk_python_documentation` (GitMCP) | ✅ EXERCISED — same |
+| shared skill | ✅ EXERCISED — `HOUSESTYLEOK` emitted | ✅ EXERCISED — `list_skills`+`load_skill`, marker |
+| individual skill | ✅ EXERCISED — `REPORTFMTOK` emitted | ✅ EXERCISED — marker |
+
+**States:** `EXERCISED` = an objective runtime event proved it · `WIRED` = configured + deployed, no
+event this run · `NOT-PROVEN` = wired but no signal. The **wired** layer (what the plan attaches on
+each provider) is pinned offline in
+[`tests/test_coverage_matrix_plan.py`](../tests/test_coverage_matrix_plan.py) and **runs in CI**; the
+`EXERCISED` column comes from live receipts under
+[`tests/live/receipts/`](../tests/live/receipts/) (Google `20260604-004318-google`, Anthropic
+`20260604-012428-anthropic`). These live runs are **billable and not run in CI** (credentials are not
+shared) — reproduce them with
+[`tests/live/coverage_matrix.py`](../tests/live/coverage_matrix.py), or via the gated pytest wrapper
+[`tests/live/test_coverage_matrix.py`](../tests/live/test_coverage_matrix.py)
+(`AGENTLIFT_LIVE_COVERAGE=1 pytest -m live`); see [`tests/live/README.md`](../tests/live/README.md).
+
+**How the two Anthropic cells reached EXERCISED (honest methodology):** an earlier one-shot run left
+two cells soft, and the fixes are worth recording because they are *measurement* fixes, not capability
+changes. (1) **subagents** — Anthropic's coordinator delegation is **async**: the lead spawns a worker
+thread, dispatches the subtask, and returns ("*I've spawned the researcher … stand by*") **before** the
+worker's reply lands, so no worker trace tag surfaces in a single-turn answer. We therefore key the
+EXERCISED state on the **native delegation events** the runtime *does* emit synchronously —
+`session.thread_created` + `agent.thread_message_sent` — which is the objective proof that the
+coordinator delegated. (2) **shared MCP** — when the prompt left tool choice open, the model satisfied
+it with the *other* (also-wired) GitMCP server; directing the query at the shared DeepWiki server by
+name (`read_wiki_structure` on a real repo) exercises the wired server explicitly. Neither was a wiring
+gap — the individual MCP server on the same agent and both skills fired regardless.
+
+**A real fix this surfaced (now shipped):** Managed Agents rejects an agent that declares skills but
+not the `read` builtin (*"skills require the read tool … to open their `SKILL.md` files"*). The
+fixture set `tools: []`; agentlift's planner now **auto-enables `read`** for any skill-bearing agent
+and emits a `skills.read_enabled` warning — a portability fix so the same folder deploys to both
+runtimes. Google is unaffected (it loads skills via a SkillToolset, independent of builtins).
 
 ---
 
@@ -26,6 +81,11 @@ runs** — the provider's runtime (Anthropic, Google) or your app (OpenAI). See
 - **Result:** validated by `tests/live/` (deploy → run a hosted session → an LLM grades the
   output) and `benchmarks/results.md` (same folder on managed vs local: 100% pass). The
   `RECEIPT:` skill fires **inside Anthropic's container**, proving the uploaded skill rode along.
+  The 6-dimension coverage fixture was also deployed + queried here (receipt
+  [`tests/live/receipts/20260604-012428-anthropic/`](../tests/live/receipts/)) — **all six dimensions
+  exercised**: the native delegation events (`session.thread_created` + `agent.thread_message_sent`),
+  both the shared DeepWiki and private GitMCP servers, and both skill markers fired live. See the
+  coverage matrix above for the per-cell evidence and methodology.
 - **Models:** `claude-haiku-4-5`. **Orchestration loop:** hosted (Anthropic runs delegation).
 
 **More:** managed agents in your workspace → <https://platform.claude.com/workspaces/default/agents>
@@ -35,30 +95,45 @@ runs** — the provider's runtime (Anthropic, Google) or your app (OpenAI). See
 
 ## Google Vertex AI Agent Engine
 
-- **Config:** the same `examples/team` folder, compiled by `agentlift deploy --target google`
-  to ADK `LlmAgent`s — a root coordinator (`lead`) over `bug_finder` + `researcher` with
-  ADK `sub_agents`, wrapped in an `AdkApp`, deployed via `agent_engines.create()`.
+- **Config:** the `tests/live/fixtures/coverage-matrix` folder (the 6-dimension fixture above),
+  compiled by `agentlift deploy --target google` to ADK `LlmAgent`s — a root coordinator (`lead`)
+  over `researcher` + `reporter` with ADK `sub_agents`, each worker carrying its `McpToolset`s and
+  embedded skill bundles, wrapped in an `AdkApp`, deployed via `agent_engines.create()`.
 - **Auth + env:** ADC (`gcloud auth application-default login`), `GOOGLE_CLOUD_PROJECT`,
   `GOOGLE_CLOUD_LOCATION=us-central1`, a Cloud Storage staging bucket. See
   [`docs/deploy-google.md`](deploy-google.md).
 - **Models:** `claude-haiku-4-5` in the folder is mapped to `gemini-2.5-flash` for Agent
-  Engine (a Gemini project). **Preview scope:** MCP servers, skills, and built-in tools are
-  noted and skipped in this first deploy (the audit reports those tiers).
+  Engine (a Gemini project). **Preview scope:** the deploy maps **skills** (SKILL.md bundles
+  embedded in the source package, loaded via ADK `load_skill_from_dir`) and **URL MCP
+  servers** (each an ADK `McpToolset` with a `tool_filter` allowlist; inline auth header
+  values resolve from the local env into Agent Engine `env_vars`, never inlined into the
+  source). Still skipped: the built-in tool sandbox (Vertex's is Python/JS only) and
+  `:ask`/per-tool approval (not enforced on `VertexAiSessionService`); stdio MCP servers are
+  refused. **The skills + MCP wiring is now confirmed live, not just by offline tests** — see the
+  coverage matrix above and the receipt below.
 - **Orchestration loop:** hosted (Vertex runs `transfer_to_agent` delegation server-side as
   one `reasoningEngine`).
 - **Result:** live `reasoningEngine`
-  `projects/670199341658/locations/us-central1/reasoningEngines/2870053552716251136` (deployed
-  2026-06-03 via `agentlift deploy --target google`). Querying the **deployed** engine confirms it
-  runs and **delegates server-side**:
+  `projects/********/locations/us-central1/reasoningEngines/********` (deployed
+  2026-06-04 via `agentlift deploy --target google`, spec hash `e499b41a…`; project id redacted,
+  engine since torn down). Querying the
+  **deployed** engine exercised **all six dimensions server-side** — delegation, both MCP servers,
+  and skill loading:
 
   ```
-  QUERY: How tall is the Eiffel Tower in meters, and what year was it completed?
+  QUERY: Look up the wiki structure of google/adk-python and how LlmAgent declares sub_agents.
     [delegation] lead -> transfer_to_agent({'agent_name': 'researcher'})
-    [researcher] The Eiffel Tower is 330 meters (1,083 feet) tall, including the antenna. It was completed in 1889.
+    [shared MCP] read_wiki_structure({'repoName': 'google/adk-python'})        # DeepWiki
+    [private MCP] search_adk_python_documentation({'query': 'LlmAgent ... sub_agents'})  # GitMCP
+    [skills]     list_skills() -> load_skill({'skill_name': 'house-style'})
+    [reporter]   load_skill('report-format') ; emits REPORTFMTOK + REPORTER-AGENT-OK
   ```
 
-  The coordinator `lead` delegated to the `researcher` subagent **inside Google's runtime**, not in
-  the client - the hosted loop. `create()` on Agent Engine *is* the deploy; the engine is live + billable.
+  Every capability the folder declared fired **inside Google's runtime**, not in the client — the
+  hosted loop. `create()` on Agent Engine *is* the deploy; the engine is live + billable. Full
+  tool-call evidence: [`tests/live/receipts/20260604-004318-google/receipt.json`](../tests/live/receipts/).
+  (An earlier prompt-only receipt — a separate engine, 2026-06-03 — tested just the
+  coordinator→subagent shape before the skills/MCP mapping landed; this one supersedes it.)
 
 **More:** Agent Platform console (visual) → <https://console.cloud.google.com/agent-platform>
 · Agent Studio overview → <https://docs.cloud.google.com/gemini-enterprise-agent-platform/agent-studio>

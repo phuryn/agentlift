@@ -1,0 +1,288 @@
+{
+  "provider": "google",
+  "when": "20260604-004318",
+  "fixture": "coverage-matrix",
+  "state": {
+    "provider": "google",
+    "when": "20260604-003438",
+    "deploy_seconds": 230.0,
+    "action": "create",
+    "resource_name": "projects/********/locations/us-central1/reasoningEngines/******** (deleted)",
+    "spec_hash": "e499b41ae5bceceab0361a9756f3413a5a143440177964b9ea8e2fb91fae08f5",
+    "display_name": "agentlift-lead",
+    "deploy_model": "gemini-2.5-flash",
+    "project": "gen-********",
+    "location": "us-central1",
+    "plan": {
+      "display_name": "agentlift-lead",
+      "root_agent": "lead",
+      "deploy_model": "gemini-2.5-flash",
+      "agents": [
+        {
+          "name": "reporter",
+          "safe_name": "reporter",
+          "folder_model": "claude-haiku-4-5",
+          "instruction": "You are the Reporter. Turn findings into a short, well-structured write-up.\n\nBefore you write, consult your skills (list them, then load both the\n`report-format` skill and the `house-style` skill) and apply BOTH: use the\nreport format for structure and the house style for the closing line.\n\nTrace tag: include the token REPORTER-AGENT-OK verbatim somewhere in your report\nso the team can confirm the reporter handled this subtask.",
+          "description": "Writes short structured reports. Follows the shared house style and the private report-format skill.",
+          "mcp": [],
+          "skills": [
+            "house-style",
+            "report-format"
+          ],
+          "sub_agents": []
+        },
+        {
+          "name": "researcher",
+          "safe_name": "researcher",
+          "folder_model": "claude-haiku-4-5",
+          "instruction": "You are the Researcher. Answer reference questions thoroughly and concretely.\n\nTo find facts, you MUST use your MCP tools rather than answering from memory:\n- use the shared `docs` server (DeepWiki) to read a repository's wiki, and\n- use your private `code-search` server to search code documentation.\n\nBefore you finalize any answer, consult your skills (list them, then load the\n`house-style` skill) and apply the house style to your reply.\n\nTrace tag: include the token RESEARCHER-AGENT-OK verbatim somewhere in your reply\nso the team can confirm the researcher handled this subtask.",
+          "description": "Answers reference questions using the shared docs MCP server and its own private code-search MCP server, and follows the shared house style.",
+          "mcp": [
+            {
+              "server": "docs",
+              "url": "https://mcp.deepwiki.com/mcp",
+              "tool_filter": [
+                "read_wiki_structure",
+                "ask_question"
+              ],
+              "auth_env_vars": {}
+            },
+            {
+              "server": "code-search",
+              "url": "https://gitmcp.io/google/adk-python",
+              "tool_filter": [
+                "search_adk_python_documentation",
+                "fetch_adk_python_documentation"
+              ],
+              "auth_env_vars": {}
+            }
+          ],
+          "skills": [
+            "house-style"
+          ],
+          "sub_agents": []
+        },
+        {
+          "name": "lead",
+          "safe_name": "lead",
+          "folder_model": "claude-haiku-4-5",
+          "instruction": "You are the Team Lead. Break the user's request into subtasks and delegate:\nsend factual / reference-lookup questions to the `researcher`, and any request to\nwrite up or summarize findings to the `reporter`. Always delegate at least once;\ndo not answer reference questions yourself. Synthesize the team's results into one\nfinal answer for the user.",
+          "description": "Coordinates the team. Routes reference lookups to the researcher and write-ups to the reporter, then synthesizes one answer.",
+          "mcp": [],
+          "skills": [],
+          "sub_agents": [
+            "researcher",
+            "reporter"
+          ]
+        }
+      ],
+      "skill_bundles": [
+        {
+          "name": "house-style",
+          "content_hash": "56e412a08cb1c91987b64aca9bcf8cc6955862ce7c81ed3f6e41d0cf9d7c9388",
+          "files": [
+            "house-style/SKILL.md"
+          ],
+          "used_by": [
+            "reporter",
+            "researcher"
+          ]
+        },
+        {
+          "name": "report-format",
+          "content_hash": "e115949e58ac8460284c653945c71b8347967b46a959898923cd2561cc378390",
+          "files": [
+            "report-format/SKILL.md"
+          ],
+          "used_by": [
+            "reporter"
+          ]
+        }
+      ],
+      "requirements": [
+        "google-cloud-aiplatform[adk,agent_engines]"
+      ],
+      "env_var_names": [],
+      "spec_hash": "e499b41ae5bceceab0361a9756f3413a5a143440177964b9ea8e2fb91fae08f5",
+      "diagnostics": [
+        {
+          "level": "info",
+          "code": "google.model.remapped",
+          "message": "Claude model(s) on lead, reporter, researcher map to 'gemini-2.5-flash' on Vertex (override with --google-model / AGENTLIFT_GOOGLE_MODEL).",
+          "where": ""
+        }
+      ],
+      "deployable": true
+    },
+    "versions": {
+      "google.adk": "1.34.3",
+      "vertexai": "1.154.0",
+      "anthropic": "0.105.2",
+      "agentlift": "0.4.1"
+    }
+  },
+  "queries": [
+    {
+      "prompt": "Ask the researcher to look up the high-level wiki structure of the GitHub repository 'google/adk-python', and to also search the ADK Python documentation for how an LlmAgent declares sub_agents. Use your tools; do not answer from memory.",
+      "session_id": "3349328540960030720",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "transfer_to_agent",
+          "args": {
+            "agent_name": "researcher"
+          }
+        },
+        {
+          "name": "read_wiki_structure",
+          "args": {
+            "repoName": "google/adk-python"
+          }
+        },
+        {
+          "name": "search_adk_python_documentation",
+          "args": {
+            "query": "LlmAgent declares sub_agents"
+          }
+        },
+        {
+          "name": "list_skills",
+          "args": {}
+        },
+        {
+          "name": "load_skill",
+          "args": {
+            "skill_name": "house-style"
+          }
+        }
+      ],
+      "final_text": "Available pages for google/adk-python:\n\n- 1 Overview\n- 2 Getting Started\n  - 2.1 Installation\n  - 2.2 Quick Start Guide\n  - 2.3 Core Concepts\n- 3 Agent System\n  - 3.1 Agent Types and Hierarchy\n  - 3.2 LlmAgent Configuration\n  - 3.3 Agent Configuration Files\n  - 3.4 Agent Execution Lifecycle\n  - 3.5 Multi-Agent Orchestration\n  - 3.6 Callbacks and Hooks\n  - 3.7 Instructions and Prompts\n  - 3.8 Agent State and Context\n- 4 Execution and Orchestration\n  - 4.1 Runner\n  - 4.2 Invocation Context\n  - 4.3 Plugin System\n  - 4.4 LLM Flow Orchestration\n  - 4.5 App Configuration\n- 5 Workflow Engine\n  - 5.1 Workflow Concepts and Architecture\n  - 5.2 Node Types\n  - 5.3 Graph Definition and Routing\n  - 5.4 Parallel Processing and Fan-Out\n  - 5.5 Workflow HITL and Resumption\n  - 5.6 Dynamic Nodes and Advanced Patterns\n- 6 LLM Integration\n  - 6.1 Model Providers\n  - 6.2 BaseLlm Interface\n  - 6.3 Request and Response Processing\n  - 6.4 Streaming and Response Handling\n  - 6.5 Live Streaming and Real-time Interactions\n  - 6.6 Function Call Handling\n  - 6.7 Context Caching\n  - 6.8 Structured Output and Response Schemas\n  - 6.9 Provider-Specific Features\n- 7 Tools and Extensions\n  - 7.1 Tool Framework\n  - 7.2 Python Function Tools\n  - 7.3 MCP (Model Context Protocol) Tools\n  - 7.4 BigQuery Tools\n  - 7.5 OpenAPI and REST Tools\n  - 7.6 Built-in Tools\n  - 7.7 Tool Authentication\n  - 7.8 Tool Confirmation (HITL)\n- 8 Persistence and State\n  - 8.1 Session Management\n  - 8.2 State Hierarchy\n  - 8.3 Event System and History\n  - 8.4 Artifact Storage\n  - 8.5 Memory Services\n  - 8.6 Database Session Service\n- 9 User Interfaces\n  - 9.1 Command Line Interface\n  - 9.2 Development Web UI\n  - 9.3 FastAPI Server\n  - 9.4 API Endpoints Reference\n  - 9.5 Service URIs and Configuration\n- 10 Evaluation and Testing\n  - 10.1 Evaluation Framework\n  - 10.2 Evaluation Sets and Cases\n  - 10.3 Evaluation Metrics and User Personas\n  - 10.4 Conformance Testing\n  - 10.5 Optimization\n- 11 Deployment\n  - 11.1 Deployment Overview\n  - 11.2 Cloud Run Deployment\n  - 11.3 Vertex AI Agent Engine Deployment\n  - 11.4 GKE Deployment\n  - 11.5 Deployment Configuration\n- 12 Advanced Topics\n  - 12.1 Agent-to-Agent Protocol (A2A)\n  - 12.2 Session Resumability\n  - 12.3 Session Rewind\n  - 12.4 Event Compaction\n  - 12.5 Database Schema Management\n  - 12.6 Concurrency and Performance\n  - 12.7 Telemetry and Observability\n  - 12.8 BigQuery Analytics Plugin\n  - 12.9 Security and CORS Configuration\n  - 12.10 Code Execution\n  - 12.11 Environment Simulation\n  - 12.12 Integrations and Messaging\n  - 12.13 Event-Driven Triggers\n- 13 Development and Contributing\n  - 13.1 Local Development Setup\n  - 13.2 Project Structure\n  - 13.3 Code Quality and CI\n  - 13.4 Release Process\n  - 13.5 Contributing Guidelines\n- 14 Glossary## Query\n\nLlmAgent declares sub_agents.\n\n## Response\n\n### Sources:\nImportant: you can fetch the full content of any source using the fetch_url_content tool\n\n#### (google/adk-python/README.md)[https://raw.githubusercontent.com/google/adk-python/main/README.md] (Score: 0.62)\n- # Define individual agents\ngreeter = LlmAgent(name=\"greeter\", model=\"gemini-2.0-flash\", ...)\ntask_executor = LlmAgent(name=\"task_executor\", model=\"gemini-2.0-flash\", ...)\n\n# Create parent agent and assign children via sub_agents\ncoordinator = LlmAgent(\n    name=\"Coordinator\",\n    model=\"gemini-2.0-flash\",\n    description=\"I coordinate greetings and tasks.\",\n    sub_agents=[ # Assign sub_agents here\n        greeter,\n        task_executor\n    ]\n)\n```\n\n### Development UI\n\nA built-in development UI to help you test, evaluate, debug, and showcase your agent(s).\n\n<img src=\"https://raw.githubusercontent.com/google/adk-python/main/assets/adk-web-dev-ui-function-call.png\"/>\n\n###  Evaluate Agents\n\n```bash\nadk eval \\\n    samples_for_testing/hello_world \\\n    samples_for_testing/hello_world/hello_world_eval_set_001.evalset.json\n```\n\n## \ud83e\udd1d Contributing\n\nWe welcome contributions from the community! Whether it's bug reports, feature requests, documentation improvements, or code contributions, please see our\n- [General contribution guideline and flow](https://google.github.io/adk-docs/contributing-guide/).\n- Then if you want to contribute code, please read [Code Contributing Guidelines](./CONTRIBUTING.md) to get started.\n\n## \ud83d\udcc4 License\n\nThis project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.\n\n---\n\n*Happy Agent Building!*\n- ## \u2728 Key Features\n\n- **Rich Tool Ecosystem**: Utilize pre-built tools, custom functions,\n  OpenAPI specs, or integrate existing tools to give agents diverse\n  capabilities, all for tight integration with the Google ecosystem.\n\n- **Code-First Development**: Define agent logic, tools, and orchestration\n  directly in Python for ultimate flexibility, testability, and versioning.\n\n- **Modular Multi-Agent Systems**: Design scalable applications by composing\n  multiple specialized agents into flexible hierarchies.\n\n- **Deploy Anywhere**: Easily containerize and deploy agents on Cloud Run or\n  scale seamlessly with Vertex AI Agent Engine.\n\n## \ud83e\udd16 Agent2Agent (A2A) Protocol and ADK Integration\n\nFor remote agent-to-agent communication, ADK integrates with the\n[A2A protocol](https://github.com/google-a2a/A2A/).\nSee this [example](https://github.com/google-a2a/a2a-samples/tree/main/samples/python/agents/google_adk)\nfor how they can work together.\n\n## \ud83d\ude80 Installation\n\n### Stable Release (Recommended)\n\nYou can install the latest stable version of ADK using `pip`:\n\n```bash\npip install google-adk\n```\n\nThe release cadence is weekly.\n\n\n- # Agent Development Kit (ADK)\n\n[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)\n[![Python Unit Tests](https://github.com/google/adk-python/actions/workflows/python-unit-tests.yml/badge.svg)](https://github.com/google/adk-python/actions/workflows/python-unit-tests.yml)\n[![r/agentdevelopmentkit](https://img.shields.io/badge/Reddit-r%2Fagentdevelopmentkit-FF4500?style=flat&logo=reddit&logoColor=white)](https://www.reddit.com/r/agentdevelopmentkit/)\n[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/google/adk-python)\n\n<html>\n    <h2 align=\"center\">\n      <img src=\"https://raw.githubusercontent.com/google/adk-python/main/assets/agent-development-kit.png\" width=\"256\"/>\n    </h2>\n    <h3 align=\"center\">\n      An open-source, code-first Python toolkit for building, evaluating, and deploying sophisticated AI agents with flexibility and control.\n    </h3>\n    <h3 align=\"center\">\n      Important Links:\n      <a href=\"https://google.github.io/adk-docs/\">Docs</a>, \n      <a href=\"https://github.com/google/adk-samples\">Samples</a>,\n      <a href=\"https://github.com/google/adk-java\">Java ADK</a> &\n      <a href=\"https://github.com/google/adk-web\">ADK Web</a>.\n    </h3>\n</html>\n\nAgent Development Kit (ADK) is a flexible and modular framework for developing and deploying AI agents. While optimized for Gemini and the Google ecosystem, ADK is model-agnostic, deployment-agnostic, and is built for compatibility with other frameworks. ADK was designed to make agent development feel more like software development, to make it easier for developers to create, deploy, and orchestrate agentic architectures that range from simple tasks to complex workflows.\n\n\n---\n\n## \u2728 Key Features\n\n\n- ## \ud83d\ude80 Installation\n\n### Stable Release (Recommended)\n\nYou can install the latest stable version of ADK using `pip`:\n\n```bash\npip install google-adk\n```\n\nThe release cadence is weekly.\n\nThis version is recommended for most users as it represents the most recent official release.\n\n### Development Version\nBug fixes and new features are merged into the main branch on GitHub first. If you need access to changes that haven't been included in an official PyPI release yet, you can install directly from the main branch:\n\n```bash\npip install git+https://github.com/google/adk-python.git@main\n```\n\nNote: The development version is built directly from the latest code commits. While it includes the newest fixes and features, it may also contain experimental changes or bugs not present in the stable release. Use it primarily for testing upcoming changes or accessing critical fixes before they are officially released.\n\n## \ud83d\udcda Documentation\n\nExplore the full documentation for detailed guides on building, evaluating, and\ndeploying agents:\n\n* **[Documentation](https://google.github.io/adk-docs)**\n\n## \ud83c\udfc1 Feature Highlight\n\n### Define a single agent:\n\n```python\nfrom google.adk.agents import Agent\nfrom google.adk.tools import google_search\n\nroot_agent = Agent(\n    name=\"search_assistant\",\n    model=\"gemini-2.0-flash\", # Or your preferred Gemini model\n    instruction=\"You are a helpful assistant. Answer user questions using Google Search when needed.\",\n    description=\"An assistant that can search the web.\",\n    tools=[google_search]\n)\n```\n\n### Define a multi-agent system:\n\nDefine a multi-agent system with coordinator agent, greeter agent, and task execution agent. Then ADK engine and the model will guide the agents works together to accomplish the task.\n\n```python\nfrom google.adk.agents import LlmAgent, BaseAgent\n\n# Define individual agents\ngreeter = LlmAgent(name=\"greeter\", model=\"gemini-2.0-flash\", ...)\ntask_executor = LlmAgent(name=\"task_executor\", model=\"gemini-2.0-flash\", ...)\n\n\n\n#### (google/adk-python/llms.txt)[https://raw.githubusercontent.com/google/adk-python/main/llms.txt] (Score: 0.61)\n- # Define individual agents\ngreeter = LlmAgent(name=\"greeter\", model=\"gemini-2.5-flash\", ...)\ntask_executor = LlmAgent(name=\"task_executor\", model=\"gemini-2.5-flash\", ...)\n\n# Create parent agent and assign children via sub_agents\ncoordinator = LlmAgent(\n    name=\"Coordinator\",\n    model=\"gemini-2.5-flash\",\n    description=\"I coordinate greetings and tasks.\",\n    sub_agents=[ # Assign sub_agents here\n        greeter,\n        task_executor\n    ]\n)\n\n\n\nDevelopment UI\n\n\nA built-in development UI to help you test, evaluate, debug, and showcase your agent(s).\n\n\n\n\nEvaluate Agents\n\n\nadk eval \\\n    samples_for_testing/hello_world \\\n    samples_for_testing/hello_world/hello_world_eval_set_001.evalset.json\n\n\n\n\ud83e\udd1d Contributing\n\n\nWe welcome contributions from the community! Whether it's bug reports, feature requests, documentation improvements, or code contributions, please see our\n-\nGeneral contribution guideline and flow\n.\n- Then if you want to contribute code, please read\nCode Contributing Guidelines\n to get started.\n\n\n\ud83d\udcc4 License\n\n\nThis project is licensed under the Apache 2.0 License - see the LICENSE file for details.\n\n\n\n\nHappy Agent Building!\n\n**Source:** [adk-python repository](https://github.com/google/adk-python)\n\n\n- # Agent Development Kit (ADK)\n\nAgent Development Kit (ADK)\n\n## ADK Python Repository\n\nAgent Development Kit (ADK)\n\nAn open-source, code-first Python toolkit for building, evaluating, and deploying sophisticated AI agents with flexibility and control.\n\nAgent Development Kit (ADK) is a flexible and modular framework for developing and deploying AI agents. While optimized for Gemini and the Google ecosystem, ADK is model-agnostic, deployment-agnostic, and is built for compatibility with other frameworks. ADK was designed to make agent development feel more like software development, to make it easier for developers to create, deploy, and orchestrate agentic architectures that range from simple tasks to complex workflows.\n\n\n\u2728 Key Features\n\nRich Tool Ecosystem\n: Utilize pre-built tools, custom functions,\n  OpenAPI specs, or integrate existing tools to give agents diverse\n  capabilities, all for tight integration with the Google ecosystem.\n\nCode-First Development\n: Define agent logic, tools, and orchestration\n  directly in Python for ultimate flexibility, testability, and versioning.\n\nModular Multi-Agent Systems\n: Design scalable applications by composing\n  multiple specialized agents into flexible hierarchies.\n\nDeploy Anywhere\n: Easily containerize and deploy agents on Cloud Run or\n  scale seamlessly with Vertex AI Agent Engine.\n\n\ud83e\udd16 Agent2Agent (A2A) Protocol and ADK Integration\n\nFor remote agent-to-agent communication, ADK integrates with the A2A protocol. See this  example for how they can work together.\n\n\n\ud83d\ude80 Installation\n\n\nStable Release (Recommended)\n\n\nYou can install the latest stable version of ADK using pip:\n\n\npip install google-adk\n\n\n\nThe release cadence is weekly.\n\n\nThis version is recommended for most users as it represents the most recent official release.\n\n\nDevelopment Version\n\n\n\n- Bug fixes and new features are merged into the main branch on GitHub first. If you need access to changes that haven't been included in an official PyPI release yet, you can install directly from the main branch:\n\n\npip install git+https://github.com/google/adk-python.git@main\n\n\n\nNote: The development version is built directly from the latest code commits. While it includes the newest fixes and features, it may also contain experimental changes or bugs not present in the stable release. Use it primarily for testing upcoming changes or accessing critical fixes before they are officially released.\n\n\n\ud83d\udcda Documentation\n\n\nExplore the full documentation for detailed guides on building, evaluating, and\ndeploying agents:\n\n\n\n\nDocumentation\n\n\n\n\n\ud83c\udfc1 Feature Highlight\n\n\nDefine a single agent:\n\n\nfrom google.adk.agents import Agent\nfrom google.adk.tools import google_search\n\nroot_agent = Agent(\n    name=\"search_assistant\",\n    model=\"gemini-2.5-flash\", # Or your preferred Gemini model\n    instruction=\"You are a helpful assistant. Answer user questions using Google Search when needed.\",\n    description=\"An assistant that can search the web.\",\n    tools=[google_search]\n)\n\n\n\nDefine a multi-agent system:\n\n\nDefine a multi-agent system with coordinator agent, greeter agent, and task execution agent. Then ADK engine and the model will guide the agents to work together to accomplish the task.\n\n\nfrom google.adk.agents import LlmAgent, BaseAgent\n\n# Define individual agents\ngreeter = LlmAgent(name=\"greeter\", model=\"gemini-2.5-flash\", ...)\ntask_executor = LlmAgent(name=\"task_executor\", model=\"gemini-2.5-flash\", ...)\n\n\nThe high-level wiki structure of the GitHub repository 'google/adk-python' is organized into the following main sections:\n\n*   **1 Overview**\n*   **2 Getting Started** (Installation, Quick Start Guide, Core Concepts)\n*   **3 Agent System** (Agent Types and Hierarchy, LlmAgent Configuration, Agent Configuration Files, Agent Execution Lifecycle, Multi-Agent Orchestration, Callbacks and Hooks, Instructions and Prompts, Agent State and Context)\n*   **4 Execution and Orchestration** (Runner, Invocation Context, Plugin System, LLM Flow Orchestration, App Configuration)\n*   **5 Workflow Engine** (Workflow Concepts and Architecture, Node Types, Graph Definition and Routing, Parallel Processing and Fan-Out, Workflow HITL and Resumption, Dynamic Nodes and Advanced Patterns)\n*   **6 LLM Integration** (Model Providers, BaseLlm Interface, Request and Response Processing, Streaming and Response Handling, Live Streaming and Real-time Interactions, Function Call Handling, Context Caching, Structured Output and Response Schemas, Provider-Specific Features)\n*   **7 Tools and Extensions** (Tool Framework, Python Function Tools, MCP (Model Context Protocol) Tools, BigQuery Tools, OpenAPI and REST Tools, Built-in Tools, Tool Authentication, Tool Confirmation (HITL))\n*   **8 Persistence and State** (Session Management, State Hierarchy, Event System and History, Artifact Storage, Memory Services, Database Session Service)\n*   **9 User Interfaces** (Command Line Interface, Development Web UI, FastAPI Server, API Endpoints Reference, Service URIs and Configuration)\n*   **10 Evaluation and Testing** (Evaluation Framework, Evaluation Sets and Cases, Evaluation Metrics and User Personas, Conformance Testing, Optimization)\n*   **11 Deployment** (Deployment Overview, Cloud Run Deployment, Vertex AI Agent Engine Deployment, GKE Deployment, Deployment Configuration)\n*   **12 Advanced Topics** (Agent-to-Agent Protocol (A2A), Session Resumability, Session Rewind, Event Compaction, Database Schema Management, Concurrency and Performance, Telemetry and Observability, BigQuery Analytics Plugin, Security and CORS Configuration, Code Execution, Environment Simulation, Integrations and Messaging, Event-Driven Triggers)\n*   **13 Development and Contributing** (Local Development Setup, Project Structure, Code Quality and CI, Release Process, Contributing Guidelines)\n*   **14 Glossary**\n\nRegarding how an `LlmAgent` declares `sub_agents` in the ADK Python documentation, the system allows for the creation of multi-agent systems by defining individual `LlmAgent` instances and then assigning them as `sub_agents` to a \"parent\" `LlmAgent` (often a coordinator). This is demonstrated through the `sub_agents` parameter during the initialization of the parent `LlmAgent`.\n\nFor example, to declare `sub_agents`, you would first define your individual `LlmAgent` instances, such as `greeter` and `task_executor`:\n\n```python\ngreeter = LlmAgent(name=\"greeter\", model=\"gemini-2.0-flash\", ...)\ntask_executor = LlmAgent(name=\"task_executor\", model=\"gemini-2.0-flash\", ...)\n```\n\nThen, a `coordinator` `LlmAgent` can be created, and the previously defined agents are passed into its `sub_agents` list:\n\n```python\ncoordinator = LlmAgent(\n    name=\"Coordinator\",\n    model=\"gemini-2.0-flash\",\n    description=\"I coordinate greetings and tasks.\",\n    sub_agents=[  # Assign sub_agents here\n        greeter,\n        task_executor\n    ]\n)\n```\nThis approach enables the coordinator agent to manage and orchestrate the tasks handled by its sub-agents, facilitating modular and hierarchical agentic architectures.\n\nRESEARCHER-AGENT-OK\nHOUSESTYLEOK",
+      "label": "research"
+    },
+    {
+      "prompt": "Ask the reporter to write a short report titled 'ADK sub_agents' summarizing, in two or three bullet points, how a coordinator agent delegates to sub-agents.",
+      "session_id": "3604907819813306368",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "transfer_to_agent",
+          "args": {
+            "agent_name": "reporter"
+          }
+        },
+        {
+          "name": "list_skills",
+          "args": {}
+        },
+        {
+          "name": "load_skill",
+          "args": {
+            "skill_name": "report-format"
+          }
+        },
+        {
+          "name": "load_skill",
+          "args": {
+            "skill_name": "house-style"
+          }
+        }
+      ],
+      "final_text": "REPORTFMTOK\nSummary: The 'ADK sub_agents' report outlines how a coordinator agent delegates tasks by identifying the most suitable sub-agent and transferring the query.\nDetails:\n*   A coordinator agent, such as the `lead` agent, analyzes the user's request to determine the most appropriate sub-agent for handling the query.\n*   Upon identifying the best-suited sub-agent, the coordinator utilizes a mechanism like `transfer_to_agent` to pass the entire context and control of the task to that specific agent.\n*   This delegation ensures that specialized agents, like the researcher or reporter, handle tasks aligned with their expertise, optimizing workflow and response accuracy.\n\nREPORTER-AGENT-OK\nHOUSESTYLEOK",
+      "label": "report"
+    },
+    {
+      "prompt": "Ask the researcher: in one sentence, what is a sub-agent in ADK? Follow the team's house style.",
+      "session_id": "5496419663308914688",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "transfer_to_agent",
+          "args": {
+            "agent_name": "researcher"
+          }
+        },
+        {
+          "name": "list_skills",
+          "args": {}
+        },
+        {
+          "name": "load_skill",
+          "args": {
+            "skill_name": "house-style"
+          }
+        },
+        {
+          "name": "fetch_adk_python_documentation",
+          "args": {}
+        }
+      ],
+      "final_text": "# Agent Development Kit (ADK)\n\nAgent Development Kit (ADK)\n\n## ADK Python Repository\n\nAgent Development Kit (ADK)\n\nAn open-source, code-first Python toolkit for building, evaluating, and deploying sophisticated AI agents with flexibility and control.\n\nAgent Development Kit (ADK) is a flexible and modular framework for developing and deploying AI agents. While optimized for Gemini and the Google ecosystem, ADK is model-agnostic, deployment-agnostic, and is built for compatibility with other frameworks. ADK was designed to make agent development feel more like software development, to make it easier for developers to create, deploy, and orchestrate agentic architectures that range from simple tasks to complex workflows.\n\n\n\u2728 Key Features\n\nRich Tool Ecosystem\n: Utilize pre-built tools, custom functions,\n  OpenAPI specs, or integrate existing tools to give agents diverse\n  capabilities, all for tight integration with the Google ecosystem.\n\nCode-First Development\n: Define agent logic, tools, and orchestration\n  directly in Python for ultimate flexibility, testability, and versioning.\n\nModular Multi-Agent Systems\n: Design scalable applications by composing\n  multiple specialized agents into flexible hierarchies.\n\nDeploy Anywhere\n: Easily containerize and deploy agents on Cloud Run or\n  scale seamlessly with Vertex AI Agent Engine.\n\n\ud83e\udd16 Agent2Agent (A2A) Protocol and ADK Integration\n\nFor remote agent-to-agent communication, ADK integrates with the A2A protocol. See this  example for how they can work together.\n\n\n\ud83d\ude80 Installation\n\n\nStable Release (Recommended)\n\n\nYou can install the latest stable version of ADK using pip:\n\n\npip install google-adk\n\n\n\nThe release cadence is weekly.\n\n\nThis version is recommended for most users as it represents the most recent official release.\n\n\nDevelopment Version\n\n\nBug fixes and new features are merged into the main branch on GitHub first. If you need access to changes that haven't been included in an official PyPI release yet, you can install directly from the main branch:\n\n\npip install git+https://github.com/google/adk-python.git@main\n\n\n\nNote: The development version is built directly from the latest code commits. While it includes the newest fixes and features, it may also contain experimental changes or bugs not present in the stable release. Use it primarily for testing upcoming changes or accessing critical fixes before they are officially released.\n\n\n\ud83d\udcda Documentation\n\n\nExplore the full documentation for detailed guides on building, evaluating, and\ndeploying agents:\n\n\n\n\nDocumentation\n\n\n\n\n\ud83c\udfc1 Feature Highlight\n\n\nDefine a single agent:\n\n\nfrom google.adk.agents import Agent\nfrom google.adk.tools import google_search\n\nroot_agent = Agent(\n    name=\"search_assistant\",\n    model=\"gemini-2.5-flash\", # Or your preferred Gemini model\n    instruction=\"You are a helpful assistant. Answer user questions using Google Search when needed.\",\n    description=\"An assistant that can search the web.\",\n    tools=[google_search]\n)\n\n\n\nDefine a multi-agent system:\n\n\nDefine a multi-agent system with coordinator agent, greeter agent, and task execution agent. Then ADK engine and the model will guide the agents to work together to accomplish the task.\n\n\nfrom google.adk.agents import LlmAgent, BaseAgent\n\n# Define individual agents\ngreeter = LlmAgent(name=\"greeter\", model=\"gemini-2.5-flash\", ...)\ntask_executor = LlmAgent(name=\"task_executor\", model=\"gemini-2.5-flash\", ...)\n\n# Create parent agent and assign children via sub_agents\ncoordinator = LlmAgent(\n    name=\"Coordinator\",\n    model=\"gemini-2.5-flash\",\n    description=\"I coordinate greetings and tasks.\",\n    sub_agents=[ # Assign sub_agents here\n        greeter,\n        task_executor\n    ]\n)\n\n\n\nDevelopment UI\n\n\nA built-in development UI to help you test, evaluate, debug, and showcase your agent(s).\n\n\n\n\nEvaluate Agents\n\n\nadk eval \\\n    samples_for_testing/hello_world \\\n    samples_for_testing/hello_world/hello_world_eval_set_001.evalset.json\n\n\n\n\ud83e\udd1d Contributing\n\n\nWe welcome contributions from the community! Whether it's bug reports, feature requests, documentation improvements, or code contributions, please see our\n-\nGeneral contribution guideline and flow\n.\n- Then if you want to contribute code, please read\nCode Contributing Guidelines\n to get started.\n\n\n\ud83d\udcc4 License\n\n\nThis project is licensed under the Apache 2.0 License - see the LICENSE file for details.\n\n\n\n\nHappy Agent Building!\n\n**Source:** [adk-python repository](https://github.com/google/adk-python)\n\n## Documentation\n- [Custom agents](https://github.com/google/adk-docs/blob/main/docs/agents/custom-agents.md)\n- [Agents](https://github.com/google/adk-docs/blob/main/docs/agents/index.md)\n- [LLM Agent](https://github.com/google/adk-docs/blob/main/docs/agents/llm-agents.md)\n- [Using Different Models with ADK](https://github.com/google/adk-docs/blob/main/docs/agents/models.md)\n- [Multi-Agent Systems in ADK](https://github.com/google/adk-docs/blob/main/docs/agents/multi-agents.md)\n- [Workflow Agents](https://github.com/google/adk-docs/blob/main/docs/agents/workflow-agents/index.md)\n- [Loop agents](https://github.com/google/adk-docs/blob/main/docs/agents/workflow-agents/loop-agents.md)\n- [Parallel agents](https://github.com/google/adk-docs/blob/main/docs/agents/workflow-agents/parallel-agents.md)\n- [Sequential agents](https://github.com/google/adk-docs/blob/main/docs/agents/workflow-agents/sequential-agents.md)\n- [API Reference](https://github.com/google/adk-docs/blob/main/docs/api-reference/index.md)\n- [Artifacts](https://github.com/google/adk-docs/blob/main/docs/artifacts/index.md)\n- [Design Patterns and Best Practices for Callbacks](https://github.com/google/adk-docs/blob/main/docs/callbacks/design-patterns-and-best-practices.md)\n- [Callbacks: Observe, Customize, and Control Agent Behavior](https://github.com/google/adk-docs/blob/main/docs/callbacks/index.md)\n- [Types of Callbacks](https://github.com/google/adk-docs/blob/main/docs/callbacks/types-of-callbacks.md)\n- [Community Resources](https://github.com/google/adk-docs/blob/main/docs/community.md)\n- [Context](https://github.com/google/adk-docs/blob/main/docs/context/index.md)\n- [1. [`google/adk-python`](https://github.com/google/adk-python)](https://github.com/google/adk-docs/blob/main/docs/contributing-guide.md)\n- [Deploy to Vertex AI Agent Engine](https://github.com/google/adk-docs/blob/main/docs/deploy/agent-engine.md)\n- [Deploy to Cloud Run](https://github.com/google/adk-docs/blob/main/docs/deploy/cloud-run.md)\n- [Deploy to GKE](https://github.com/google/adk-docs/blob/main/docs/deploy/gke.md)\n- [Deploying Your Agent](https://github.com/google/adk-docs/blob/main/docs/deploy/index.md)\n- [Why Evaluate Agents](https://github.com/google/adk-docs/blob/main/docs/evaluate/index.md)\n- [Events](https://github.com/google/adk-docs/blob/main/docs/events/index.md)\n- [Agent Development Kit (ADK)](https://github.com/google/adk-docs/blob/main/docs/get-started/about.md)\n- [Get Started](https://github.com/google/adk-docs/blob/main/docs/get-started/index.md)\n- [Installing ADK](https://github.com/google/adk-docs/blob/main/docs/get-started/installation.md)\n- [Quickstart](https://github.com/google/adk-docs/blob/main/docs/get-started/quickstart.md)\n- [Streaming Quickstarts](https://github.com/google/adk-docs/blob/main/docs/get-started/streaming/index.md)\n- [Quickstart (Streaming / Java) {#adk-streaming-quickstart-java}](https://github.com/google/adk-docs/blob/main/docs/get-started/streaming/quickstart-streaming-java.md)\n- [Quickstart (Streaming / Python) {#adk-streaming-quickstart}](https://github.com/google/adk-docs/blob/main/docs/get-started/streaming/quickstart-streaming.md)\n- [Testing your Agents](https://github.com/google/adk-docs/blob/main/docs/get-started/testing.md)\n- [What is Agent Development Kit?](https://github.com/google/adk-docs/blob/main/docs/index.md)\n- [Model Context Protocol (MCP)](https://github.com/google/adk-docs/blob/main/docs/mcp/index.md)\n- [Agent Observability with Arize AX](https://github.com/google/adk-docs/blob/main/docs/observability/arize-ax.md)\n- [Agent Observability with Phoenix](https://github.com/google/adk-docs/blob/main/docs/observability/phoenix.md)\n- [Runtime](https://github.com/google/adk-docs/blob/main/docs/runtime/index.md)\n- [Runtime Configuration](https://github.com/google/adk-docs/blob/main/docs/runtime/runconfig.md)\n- [Safety & Security for AI Agents](https://github.com/google/adk-docs/blob/main/docs/safety/index.md)\n- [Introduction to Conversational Context: Session, State, and Memory](https://github.com/google/adk-docs/blob/main/docs/sessions/index.md)\n- [Memory: Long-Term Knowledge with `MemoryService`](https://github.com/google/adk-docs/blob/main/docs/sessions/memory.md)\n- [Session: Tracking Individual Conversations](https://github.com/google/adk-docs/blob/main/docs/sessions/session.md)\n- [State: The Session's Scratchpad](https://github.com/google/adk-docs/blob/main/docs/sessions/state.md)\n- [Configurating streaming behaviour](https://github.com/google/adk-docs/blob/main/docs/streaming/configuration.md)\n- [Custom Audio Streaming app (WebSocket) {#custom-streaming-websocket}](https://github.com/google/adk-docs/blob/main/docs/streaming/custom-streaming-ws.md)\n- [Custom Audio Streaming app (SSE) {#custom-streaming}](https://github.com/google/adk-docs/blob/main/docs/streaming/custom-streaming.md)\n- [ADK Bidi-streaming development guide: Part 1 - Introduction](https://github.com/google/adk-docs/blob/main/docs/streaming/dev-guide/part1.md)\n- [Bidi-streaming(live) in ADK](https://github.com/google/adk-docs/blob/main/docs/streaming/index.md)\n- [Streaming Tools](https://github.com/google/adk-docs/blob/main/docs/streaming/streaming-tools.md)\n- [Authenticating with Tools](https://github.com/google/adk-docs/blob/main/docs/tools/authentication.md)\n- [Built-in tools](https://github.com/google/adk-docs/blob/main/docs/tools/built-in-tools.md)\n- [Function tools](https://github.com/google/adk-docs/blob/main/docs/tools/function-tools.md)\n- [Google Cloud Tools](https://github.com/google/adk-docs/blob/main/docs/tools/google-cloud-tools.md)\n- [Tools](https://github.com/google/adk-docs/blob/main/docs/tools/index.md)\n- [Model Context Protocol Tools](https://github.com/google/adk-docs/blob/main/docs/tools/mcp-tools.md)\n- [OpenAPI Integration](https://github.com/google/adk-docs/blob/main/docs/tools/openapi-tools.md)\n- [Third Party Tools](https://github.com/google/adk-docs/blob/main/docs/tools/third-party-tools.md)\n- [Build Your First Intelligent Agent Team: A Progressive Weather Bot with ADK](https://github.com/google/adk-docs/blob/main/docs/tutorials/agent-team.md)\n- [ADK Tutorials!](https://github.com/google/adk-docs/blob/main/docs/tutorials/index.md)\n- [Python API Reference](https://github.com/google/adk-docs/blob/main/docs/api-reference/python/)\nIn ADK, a sub-agent is an individual agent assigned to a parent agent, enabling the construction of modular multi-agent systems where agents collaborate to achieve complex tasks.\nRESEARCHER-AGENT-OK\nHOUSESTYLEOK",
+      "label": "research-skill"
+    }
+  ],
+  "matrix": {
+    "calls_seen": [
+      "fetch_adk_python_documentation",
+      "list_skills",
+      "load_skill",
+      "read_wiki_structure",
+      "search_adk_python_documentation",
+      "transfer_to_agent"
+    ],
+    "any_error": false,
+    "dimensions": {
+      "agents": {
+        "state": "PASS-EXERCISED",
+        "reason": ""
+      },
+      "subagents": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "transfers_to": [
+            "reporter",
+            "researcher"
+          ]
+        }
+      },
+      "shared_mcp": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "calls": [
+            "read_wiki_structure"
+          ]
+        }
+      },
+      "individual_mcp": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "calls": [
+            "fetch_adk_python_documentation",
+            "search_adk_python_documentation"
+          ]
+        }
+      },
+      "shared_skill": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "skill_tool_calls": [
+            "list_skills",
+            "load_skill"
+          ],
+          "house_style_marker": true
+        }
+      },
+      "individual_skill": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "report_format_marker": true
+        }
+      }
+    }
+  },
+  "note": "Live, billable. Not run in CI (credentials are not shared). States: PASS-EXERCISED (objective runtime event), PASS-WIRED (configured + deployed, no runtime event), NOT-PROVEN, FAIL."
+}

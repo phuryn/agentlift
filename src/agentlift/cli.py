@@ -102,6 +102,38 @@ def print_plan(plan) -> None:
     print(f"\nDeployable: {'yes' if plan.deployable else 'NO (fix errors above)'}")
 
 
+def print_google_plan(plan) -> None:
+    """The Google Agent Engine plan: one engine, N agent nodes, shipped skill
+    bundles, MCP toolset recipes, and the env vars a deploy must populate."""
+    print(f"\nAgent Engine: {plan.display_name}  "
+          f"(root: {plan.root_agent}, deploy model: {plan.deploy_model})")
+    print(f"Agents: {len(plan.agents)}")
+    for n in plan.agents:
+        line = f"  - {n.name}  [{n.folder_model}]"
+        if n.is_coordinator:
+            line += "  (coordinator -> " + ", ".join(n.sub_agents) + ")"
+        print(line)
+        for r in n.mcp:
+            tf = "/".join(r.tool_filter) if r.tool_filter else "all"
+            auth = f"  auth->{', '.join(sorted(r.auth_env_vars.values()))}" if r.auth_env_vars else ""
+            print(f"      mcp: {r.server}={r.url} [{tf}]{auth}")
+        if n.skills:
+            print(f"      skills: {', '.join(n.skills)}")
+    print(f"\nSkill bundles to ship: {len(plan.skill_bundles)}")
+    for b in plan.skill_bundles:
+        print(f"  - {b.name}  ({b.content_hash[:8]}, {len(b.files)} file(s))  "
+              f"used by: {', '.join(b.used_by)}")
+    if plan.env_var_names:
+        print("\nAgent Engine env vars the deploy will populate from your local env (MCP auth):")
+        for name in plan.env_var_names:
+            print(f"  - {name}")
+    print(f"\nRequirements: {', '.join(plan.requirements)}")
+    print(f"Spec hash: {plan.spec_hash[:12]}")
+    print()
+    print_diagnostics(plan.diagnostics)
+    print(f"\nDeployable: {'yes' if plan.deployable else 'NO (fix errors above)'}")
+
+
 # --------------------------------------------------------------------------- #
 # commands
 # --------------------------------------------------------------------------- #
@@ -116,6 +148,16 @@ def cmd_validate(args) -> int:
 
 def cmd_plan(args) -> int:
     project, diags = parse_project(args.path, default_model=args.model)
+    if getattr(args, "target", "anthropic") == "google":
+        from .google_plan import build_google_plan
+        plan = build_google_plan(project, diags, model=args.google_model,
+                                 skip_unsupported=args.skip_unsupported)
+        if args.json:
+            print(json.dumps(plan.to_dict(), indent=2))
+        else:
+            print(f"Project: {project.root}  (layout: {project.layout})  target: google")
+            print_google_plan(plan)
+        return 0 if plan.deployable else 1
     plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
     if args.json:
         print(json.dumps(plan.to_dict(), indent=2))
@@ -146,13 +188,26 @@ def cmd_diff(args) -> int:
 
 
 def _cmd_deploy_google(args) -> int:
-    from .google_target import deploy_google
+    from .google_plan import build_google_plan
+    from .google_target import build_package, deploy_google
     load_env(os.getcwd(), os.path.abspath(args.path))
     project, diags = parse_project(args.path, default_model=args.model)
-    if not project.agents:
-        print_diagnostics(diags)
-        print("No agents to deploy.")
+    plan = build_google_plan(project, diags, model=args.google_model,
+                             skip_unsupported=args.skip_unsupported)
+    print(f"Project: {project.root}  (layout: {project.layout})  target: google")
+    print_google_plan(plan)
+    if not plan.deployable:
+        print("\nNot deploying: fix the errors above (or pass --skip-unsupported to drop "
+              "unsupported pieces).")
         return 1
+
+    if args.build_only:
+        handles = build_package(plan, project.root)
+        print(f"\nBuilt source package (no deploy): {handles['build_dir']}")
+        print(f"  module: {handles['module_name']}  app: {handles['app_symbol']}  "
+              f"requirements: {', '.join(handles['requirements'])}")
+        return 0
+
     gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
     bucket = os.environ.get("AGENTLIFT_GCP_STAGING_BUCKET")
     location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
@@ -161,18 +216,21 @@ def _cmd_deploy_google(args) -> int:
               "env, plus ADC (gcloud auth application-default login). See docs/deploy-google.md.",
               file=sys.stderr)
         return 2
-    print(f"Deploying {project.root} to Google Vertex AI Agent Engine")
+    if not args.yes:
+        if input("\nProceed with deploy? [y/N] ").strip().lower() != "y":
+            print("aborted.")
+            return 1
+    print(f"Deploying to Google Vertex AI Agent Engine")
     print(f"  project={gcp_project}  region={location}  staging={bucket}")
-    resource = deploy_google(
+    res = deploy_google(
         project, gcp_project=gcp_project, location=location,
-        staging_bucket=bucket, model=args.google_model, log=print,
+        staging_bucket=bucket, model=args.google_model,
+        skip_unsupported=args.skip_unsupported, log=print,
     )
-    out = os.path.join(os.path.abspath(args.path), ".agentlift-google.json")
-    with open(out, "w", encoding="utf-8") as fh:
-        json.dump({"reasoning_engine": resource, "project": gcp_project, "location": location}, fh, indent=2)
-        fh.write("\n")
-    print(f"\nDeployed. reasoningEngine: {resource}")
-    print(f"  wrote {out}")
+    verb = {"create": "Deployed", "update": "Updated", "skip": "Up to date"}[res.action]
+    print(f"\n{verb}. reasoningEngine: {res.resource_name}")
+    if res.env_var_names and res.action != "skip":
+        print(f"  populated env var(s): {', '.join(res.env_var_names)}")
     return 0
 
 
@@ -388,7 +446,10 @@ def build_parser() -> argparse.ArgumentParser:
     add_common(sp); sp.set_defaults(func=cmd_export)
 
     sp = sub.add_parser("plan", help="show the deterministic deploy plan (no network)")
-    sp.add_argument("path"); sp.add_argument("--json", action="store_true"); add_common(sp); sp.set_defaults(func=cmd_plan)
+    sp.add_argument("path"); sp.add_argument("--json", action="store_true")
+    sp.add_argument("--target", default="anthropic", choices=["anthropic", "google"], help="which target's plan to show")
+    sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder map to this")
+    add_common(sp); sp.set_defaults(func=cmd_plan)
 
     sp = sub.add_parser("diff", help="what a deploy would change (vs the lockfile)")
     sp.add_argument("path"); sp.add_argument("--remote", action="store_true", help="also check the live account for deleted objects")
@@ -398,6 +459,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("path"); sp.add_argument("--prune", action="store_true", help="archive superseded agent versions")
     sp.add_argument("--target", default="anthropic", choices=["anthropic", "google"], help="managed runtime to deploy to")
     sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder are mapped to this")
+    sp.add_argument("--build-only", action="store_true", help="(google) build the source package locally without deploying")
     sp.add_argument("--yes", "-y", action="store_true", help="skip confirmation"); add_common(sp); sp.set_defaults(func=cmd_deploy)
 
     sp = sub.add_parser("run", help="invoke a deployed agent (or --local)")

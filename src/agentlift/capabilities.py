@@ -7,8 +7,9 @@ back-ends over the same parsed folder:
 
   - ``agentlift audit``  cross-references the features a folder actually uses
     against this map and reports native / emulated / degraded / unsupported.
-  - ``agentlift export`` (planned) emits a provider-native artifact and uses
-    the same tiers to warn about what won't round-trip.
+  - ``agentlift export`` emits a provider-native artifact, and ``deploy
+    --target {anthropic,google}`` ships it to the hosted runtime; both honor the
+    same tiers (the Google deploy maps skills + MCP per the rows below).
 
 One neutral definition, many backends. Pure data, no network.
 
@@ -55,10 +56,11 @@ CAPABILITIES = {
             "reason": "ADK tool-confirmation is not enforced with VertexAiSessionService (the Agent Engine session service); open bugs",
             "remediation": "enforce approval client-side, or keep :ask agents on the Anthropic target"},
         "skills": {"tier": "emulated",
-            "reason": "same SKILL.md spec, but build-time embedded into the deployed artifact (no upload-once shared registry; update = redeploy)",
+            "reason": "same SKILL.md spec; agentlift deploy ships the bundles inside the engine's source package and loads them with ADK load_skill_from_dir at startup (no upload-once shared registry, so update = redeploy)",
             "remediation": ""},
         "remote_mcp": {"tier": "native",
-            "reason": "ADK McpToolset attaches URL MCP servers with a tool_filter allowlist, server-side", "remediation": ""},
+            "reason": "agentlift deploy wires each URL MCP server as an ADK McpToolset with a tool_filter allowlist, server-side; inline auth headers are passed as Agent Engine env vars resolved at deploy (stdio/command servers remain unsupported)",
+            "remediation": "host stdio MCP servers behind an HTTPS URL to deploy them"},
         "subagents": {"tier": "emulated",
             "reason": "root + sub_agents deploy as ONE reasoningEngine with server-side delegation; the roster is not addressable per-agent-id (Anthropic gives each its own id)",
             "remediation": "use the A2A protocol across deployments if you need per-agent ids"},

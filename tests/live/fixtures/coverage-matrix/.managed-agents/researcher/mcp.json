@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "code-search": {
+      "type": "url",
+      "url": "https://gitmcp.io/google/adk-python",
+      "allowedTools": ["search_adk_python_documentation", "fetch_adk_python_documentation"]
+    }
+  }
+}

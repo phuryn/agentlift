@@ -1,10 +1,22 @@
 # Deploying to Google Vertex AI Agent Engine (the credentials path)
 
 > Status: **preview, live.** `agentlift deploy --target google` creates or updates a
-> Vertex AI Agent Engine `reasoningEngine` from the folder; server-side
-> coordinator-to-subagent delegation has been tested live. `agentlift export google-adk`
-> emits the ADK scaffold offline. Known gaps: MCP, skills, and `:ask` are not mapped yet,
-> and Claude models map to Gemini. This doc is the credentials/setup the deploy needs.
+> Vertex AI Agent Engine `reasoningEngine` from the folder. **All six portability
+> dimensions have been exercised live** on a deployed engine — server-side
+> coordinator-to-subagent delegation, both a shared and a private URL MCP server, and both
+> a shared and a private skill (see the
+> [coverage matrix](tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking)
+> and the receipt under [`tests/live/receipts/`](../tests/live/receipts/)). The deploy maps
+> **skills** (the SKILL.md bundles ride inside the engine's source package, loaded with
+> ADK `load_skill_from_dir` at startup) and **URL MCP servers** (each wired as an ADK
+> `McpToolset` with a `tool_filter` allowlist; inline auth header values are resolved
+> from your local environment at deploy time and passed as Agent Engine `env_vars`, never
+> inlined into the generated source). Deploys are idempotent — a spec hash drives
+> create / update / skip. `agentlift export google-adk` emits the ADK scaffold offline.
+> Remaining gaps: `:ask` / per-tool approval (not enforced on `VertexAiSessionService`)
+> and the built-in tool sandbox (Python/JS only — no bash/web/glob-grep); stdio MCP
+> servers can't be deployed (host them behind HTTPS first); and Claude models map to
+> Gemini. This doc is the credentials/setup the deploy needs.
 
 ## The one thing to get straight: API key vs ADC
 
@@ -65,6 +77,23 @@ AGENTLIFT_GCP_STAGING_BUCKET=gs://your-bucket
 # ADC is read from `gcloud auth application-default login`, OR set:
 # GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 ```
+
+## MCP auth headers (secrets stay out of the source)
+
+If a URL MCP server in the folder carries an inline auth header (e.g.
+`"Authorization": "Bearer ${SECURE_API_TOKEN}"`), agentlift does **not** write the secret
+into the generated agent code. At deploy time it:
+
+1. derives a stable Agent Engine env-var name from the server + header (e.g.
+   `AGENTLIFT_MCP_<SERVER>_<HEADER>`),
+2. resolves the template against **your local environment** (`SECURE_API_TOKEN` above) and
+   passes the resulting value as an Agent Engine `env_var`,
+3. emits `os.environ.get("AGENTLIFT_MCP_…")` in the `McpToolset` headers — so only the
+   env-var *name* is ever written to disk, the plan, or the lockfile.
+
+`agentlift plan --target google` prints the env-var names it will populate (under
+**"Env vars to populate"**) so you can confirm the referenced local variables are set
+before deploying. A referenced-but-unset variable is flagged, not silently skipped.
 
 ## Cost
 
