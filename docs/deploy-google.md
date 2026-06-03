@@ -1,8 +1,10 @@
 # Deploying to Google Vertex AI Agent Engine (the credentials path)
 
-> Status: `agentlift export google-adk` (the ADK scaffold) ships today. Live
-> `agentlift deploy --target google` (push the folder to a hosted Agent Engine
-> `reasoningEngine`) is on the roadmap. This doc is the credentials/setup it needs.
+> Status: **preview, live.** `agentlift deploy --target google` creates or updates a
+> Vertex AI Agent Engine `reasoningEngine` from the folder; server-side
+> coordinator-to-subagent delegation has been tested live. `agentlift export google-adk`
+> emits the ADK scaffold offline. Known gaps: MCP, skills, and `:ask` are not mapped yet,
+> and Claude models map to Gemini. This doc is the credentials/setup the deploy needs.
 
 ## The one thing to get straight: API key vs ADC
 

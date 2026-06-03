@@ -46,11 +46,16 @@ The API rejects a `SKILL.md` frontmatter `description` that contains XML-like ta
 (`skill.xml_in_description`) so you get a clear error instead of a deploy-time 400.
 The skill *body* may contain anything; only the description is validated.
 
-## Anthropic only, for now
+## Targets differ by handoff
 
-The parser and planner are provider-agnostic — the plan is just "operations." Only
-the Anthropic target is implemented. OpenAI Agent Builder and Google Managed Agents
-targets are on the roadmap, behind the same folder convention.
+The parser and planner are provider-agnostic — the plan is just "operations" — so the
+same folder reaches every target. What differs is how far each runtime takes it:
+
+| Target | Status | Limits |
+|---|---|---|
+| Anthropic Managed Agents | Live deploy | Reference target; most complete mapping (skills, MCP, `:ask`, coordinator). |
+| Google Vertex AI Agent Engine | Live deploy, preview | Deployed as a real `reasoningEngine` (server-side delegation tested live); MCP, skills, and `:ask` not mapped yet; Claude models map to Gemini. |
+| OpenAI Agents SDK | Export / self-host | Subagents via agent-as-tool; the delegation loop runs in your app — no hosted-deploy target. |
 
 ## Cost numbers are estimates
 

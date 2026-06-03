@@ -8,7 +8,7 @@
 ![Google ADK](https://img.shields.io/badge/Google-ADK-4285F4)
 ![OpenAI Agents SDK](https://img.shields.io/badge/OpenAI-Agents%20SDK-412991)
 
-**Define your agent once as a folder. Audit how portable it is, compile it to any runtime's format, and deploy it to a managed cloud. One neutral definition, many backends.**
+**Define your agent once as a folder. Audit how portable it is, compile it to any runtime's format, and deploy it live to a managed cloud — Anthropic Managed Agents, Google Vertex AI Agent Engine, or OpenAI Agents SDK. One neutral definition, many backends.**
 
 Managed-agent runtimes are arriving fast: Anthropic Managed Agents, Google Vertex AI Agent Engine, OpenAI's Agent Builder. Each wants your agent in *its* shape — Anthropic's `ant` CLI takes Anthropic YAML, Google takes ADK Python, OpenAI a visual graph. Author against one and your definition becomes that vendor's shape; moving runtimes means re-authoring it.
 
@@ -16,9 +16,10 @@ agentlift keeps the definition neutral. Point it at the agent folder you already
 
 ```bash
 pip install agentlift
-agentlift audit  ./my-agent                  # how portable is it, per provider? (offline)
-agentlift deploy ./my-agent                  # ship it to Anthropic Managed Agents
-agentlift export anthropic-yaml ./my-agent   # compile it to `ant` YAML
+agentlift audit  ./my-agent                       # how portable is it, per provider? (offline)
+agentlift deploy ./my-agent                        # deploy to Anthropic Managed Agents (reference target)
+agentlift deploy ./my-agent --target google        # deploy to Google Vertex Agent Engine (live, preview)
+agentlift export openai-agents ./my-agent          # compile to an OpenAI Agents SDK script (self-host)
 ```
 
 > The agent definition is the portable asset. The runtime is a deploy choice.
@@ -47,6 +48,8 @@ pip install -e .
 ```
 
 ## The folder is the agent
+
+> The walkthrough below uses **Anthropic Managed Agents**, the reference target — live deploy, the fullest feature mapping. For **Google** (live, preview) and **OpenAI** (export + self-host), jump to [Portability](#portability-audit--compile-across-runtimes).
 
 agentlift reads a convention you may already use. Minimal single-agent project:
 
@@ -214,12 +217,26 @@ At runtime an `:ask` call pauses the session (`requires_action`) for your app to
 ```
 .managed-agents/
 ├── shared/
-│   ├── skills/cite-sources/SKILL.md     # one skill, many agents (uploaded once)
-│   └── mcp.json                         # one MCP server, many agents
-├── bug-finder/agent.md                  # skills: [bug-report, shared/cite-sources]
-├── researcher/agent.md                  # mcp: [shared/docs]
-└── lead/agent.md                        # subagents: [bug-finder, researcher]  → coordinator
+│   ├── skills/cite-sources/SKILL.md     # shared skill — uploaded once, used by many
+│   └── mcp.json                         # shared MCP — one server, many agents
+├── lead/agent.md                        # subagents: [bug-finder, researcher]  → coordinator
+├── bug-finder/
+│   ├── agent.md                         # skills: [shared/cite-sources, bug-report]
+│   └── skills/bug-report/SKILL.md       # agent-specific skill (only bug-finder)
+└── researcher/
+    ├── agent.md                         # mcp: [shared/docs, search]
+    └── mcp.json                         # agent-specific MCP (only researcher)
 ```
+
+One folder shows the whole capability model: a coordinator, two workers, a **shared**
+skill and a **shared** MCP server, plus a **private** skill on one agent and a
+**private** MCP server on another. The wiring is the frontmatter: shared resources
+attach to any agent that references them; an agent-local `skills/` or `mcp.json` adds
+private capability for that one agent. A bare name (`search`) resolves to the agent's
+**own** resource first, then the shared one; `shared/<name>` always means the shared
+copy. So `researcher` gets the shared `docs` server **and** its private `search`
+server; `bug-finder` gets the shared `cite-sources` skill **and** its private
+`bug-report`.
 
 Subagents are unambiguous here: `lead`'s roster references other agents **in the
 same `.managed-agents/` folder**, so they're deploy targets too. Your local
@@ -228,11 +245,11 @@ Claude subagents in `.claude/agents/` are never swept in.
 ```console
 $ agentlift plan ./examples/team
 Skills to upload: 2
-  - cite-sources  (417213e5, 1 file(s))  used by: bug-finder, researcher
-  - bug-report    (6d58998e, 1 file(s))  used by: bug-finder
+  - cite-sources  (417213e5)  used by: bug-finder, researcher     # shared skill
+  - bug-report    (d0f1cc36)  used by: bug-finder                 # agent-specific skill
 Agents to create: 3
-  - bug-finder  [claude-haiku-4-5]   tools: builtins:read/glob/grep/bash(ask)
-  - researcher  [claude-haiku-4-5]   tools: builtins:read/web_search, mcp:docs:all
+  - bug-finder  [claude-haiku-4-5]   tools: read/glob/grep/bash(ask)
+  - researcher  [claude-haiku-4-5]   mcp: docs (shared) + search (private)
   - lead        [claude-haiku-4-5]   (coordinator -> @agent:bug-finder, @agent:researcher)
 Deployable: yes
 ```
@@ -308,7 +325,7 @@ Offline tests pin the translation (tool mapping, per-tool permissions, skill ded
 - **Remote MCP only.** Managed agents connect to URL MCP servers; local `stdio` servers (`npx ...`) can't be deployed. Host them behind HTTPS first.
 - **No inline MCP auth.** A managed URL MCP server carries no credentials in this API shape. The server must be public or authenticate itself.
 - **Knowledge files are inlined** into the system prompt (no persistent local FS in the managed sandbox). Large reference sets should become a skill bundle.
-- **Anthropic only, for now.** The planner is provider-agnostic; OpenAI / Google targets are on the roadmap.
+- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; MCP, skills, and `:ask` not mapped yet). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
 
 Each of these is surfaced as a `agentlift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
 
@@ -323,6 +340,8 @@ Everything is here or one click away:
 | [docs/how-it-works.md](docs/how-it-works.md) | `parse → plan → apply → run`, determinism, idempotency, the confirmed wire format |
 | [docs/anthropic-mapping.md](docs/anthropic-mapping.md) | Exact local → Managed Agents field mapping + API constraints |
 | [docs/limitations.md](docs/limitations.md) | Honest constraints (stdio MCP, MCP auth, knowledge inlining, skill descriptions) |
+| [docs/deploy-google.md](docs/deploy-google.md) | Deploying to Google Vertex AI Agent Engine — the ADC credentials + setup path |
+| [docs/tested-platforms.md](docs/tested-platforms.md) | Per-platform test receipts (config, results, console links) for all three runtimes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Architecture and dev setup |
 
 ### Examples ([examples/](examples/))

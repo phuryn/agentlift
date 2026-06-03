@@ -55,12 +55,15 @@ def test_team_dedup_and_coordinator(examples_dir):
     assert lead_req["multiagent"]["type"] == "coordinator"
     assert set(lead_req["multiagent"]["agents"]) == {"@agent:bug-finder", "@agent:researcher"}
 
-    # researcher carries a url MCP server + a matching mcp_toolset with allowlist
+    # researcher carries BOTH a shared url server (docs) and its own private one (search),
+    # each with its own mcp_toolset + allowlist
     r_req = next(a.request for a in plan.agent_creates if a.name == "researcher")
-    assert r_req["mcp_servers"] == [{"type": "url", "name": "docs", "url": "https://example.com/mcp"}]
-    mcp_ts = [t for t in r_req["tools"] if t["type"] == "mcp_toolset"]
-    assert mcp_ts and mcp_ts[0]["mcp_server_name"] == "docs"
-    assert mcp_ts[0]["configs"] == [{"name": "search", "enabled": True}]
+    servers = {s["name"]: s for s in r_req["mcp_servers"]}
+    assert servers["docs"] == {"type": "url", "name": "docs", "url": "https://example.com/mcp"}
+    assert servers["search"] == {"type": "url", "name": "search", "url": "https://search.internal.example.com/mcp"}
+    mcp_ts = {t["mcp_server_name"]: t for t in r_req["tools"] if t["type"] == "mcp_toolset"}
+    assert mcp_ts["docs"]["configs"] == [{"name": "search", "enabled": True}]
+    assert mcp_ts["search"]["configs"] == [{"name": "query", "enabled": True}]
 
 
 def test_stdio_mcp_rejected_by_default(fixtures_dir):

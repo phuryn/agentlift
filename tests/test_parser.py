@@ -38,9 +38,12 @@ def test_parse_team_shared_and_coordinator(examples_dir):
     assert any(s.name == "cite-sources" and s.shared for s in bug.skills)
 
     researcher = project.agent("researcher")
-    assert [s.name for s in researcher.mcp_servers] == ["docs"]
-    assert researcher.mcp_servers[0].transport == "url"
-    assert researcher.mcp_servers[0].allowed_tools == ["search"]
+    # shared 'docs' server + the agent's own private 'search' server
+    assert sorted(s.name for s in researcher.mcp_servers) == ["docs", "search"]
+    docs = next(s for s in researcher.mcp_servers if s.name == "docs")
+    assert docs.transport == "url" and docs.allowed_tools == ["search"]
+    search = next(s for s in researcher.mcp_servers if s.name == "search")
+    assert search.transport == "url" and search.allowed_tools == ["query"]
 
     lead = project.agent("lead")
     assert lead.subagents == ["bug-finder", "researcher"]

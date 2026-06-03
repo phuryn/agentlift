@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "search": {
+      "type": "url",
+      "url": "https://search.internal.example.com/mcp",
+      "allowedTools": ["query"]
+    }
+  }
+}
