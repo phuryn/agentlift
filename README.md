@@ -50,7 +50,14 @@ pip install -e .
 **`agentlift` "not found" / "not recognized" after install?** The package is fine; `pip` just put the launcher in a Scripts directory that isn't on your PATH. Two fixes:
 
 - Run it module-style (always works, no PATH needed): `python -m agentlift.cli audit ./examples/team --targets anthropic,google,openai` — every `agentlift <cmd>` maps to `python -m agentlift.cli <cmd>`.
-- Or add the launcher's folder to PATH. Find it with `python -c "import sysconfig; print(sysconfig.get_path('scripts'))"` (on Windows the per-user install dir is `get_path('scripts', 'nt_user')`, typically `%APPDATA%\Python\Python3XX\Scripts`), add that folder to your PATH, and open a new terminal.
+- Or add the launcher's folder to PATH. On **Windows** (where pip's per-user installs usually land off-PATH), add it to your user PATH and open a **new** terminal:
+
+  ```powershell
+  $d = python -c "import sysconfig; print(sysconfig.get_path('scripts','nt_user'))"
+  [Environment]::SetEnvironmentVariable("Path", ([Environment]::GetEnvironmentVariable("Path","User").TrimEnd(';') + ";" + $d), "User")
+  ```
+
+  On **macOS / Linux** the dir is usually already on PATH; if not, find it with `python -c "import sysconfig; print(sysconfig.get_path('scripts'))"` and add it to your shell profile.
 
 ## The folder is the agent
 
