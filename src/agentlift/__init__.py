@@ -12,7 +12,7 @@ Public surface:
     from agentlift import run_audit, export_anthropic_yaml, export_google_adk
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from .audit import run_audit  # noqa: F401
 from .capabilities import CAPABILITIES, FEATURES  # noqa: F401
