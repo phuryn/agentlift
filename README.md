@@ -47,6 +47,11 @@ git clone https://github.com/phuryn/agentlift && cd agentlift
 pip install -e .
 ```
 
+**`agentlift` "not found" / "not recognized" after install?** The package is fine; `pip` just put the launcher in a Scripts directory that isn't on your PATH. Two fixes:
+
+- Run it module-style (always works, no PATH needed): `python -m agentlift.cli audit ./examples/team --targets anthropic,google,openai` — every `agentlift <cmd>` maps to `python -m agentlift.cli <cmd>`.
+- Or add the launcher's folder to PATH. Find it with `python -c "import sysconfig; print(sysconfig.get_path('scripts'))"` (on Windows the per-user install dir is `get_path('scripts', 'nt_user')`, typically `%APPDATA%\Python\Python3XX\Scripts`), add that folder to your PATH, and open a new terminal.
+
 ## The folder is the agent
 
 > The walkthrough below uses **Anthropic Managed Agents**, the reference target — live deploy, the fullest feature mapping. For **Google** (live, preview) and **OpenAI** (export + self-host), jump to [Portability](#portability-audit--compile-across-runtimes).
