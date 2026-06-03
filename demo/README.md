@@ -56,7 +56,7 @@ Capabilities this folder uses: 8
   degraded:
     ! Hosted runtime (provider runs the loop, callable by id)
         reason: only the Agent Builder visual graph runs on OpenAI; code-defined Agents-SDK agents are self-hosted
-        fix:    agentlift export openai-chatkit (self-host), or author in Agent Builder
+        fix:    agentlift export openai-agents (self-host), or author in Agent Builder
     ! Built-in tool sandbox / Per-tool approval / Durable versioned deploy
 
 Verdict (lower is more portable):

@@ -71,3 +71,16 @@ def test_google_adk_annotates_the_gaps(examples_dir):
     # the same gaps the audit reports for Google must appear as inline warnings
     assert "UNSUPPORTED" in code               # :ask
     assert "DEGRADED" in code                  # sandbox
+
+
+# --- openai-agents --------------------------------------------------------- #
+def test_openai_agents_is_valid_python_with_subagent_tools(examples_dir):
+    from agentlift.export import export_openai_agents
+    project, _ = _team(examples_dir)
+    code = export_openai_agents(project)["agent.py"]
+    compile(code, "agent.py", "exec")          # must parse
+    assert "Agent(" in code
+    assert ".as_tool(" in code                 # subagents exposed as tools
+    assert "Runner.run(" in code               # runnable entrypoint
+    # the coordinator's roster shows up as ask_<name> tools
+    assert "ask_bug_finder" in code and "ask_researcher" in code

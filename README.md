@@ -149,7 +149,7 @@ The folder is provider-neutral, so agentlift treats each runtime as a back-end o
 | verb | what it does | network |
 |---|---|---|
 | `agentlift audit`  | report, per provider, what's `native` / `emulated` / `degraded` / `unsupported` | offline |
-| `agentlift export` | compile the folder to a provider artifact (`anthropic-yaml` for `ant`, `google-adk`) | offline |
+| `agentlift export` | compile the folder to a provider artifact (`anthropic-yaml` for `ant`, `google-adk`, `openai-agents`) | offline |
 | `agentlift deploy` | push to a managed runtime via API (Anthropic today) | yes |
 
 ```console
@@ -179,7 +179,7 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 |---|---|---|
 | **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
 | **Google Vertex AI Agent Engine** | `export google-adk` (preview); `deploy` on the roadmap | a true hosted runtime with deployable subagents. `:ask` and the bash/web sandbox degrade — the audit shows where. |
-| **OpenAI** | `export openai-chatkit` (roadmap, self-host) | no code-define + OpenAI-host path today (the hosted artifact is a visual graph). `export` is the self-host escape hatch — never `deploy`. |
+| **OpenAI** | `export openai-agents` (preview, self-host) | subagents emulated via agent-as-tool (the delegation loop runs in your app); no code-define + OpenAI-host path, so `export`, never `deploy`. |
 
 ## Isolation: each agent gets only its folder
 
@@ -257,7 +257,7 @@ Full guide + trade-offs: [docs/deploying.md](docs/deploying.md).
 agentlift validate <path>              parse + plan, report problems (exit 1 on errors)
 agentlift plan     <path> [--json]     show the deploy plan (dry run, no network)
 agentlift audit    <path> --targets    portability report per provider (native/degraded/unsupported)
-agentlift export   <target> <path>     compile the folder to a provider artifact (anthropic-yaml, google-adk)
+agentlift export   <target> <path>     compile the folder to a provider artifact (anthropic-yaml, google-adk, openai-agents)
 agentlift diff     <path> [--remote]   what a deploy would change vs the lockfile
 agentlift deploy   <path> [--prune]    upload skills + create agents; write lockfile
 agentlift run <agent> --task "..."     invoke a deployed agent (--local for the same folder locally)
@@ -328,7 +328,7 @@ Everything is here or one click away:
 ## Roadmap
 
 - **Google Vertex AI Agent Engine `deploy`** (live deploy, not just `export google-adk`) — the second managed runtime
-- **`export openai-chatkit`** — a self-hostable ChatKit/Agents-SDK server (OpenAI has no code-define + host path to `deploy` to)
+- **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)
 - A skill-bundle mode for large `knowledge/` sets

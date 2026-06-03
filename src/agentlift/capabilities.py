@@ -73,7 +73,7 @@ CAPABILITIES = {
     "openai": {
         "hosted_runtime": {"tier": "degraded",
             "reason": "only the Agent Builder VISUAL graph runs on OpenAI (called by workflow_id via ChatKit sessions); code-defined Agents-SDK agents are self-hosted - there is no code-define + OpenAI-host path",
-            "remediation": "agentlift export openai-chatkit (self-host), or author in Agent Builder"},
+            "remediation": "agentlift export openai-agents (self-host), or author in Agent Builder"},
         "builtin_sandbox": {"tier": "degraded",
             "reason": "hosted code_interpreter is Python-only + ephemeral; real shell/file tools only in a self-hosted runner; no glob/grep",
             "remediation": "run the exported self-hosted server"},
@@ -86,7 +86,7 @@ CAPABILITIES = {
             "reason": "Responses API hosted MCP (server_url + allowed_tools + require_approval), executed in OpenAI's runtime", "remediation": ""},
         "subagents": {"tier": "emulated",
             "reason": "a coordinator can call sub-agents as tools (agent-as-tool via the Agents SDK, confirmed working - see experiments/subagent-composition) or compose them as Agent Builder graph nodes; the delegation loop runs in your orchestrator (self-hosted), not OpenAI-hosted, and agents are not separately addressable by id",
-            "remediation": "agentlift can emit each subagent as an agent-as-tool on the coordinator (you run the routing loop), or author a workflow graph"},
+            "remediation": "run agentlift export openai-agents - each subagent becomes an as_tool on the coordinator (you run the routing loop); or author a workflow graph"},
         "knowledge": {"tier": "native",
             "reason": "File Search over durable vector stores (reusable by vector_store_id)", "remediation": ""},
         "deploy_versioning": {"tier": "degraded",

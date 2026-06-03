@@ -300,7 +300,7 @@ def cmd_audit(args) -> int:
 
 # --------------------------------------------------------------------------- #
 def cmd_export(args) -> int:
-    from .export import export_anthropic_yaml, export_google_adk
+    from .export import export_anthropic_yaml, export_google_adk, export_openai_agents
     project, diags = parse_project(args.path, default_model=args.model)
     plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
     if args.target == "anthropic-yaml":
@@ -309,6 +309,8 @@ def cmd_export(args) -> int:
             print_diagnostics(plan.diagnostics)
     elif args.target == "google-adk":
         files = export_google_adk(project)
+    elif args.target == "openai-agents":
+        files = export_openai_agents(project)
     else:
         print(f"unknown export target '{args.target}'", file=sys.stderr)
         return 2
@@ -347,7 +349,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_common(sp); sp.set_defaults(func=cmd_audit)
 
     sp = sub.add_parser("export", help="compile the folder to a provider-native artifact (no deploy)")
-    sp.add_argument("target", choices=["anthropic-yaml", "google-adk"])
+    sp.add_argument("target", choices=["anthropic-yaml", "google-adk", "openai-agents"])
     sp.add_argument("path")
     sp.add_argument("--out", default=None, help="write files to this directory instead of stdout")
     add_common(sp); sp.set_defaults(func=cmd_export)
