@@ -17,11 +17,11 @@ probe that would graduate it.
 
 ```
 registry:
-  'claude-sonnet-4-5@20250929' -> google.adk.models.anthropic_llm.Claude
+  'claude-sonnet-4-6' -> google.adk.models.anthropic_llm.Claude
   Claude.supported_models() = ['claude-3-.*', 'claude-.*-4.*']
 
 constructed (offline, no ADC):
-  parent  : lead  model=claude-sonnet-4-5@20250929  -> Claude
+  parent  : lead  model=claude-sonnet-4-6  -> Claude
   web sub : lead_web_search  model=gemini-2.5-flash  -> Gemini
 
 OK: Claude main agent + Gemini-pinned web sub-agent compose. Mixed-model invariant holds.
@@ -29,7 +29,7 @@ OK: Claude main agent + Gemini-pinned web sub-agent compose. Mixed-model invaria
 
 Two facts established:
 
-1. **ADK natively resolves Claude on Vertex.** `LLMRegistry.resolve("claude-sonnet-4-5@20250929")`
+1. **ADK natively resolves Claude on Vertex.** `LLMRegistry.resolve("claude-sonnet-4-6")`
    returns `google.adk.models.anthropic_llm.Claude`, backed by `AsyncAnthropicVertex` —
    Claude served through Vertex AI, no extra package. An `LlmAgent(model="claude-…")` is a
    valid ADK agent.
@@ -38,11 +38,13 @@ Two facts established:
    `GoogleSearchTool`/`url_context`, which are **Gemini built-ins** — they cannot run on a
    Claude model. So a Claude parent must pin its wrapped web sub-agents to Gemini.
 
-### The Vertex Claude id is `@versioned`
+### The Vertex Claude id resolves bare (a `@version` suffix is optional)
 
-A Vertex Claude model id carries an `@version` suffix (`claude-sonnet-4-5@20250929`),
-unlike the Anthropic API ids the folder uses (`claude-haiku-4-5`). Any future passthrough
-would have to map folder ids → the `@versioned` Vertex ids, per region availability.
+ADK resolves the **bare** Vertex Claude id (`claude-sonnet-4-6`) — confirmed above against
+`Claude.supported_models() = ['claude-3-.*', 'claude-.*-4.*']` — and an `@versioned` form
+(`claude-sonnet-4-5@20250929`) resolves too. So a future passthrough maps folder ids →
+Vertex Claude ids subject to **per-region/Model-Garden availability**, not a mandatory
+version-pinning step.
 
 ## What this does NOT prove (the live half — blocked)
 
@@ -50,15 +52,21 @@ would have to map folder ids → the `@versioned` Vertex ids, per region availab
 `reasoningEngine` with a Claude-on-Vertex root + Gemini web sub-agent, queries it (the
 instruction prepends a literal `CLAUDEVTX` token so the reply confirms which brain
 answered), and tears it down. It is **env-driven and committed without identifiers**, and
-has **not been run** — it needs preconditions that aren't satisfiable in this session:
+has **not been run yet**. Preconditions:
 
 - **Claude enabled in the project's Vertex AI Model Garden** — a one-time console action;
-  Claude on Vertex is an enable-per-project, region-gated partner model.
-- **A region that serves the chosen Claude model** (e.g. `us-east5` — not every region
-  serves every Claude model).
+  Claude on Vertex is an enable-per-project, region-gated partner model. *Now satisfied:*
+  `claude-sonnet-4-6` was enabled in this project (2026-06-04), so this is no longer the
+  blocker — only running the probe is.
+- **The model-call region (the one live unknown).** An Agent Engine *resource* deploys to a
+  real region; at runtime the in-engine ADK Claude client calls `AsyncAnthropicVertex` with
+  `GOOGLE_CLOUD_LOCATION`. If the model is served only at the **global** endpoint (the
+  Vertex quickstart uses `region="global"`), the probe injects `GOOGLE_CLOUD_LOCATION=global`
+  as an engine env var (`CLAUDE_VERTEX_REGION=global`) while the engine stays in a real
+  region. Whether one knob or the override is needed is exactly what the live run settles.
 - **A billable project + staging bucket + ADC**, exactly like a normal Google deploy.
 
-Until that runs green, "Agent Engine will deploy *and run* a Claude-on-Vertex engine
+Until the probe runs green, "Agent Engine will deploy *and run* a Claude-on-Vertex engine
 end-to-end" is **NOT-PROVEN** — distinct from the offline-verified construction.
 
 ## What shipped in agentlift as a result of this spike
@@ -85,10 +93,11 @@ user-facing passthrough flag. Concretely:
 1. Run `claude_on_vertex_deploy.py` against a project with Claude enabled in Model Garden;
    capture the `CLAUDEVTX`-prefixed reply as a receipt (the unforgeable signal that the
    Claude brain — not the Gemini default — answered).
-2. Encode the wire behavior: the folder-id → `@versioned`-Vertex-id map (per region), and
-   whatever `requirements`/region constraints the live deploy revealed.
+2. Encode the wire behavior: the folder-id → Vertex-Claude-id map (per Model-Garden/region
+   availability; bare id ok), and whatever `requirements`/region constraints the live
+   deploy revealed (notably whether the model call needs the `global` endpoint).
 3. Replace the planner guard with a real passthrough (e.g. `--google-model claude-…` or a
    per-agent opt-in), keeping `web_model()` pinning the web sub-agents to Gemini.
 
 *Offline half confirmed 2026-06-04 with google-adk 1.34.3. Live half: NOT-PROVEN (Model
-Garden enablement required).*
+Garden now enabled for `claude-sonnet-4-6`; deploy probe not yet run).*

@@ -9,18 +9,29 @@ wire behavior is encoded (the repo's "confirm live before encoding" rule).
 
 PRECONDITIONS (all on you, the deployer):
   * Claude models ENABLED in your Vertex AI Model Garden (a one-time console action;
-    Claude on Vertex is an enable-per-project, region-gated partner model).
-  * A region that offers the chosen Claude model (e.g. us-east5 -- NOT every region
-    serves every Claude model; check Model Garden for availability).
+    Claude on Vertex is an enable-per-project, region-gated partner model). Confirmed
+    available for claude-sonnet-4-6 in this project (2026-06-04).
   * A billable GCP project + a Cloud Storage staging bucket + ADC, exactly like a
     normal Google deploy (see docs/deploy-google.md).
 
+THE REGION QUESTION (the one thing the live run is here to settle):
+  An Agent Engine *resource* deploys to a real region (GOOGLE_CLOUD_LOCATION). At
+  runtime the in-engine ADK Claude client builds AsyncAnthropicVertex(region=that same
+  location) -- so the model is called in the engine's region. If your Claude model is
+  served *regionally* (e.g. the engine region also serves it), one knob is enough. If
+  it is served only at the **global** endpoint (the Vertex quickstart uses
+  region="global"), set CLAUDE_VERTEX_REGION=global: the engine still deploys to a real
+  region, but we inject GOOGLE_CLOUD_LOCATION=global as an engine env var so the model
+  call targets the global endpoint. Try the one-knob path first; reach for the override
+  only if the run fails to find the model.
+
 Environment:
     GOOGLE_CLOUD_PROJECT=your-project
-    GOOGLE_CLOUD_LOCATION=us-east5            # a region where your Claude model is served
+    GOOGLE_CLOUD_LOCATION=us-central1         # where the ENGINE deploys (Agent Engine region)
     GOOGLE_GENAI_USE_VERTEXAI=TRUE
     AGENTLIFT_GCP_STAGING_BUCKET=gs://your-bucket
-    CLAUDE_VERTEX_MODEL=claude-sonnet-4-5@20250929   # the @versioned Vertex Claude id
+    CLAUDE_VERTEX_MODEL=claude-sonnet-4-6      # the Vertex Claude id you enabled (bare id ok)
+    # CLAUDE_VERTEX_REGION=global             # OPTIONAL: model-call region if != engine region
     # ADC from `gcloud auth application-default login`, or GOOGLE_APPLICATION_CREDENTIALS
 
 Run:
@@ -87,19 +98,29 @@ def deploy() -> None:
     import vertexai
     from vertexai import agent_engines
 
-    env = _require("GOOGLE_CLOUD_PROJECT", "AGENTLIFT_GCP_STAGING_BUCKET", "CLAUDE_VERTEX_MODEL")
-    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-east5")
+    env = _require("GOOGLE_CLOUD_PROJECT", "AGENTLIFT_GCP_STAGING_BUCKET")
+    model = os.environ.get("CLAUDE_VERTEX_MODEL", "claude-sonnet-4-6")
+    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
     os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "TRUE")
+
+    # The model-call region. If the Claude model is only served at the global endpoint
+    # (the Vertex quickstart uses region="global"), set CLAUDE_VERTEX_REGION=global: the
+    # engine still deploys to `location`, but we inject GOOGLE_CLOUD_LOCATION as an engine
+    # env var so the in-engine AsyncAnthropicVertex client targets that endpoint instead.
+    model_region = os.environ.get("CLAUDE_VERTEX_REGION")
+    env_vars = {"GOOGLE_CLOUD_LOCATION": model_region} if model_region else None
 
     vertexai.init(
         project=env["GOOGLE_CLOUD_PROJECT"],
         location=location,
         staging_bucket=env["AGENTLIFT_GCP_STAGING_BUCKET"],
     )
-    print(f"deploying Claude-on-Vertex engine: model={env['CLAUDE_VERTEX_MODEL']} region={location}")
+    region_note = f" model_region={model_region}" if model_region else ""
+    print(f"deploying Claude-on-Vertex engine: model={model} region={location}{region_note}")
     remote = agent_engines.create(
-        agent_engine=_build_app(env["CLAUDE_VERTEX_MODEL"]),
+        agent_engine=_build_app(model),
         requirements=["google-cloud-aiplatform[adk,agent_engines]", "google-adk>=1.34.3"],
+        env_vars=env_vars,
     )
     with open(STATE, "w", encoding="utf-8") as fh:
         fh.write(remote.resource_name)
@@ -129,7 +150,7 @@ def teardown() -> None:
         raise SystemExit("no state file; nothing to tear down (or delete the engine in the console).")
     resource_name = open(STATE, encoding="utf-8").read().strip()
     env = _require("GOOGLE_CLOUD_PROJECT")
-    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-east5")
+    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
     vertexai.init(project=env["GOOGLE_CLOUD_PROJECT"], location=location)
     print(f"deleting {resource_name} ...")
     agent_engines.get(resource_name).delete(force=True)

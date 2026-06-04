@@ -22,9 +22,9 @@ Run (no credentials, no project needed):
 """
 from __future__ import annotations
 
-# A Vertex Claude model id carries an @version suffix (unlike the Anthropic API ids the
-# folder uses, e.g. claude-haiku-4-5). Pick one your project has enabled for the deploy half.
-CLAUDE_VERTEX_MODEL = "claude-sonnet-4-5@20250929"
+# ADK resolves the bare Vertex Claude id (an @version suffix also works). Pick one your
+# project has enabled for the deploy half; this matches claude_on_vertex_deploy.py's default.
+CLAUDE_VERTEX_MODEL = "claude-sonnet-4-6"
 GEMINI_WEB_MODEL = "gemini-2.5-flash"  # web grounding / URL Context are Gemini built-ins
 
 
