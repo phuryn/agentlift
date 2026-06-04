@@ -198,15 +198,13 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 
 ### Provider support
 
-![The provider map: one neutral folder, three runtimes. Anthropic Managed Agents (deploy live + export anthropic-yaml; all six dimensions exercised server-side), Google Vertex AI Agent Engine (deploy preview, live-verified; compiles prompts + subagents + skills + URL MCP to a real reasoningEngine, all six exercised server-side), OpenAI Agents SDK (export + self-host; subagents as agent-as-tool).](providers.png)
-
 | Runtime | How agentlift targets it | Notes |
 |---|---|---|
 | **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
 | **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | Live `reasoningEngine` with confirmed server-side coordinator→subagent delegation. The deploy now also maps **skills** (SKILL.md bundles ship inside the engine's source package, loaded via ADK `load_skill_from_dir`) and **URL MCP servers** (each an ADK `McpToolset` with a `tool_filter` allowlist; inline auth header values resolve from your local env into Agent Engine `env_vars`, never inlined into source). Idempotent create/update/skip via a spec hash. Remaining gaps: `:ask`/per-tool approval, the built-in tool sandbox (Python/JS only), and stdio MCP servers; Claude models map to Gemini. See [tested-platforms](docs/tested-platforms.md). |
 | **OpenAI** | `export openai-agents` (preview, self-host) | subagents emulated via agent-as-tool (the delegation loop runs in your app); no code-define + OpenAI-host path, so `export`, never `deploy`. |
 
-> **What "live, preview" means for Google — read this before assuming parity.** The deploy carries the agent's portable capabilities onto a hosted `reasoningEngine`: the coordinator + subagents delegate server-side, **skills** ride inside the source package (loaded via ADK `load_skill_from_dir`), and **URL MCP servers** are wired as ADK `McpToolset`s with a `tool_filter` allowlist (inline auth header values resolve from your local env into Agent Engine `env_vars` — the secret never lands in the generated source). Redeploys are idempotent: a spec hash drives create / update / skip. What's still **not** mapped: the built-in tool sandbox (Vertex's is Python/JS only — no bash/web/glob-grep), `:ask`/per-tool approval (not enforced on `VertexAiSessionService`), and stdio MCP servers (host them behind HTTPS first); Claude models map to Gemini. So Anthropic remains the fullest mapping (its sandbox + `:ask` + native Claude have no Vertex equivalent), but Google is no longer a prompt-only skeleton. OpenAI is export/self-host (no hosted engine at all).
+> **Google is live but preview — read this before assuming parity.** Anthropic is the fullest managed-agent target today. Google deploys real Vertex AI Agent Engine agents (server-side delegation, skills, and URL MCP with inline-auth-via-env-vars all map), but parity is not exact: the built-in tool sandbox, `:ask` enforcement, and stdio MCP are not equivalent, and Claude model names become Gemini defaults. OpenAI is export + self-host only (no hosted-deploy path at all). For the row-by-row breakdown, see the **[full provider capability matrix](docs/provider-matrix.md)**.
 
 #### Live coverage matrix — what actually ran, not what the docs claim
 
@@ -371,6 +369,7 @@ Everything is here or one click away:
 | Doc | What's in it |
 |---|---|
 | [docs/convention.md](docs/convention.md) | The `.managed-agents/` folder spec, frontmatter, skills, MCP, `:ask` permissions, native subagents |
+| [docs/provider-matrix.md](docs/provider-matrix.md) | Row-by-row capability matrix — what maps where across Anthropic / Google / OpenAI |
 | [docs/deploying.md](docs/deploying.md) | The three deploy paths, the lockfile / where IDs live, isolation, hooks |
 | [docs/how-it-works.md](docs/how-it-works.md) | `parse → plan → apply → run`, determinism, idempotency, the confirmed wire format |
 | [docs/anthropic-mapping.md](docs/anthropic-mapping.md) | Exact local → Managed Agents field mapping + API constraints |
