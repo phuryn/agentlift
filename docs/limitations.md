@@ -20,11 +20,13 @@ field for headers or env. Any `env`/`headers` in your local `mcp.json` is **not 
 (`mcp.auth_dropped` warning). The server must be public or authenticate itself.
 Authenticated remote MCP via the Vaults API is on the roadmap.
 
-On **Google** (`--target google`) inline auth *is* carried: the header value is resolved
-from the deployer's local environment at deploy time and passed as an Agent Engine
-`env_var` (named `AGENTLIFT_MCP_<SERVER>_<HEADER>`); the generated source only ever
-references `os.environ.get(...)`, so the secret never lands in source, plan, or lockfile.
-See [deploy-google.md](deploy-google.md#mcp-auth-headers-secrets-stay-out-of-the-source).
+On **Google** (`--target google`) and **AWS Bedrock** (`--target bedrock`) inline auth *is*
+carried: the header value is resolved from the deployer's local environment at deploy time
+and passed as a runtime `env_var` (named `AGENTLIFT_MCP_<SERVER>_<HEADER>`); the generated
+source only ever references `os.environ.get(...)`, so the secret never lands in source,
+plan, or lockfile. See
+[deploy-google.md](deploy-google.md#mcp-auth-headers-secrets-stay-out-of-the-source) and
+[deploy-bedrock.md](deploy-bedrock.md#mcp-auth-headers-secrets-stay-out-of-the-source).
 
 ## Knowledge files are inlined
 
@@ -60,6 +62,7 @@ same folder reaches every target. What differs is how far each runtime takes it:
 | Target | Status | Limits |
 |---|---|---|
 | Anthropic Managed Agents | Live deploy | Reference target; most complete mapping (skills, MCP, `:ask`, coordinator). |
+| AWS Bedrock AgentCore | Build-only preview | `deploy --target bedrock --build-only` compiles a **Strands** package and builds a complete ARM64 **AgentCore Runtime** container artifact (image + Dockerfile + `NOTES.txt` runbook); maps **skills** (embedded + `Skill.from_file`/`AgentSkills`), **URL MCP** (`MCPClient` + `tool_filter`, inline auth → AgentCore `env_vars`), and **Claude natively** (regional inference profile, **no remap**). A **bare** hosted deploy **refuses** — the AgentCore control-plane create wire shape is not live-verified here, so it's manual (Gate B/IAM) rather than guessed. Two one-time gates outside the code path: the **Anthropic use-case form** (Gate A — eventually consistent) and **IAM creds + execution role + ECR** (Gate B). Surfaced as `PLANNED`, not yet wired: the built-in **sandbox** tools (a *real* AgentCore Code Interpreter + Browser — audit rates `emulated`, not a non-goal) and `web_search` (no hosted primitive); `:ask` is `unsupported` on hosted `/invocations`. The Strands composition is [proven live](tested-platforms.md#amazon-bedrock-agentcore-strands); stdio MCP refused. See [deploy-bedrock.md](deploy-bedrock.md). |
 | Google Vertex AI Agent Engine | Live deploy, preview | Deployed as a real `reasoningEngine`; maps **skills** (embedded + ADK `load_skill_from_dir`), **URL MCP** (`McpToolset` + `tool_filter`, inline auth → Agent Engine `env_vars`), and the **built-in web tools** (`web_search` → Google Search grounding, `web_fetch` → URL Context, each a wrapped tool-agent), idempotent via a spec hash. **All six portability dimensions exercised live** (delegation, both MCP servers, both skills — see the [coverage matrix](tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking)); the web tools were separately exercised live (both tool-agents fired on a deployed engine). Not mapped, each with a workaround in [deploy-google.md](deploy-google.md#two-known-gaps-and-how-to-work-around-them): the built-in **sandbox** tools (`bash/files/glob-grep` — Vertex's sandbox is Python/JS only; expose equivalents via a URL MCP server, an explicit non-goal to emulate in-engine) and `:ask`/per-tool approval (gate it client-side); stdio MCP refused; Claude models map to Gemini (Claude-on-Vertex is an [offline-verified spike](../experiments/claude-on-vertex/), not shipped). |
 | OpenAI Agents SDK | Export / self-host | Subagents via agent-as-tool; the delegation loop runs in your app — no hosted-deploy target. |
 

@@ -134,6 +134,39 @@ def print_google_plan(plan) -> None:
     print(f"\nDeployable: {'yes' if plan.deployable else 'NO (fix errors above)'}")
 
 
+def print_bedrock_plan(plan) -> None:
+    """The Bedrock AgentCore plan: one runtime, N agent nodes (Claude mapped to a
+    regional inference profile -- native, not remapped), shipped skill bundles,
+    Strands MCP recipes, and the env vars a deploy must populate."""
+    print(f"\nAgentCore Runtime: {plan.display_name}  "
+          f"(root: {plan.root_agent}, region: {plan.region})")
+    print(f"Agents: {len(plan.agents)}")
+    for n in plan.agents:
+        line = f"  - {n.name}  [{n.folder_model} -> {n.bedrock_model}]"
+        if n.is_coordinator:
+            line += "  (coordinator -> " + ", ".join(n.sub_agents) + ")"
+        print(line)
+        for r in n.mcp:
+            tf = "/".join(r.tool_filter) if r.tool_filter else "all"
+            auth = f"  auth->{', '.join(sorted(r.auth_env_vars.values()))}" if r.auth_env_vars else ""
+            print(f"      mcp: {r.server}={r.url} [{tf}]{auth}")
+        if n.skills:
+            print(f"      skills: {', '.join(n.skills)}")
+    print(f"\nSkill bundles to ship: {len(plan.skill_bundles)}")
+    for b in plan.skill_bundles:
+        print(f"  - {b.name}  ({b.content_hash[:8]}, {len(b.files)} file(s))  "
+              f"used by: {', '.join(b.used_by)}")
+    if plan.env_var_names:
+        print("\nAgentCore env vars the deploy will populate from your local env (MCP auth):")
+        for name in plan.env_var_names:
+            print(f"  - {name}")
+    print(f"\nRequirements: {', '.join(plan.requirements)}")
+    print(f"Spec hash: {plan.spec_hash[:12]}")
+    print()
+    print_diagnostics(plan.diagnostics)
+    print(f"\nDeployable: {'yes' if plan.deployable else 'NO (fix errors above)'}")
+
+
 # --------------------------------------------------------------------------- #
 # commands
 # --------------------------------------------------------------------------- #
@@ -148,7 +181,8 @@ def cmd_validate(args) -> int:
 
 def cmd_plan(args) -> int:
     project, diags = parse_project(args.path, default_model=args.model)
-    if getattr(args, "target", "anthropic") == "google":
+    target = getattr(args, "target", "anthropic")
+    if target == "google":
         from .google_plan import build_google_plan
         plan = build_google_plan(project, diags, model=args.google_model,
                                  skip_unsupported=args.skip_unsupported)
@@ -157,6 +191,16 @@ def cmd_plan(args) -> int:
         else:
             print(f"Project: {project.root}  (layout: {project.layout})  target: google")
             print_google_plan(plan)
+        return 0 if plan.deployable else 1
+    if target == "bedrock":
+        from .bedrock_plan import build_bedrock_plan
+        plan = build_bedrock_plan(project, diags, region=args.bedrock_region,
+                                  skip_unsupported=args.skip_unsupported)
+        if args.json:
+            print(json.dumps(plan.to_dict(), indent=2))
+        else:
+            print(f"Project: {project.root}  (layout: {project.layout})  target: bedrock")
+            print_bedrock_plan(plan)
         return 0 if plan.deployable else 1
     plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
     if args.json:
@@ -234,9 +278,54 @@ def _cmd_deploy_google(args) -> int:
     return 0
 
 
+def _cmd_deploy_bedrock(args) -> int:
+    """Bedrock AgentCore Runtime deploy.
+
+    Sharp, honest semantics (see bedrock_target.py): ``--build-only`` materializes
+    the deployable container artifact + a deploy runbook and exits 0; a bare
+    ``deploy --target bedrock`` refuses the hosted deploy (control-plane, not yet
+    live-verified -- Gate B), fires NO network call, writes NOTHING, and exits
+    non-zero pointing at ``--build-only``."""
+    from .bedrock_plan import build_bedrock_plan
+    from .bedrock_target import HostedDeployNotLiveVerified, deploy_bedrock
+    load_env(os.getcwd(), os.path.abspath(args.path))
+    project, diags = parse_project(args.path, default_model=args.model)
+    plan = build_bedrock_plan(project, diags, region=args.bedrock_region,
+                              skip_unsupported=args.skip_unsupported)
+    print(f"Project: {project.root}  (layout: {project.layout})  target: bedrock")
+    print_bedrock_plan(plan)
+    if not plan.deployable:
+        print("\nNot building: fix the errors above (or pass --skip-unsupported to drop "
+              "unsupported pieces).")
+        return 1
+
+    if args.build_only:
+        res = deploy_bedrock(project, region=args.bedrock_region,
+                             skip_unsupported=args.skip_unsupported, build_only=True, log=print)
+        print(f"\nBuilt container artifact (no deploy): {res.build_dir}")
+        print(f"  next: read {os.path.join(res.build_dir, 'NOTES.txt')} for the build/push + "
+              f"hosted-create runbook.")
+        return 0
+
+    # bare deploy: refuse the hosted path (no network, no side effect)
+    try:
+        deploy_bedrock(project, region=args.bedrock_region,
+                       skip_unsupported=args.skip_unsupported, build_only=False)
+    except HostedDeployNotLiveVerified as e:
+        print("\nHosted deploy to Bedrock AgentCore Runtime is a PREVIEW (not yet live-verified):")
+        print("  - Gate A: submit the Anthropic use-case form (Bedrock console -> Model access).")
+        print("  - Gate B: AWS IAM creds + an AgentCore execution role (iam:PassRole) + ECR.")
+        print(f"\n  {e}")
+        return 3
+    return 0  # pragma: no cover - deploy_bedrock(build_only=False) always raises today
+
+
 def cmd_deploy(args) -> int:
-    if getattr(args, "target", "anthropic") == "google":
+    target = getattr(args, "target", "anthropic")
+    if target == "google":
         return _cmd_deploy_google(args)
+    if target == "bedrock":
+        return _cmd_deploy_bedrock(args)
     load_env(os.getcwd(), os.path.abspath(args.path))
     project, diags = parse_project(args.path, default_model=args.model)
     plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
@@ -391,15 +480,18 @@ def cmd_audit(args) -> int:
 
 # --------------------------------------------------------------------------- #
 def cmd_export(args) -> int:
-    from .export import export_anthropic_yaml, export_google_adk, export_openai_agents
+    from .export import (export_anthropic_yaml, export_bedrock, export_google_adk,
+                         export_openai_agents)
     project, diags = parse_project(args.path, default_model=args.model)
-    plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
     if args.target == "anthropic-yaml":
+        plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
         files = export_anthropic_yaml(project, plan)
         if not plan.deployable:
             print_diagnostics(plan.diagnostics)
     elif args.target == "google-adk":
         files = export_google_adk(project)
+    elif args.target == "bedrock-strands":
+        files = export_bedrock(project, region=getattr(args, "bedrock_region", None))
     elif args.target == "openai-agents":
         files = export_openai_agents(project)
     else:
@@ -408,7 +500,9 @@ def cmd_export(args) -> int:
     if args.out:
         os.makedirs(args.out, exist_ok=True)
         for fn, text in files.items():
-            with open(os.path.join(args.out, fn), "w", encoding="utf-8") as fh:
+            dest = os.path.join(args.out, fn.replace("/", os.sep))
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest, "w", encoding="utf-8") as fh:
                 fh.write(text)
         print(f"Wrote {len(files)} file(s) to {args.out}:")
         for fn in files:
@@ -435,31 +529,34 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("audit", help="report how portable this folder is across managed-agent providers")
     sp.add_argument("path")
-    sp.add_argument("--targets", default="anthropic,google,openai",
-                    help="comma-separated providers to check (anthropic, google, openai)")
+    sp.add_argument("--targets", default="anthropic,bedrock,google,openai",
+                    help="comma-separated providers to check (anthropic, bedrock, google, openai)")
     add_common(sp); sp.set_defaults(func=cmd_audit)
 
     sp = sub.add_parser("export", help="compile the folder to a provider-native artifact (no deploy)")
-    sp.add_argument("target", choices=["anthropic-yaml", "google-adk", "openai-agents"])
+    sp.add_argument("target", choices=["anthropic-yaml", "google-adk", "bedrock-strands", "openai-agents"])
     sp.add_argument("path")
     sp.add_argument("--out", default=None, help="write files to this directory instead of stdout")
+    sp.add_argument("--bedrock-region", default="eu-north-1", help="AWS region for the bedrock-strands target (sets the regional Claude inference profile)")
     add_common(sp); sp.set_defaults(func=cmd_export)
 
     sp = sub.add_parser("plan", help="show the deterministic deploy plan (no network)")
     sp.add_argument("path"); sp.add_argument("--json", action="store_true")
-    sp.add_argument("--target", default="anthropic", choices=["anthropic", "google"], help="which target's plan to show")
+    sp.add_argument("--target", default="anthropic", choices=["anthropic", "google", "bedrock"], help="which target's plan to show")
     sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder map to this")
+    sp.add_argument("--bedrock-region", default="eu-north-1", help="AWS region for the bedrock target; Claude models map to that region's inference profile (native, not remapped)")
     add_common(sp); sp.set_defaults(func=cmd_plan)
 
     sp = sub.add_parser("diff", help="what a deploy would change (vs the lockfile)")
     sp.add_argument("path"); sp.add_argument("--remote", action="store_true", help="also check the live account for deleted objects")
     add_common(sp); sp.set_defaults(func=cmd_diff)
 
-    sp = sub.add_parser("deploy", help="deploy to a managed runtime (Anthropic, or --target google)")
+    sp = sub.add_parser("deploy", help="deploy to a managed runtime (Anthropic, --target google; --target bedrock is build-only preview)")
     sp.add_argument("path"); sp.add_argument("--prune", action="store_true", help="archive superseded agent versions")
-    sp.add_argument("--target", default="anthropic", choices=["anthropic", "google"], help="managed runtime to deploy to")
+    sp.add_argument("--target", default="anthropic", choices=["anthropic", "google", "bedrock"], help="managed runtime to deploy to")
     sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder are mapped to this")
-    sp.add_argument("--build-only", action="store_true", help="(google) build the source package locally without deploying")
+    sp.add_argument("--bedrock-region", default="eu-north-1", help="AWS region for the bedrock target; Claude models map to that region's inference profile (native)")
+    sp.add_argument("--build-only", action="store_true", help="build the deployable source package locally without deploying (google + bedrock)")
     sp.add_argument("--yes", "-y", action="store_true", help="skip confirmation"); add_common(sp); sp.set_defaults(func=cmd_deploy)
 
     sp = sub.add_parser("run", help="invoke a deployed agent (or --local)")

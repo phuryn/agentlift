@@ -1,25 +1,27 @@
 # agentlift
 
-![Own the definition. Rent the runtime. One neutral agent folder, deployed to Claude Managed Agents, Google Agent Engine, and OpenAI.](hero.png)
+![Own the definition. Rent the runtime. One neutral agent folder, deployed to Claude Managed Agents, AWS Bedrock AgentCore, Google Agent Engine, and OpenAI.](hero.png)
 
 [![PyPI](https://img.shields.io/pypi/v/agentlift.svg)](https://pypi.org/project/agentlift/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Claude Managed Agents](https://img.shields.io/badge/Claude-Managed%20Agents-D97757)
+![AWS Bedrock AgentCore](https://img.shields.io/badge/AWS-Bedrock%20AgentCore-FF9900)
 ![Google ADK](https://img.shields.io/badge/Google-ADK-4285F4)
 ![OpenAI Agents SDK](https://img.shields.io/badge/OpenAI-Agents%20SDK-412991)
 
-**Define your agent once as a folder. Audit how portable it is, compile it to any runtime's format, and deploy it live to a managed cloud — Anthropic Managed Agents, Google Vertex AI Agent Engine, or OpenAI Agents SDK. One neutral definition, many backends.**
+**Define your agent once as a folder. Audit how portable it is, compile it to any runtime's format, and deploy it — live to Anthropic Managed Agents or Google Vertex AI Agent Engine, as a Claude-native AWS Bedrock AgentCore container, or as an OpenAI Agents SDK script. One neutral definition, many backends.**
 
-Managed-agent runtimes are arriving fast: Anthropic Managed Agents, Google Vertex AI Agent Engine, OpenAI's Agent Builder. Each wants your agent in *its* shape — Anthropic's `ant` CLI takes Anthropic YAML, Google takes ADK Python, OpenAI a visual graph. Author against one and your definition becomes that vendor's shape; moving runtimes means re-authoring it.
+Managed-agent runtimes are arriving fast: Anthropic Managed Agents, AWS Bedrock AgentCore, Google Vertex AI Agent Engine, OpenAI's Agent Builder. Each wants your agent in *its* shape — Anthropic's `ant` CLI takes Anthropic YAML, Bedrock takes a Strands container, Google takes ADK Python, OpenAI a visual graph. Author against one and your definition becomes that vendor's shape; moving runtimes means re-authoring it.
 
 agentlift keeps the definition neutral. Point it at the agent folder you already use with Claude Code / the Agent SDK (`CLAUDE.md`/`agent.md` + skills + `.mcp.json` + a subagent roster), and treat each runtime as a back-end of one compiler: `deploy` it to a managed cloud, `audit` how it maps across providers, or `export` it to a provider's own format (including the YAML the official `ant` CLI consumes — agentlift sits *above* `ant`, not against it).
 
 ```bash
 pip install agentlift
-agentlift audit  ./my-agent                       # how portable is it, per provider? (offline)
-agentlift deploy ./my-agent                        # deploy to Anthropic Managed Agents (reference target)
-agentlift deploy ./my-agent --target google        # deploy to Google Vertex Agent Engine (live, preview)
-agentlift export openai-agents ./my-agent          # compile to an OpenAI Agents SDK script (self-host)
+agentlift audit  ./my-agent                              # how portable is it, per provider? (offline)
+agentlift deploy ./my-agent                              # deploy to Anthropic Managed Agents (reference target)
+agentlift deploy ./my-agent --target bedrock --build-only # compile a Claude-native AWS Bedrock AgentCore container (preview)
+agentlift deploy ./my-agent --target google              # deploy to Google Vertex Agent Engine (live, preview)
+agentlift export openai-agents ./my-agent                # compile to an OpenAI Agents SDK script (self-host)
 ```
 
 > The agent definition is the portable asset. The runtime is a deploy choice.
@@ -61,7 +63,7 @@ pip install -e .
 
 ## The folder is the agent
 
-> The walkthrough below uses **Anthropic Managed Agents**, the reference target — live deploy, the fullest feature mapping. For **Google** (live, preview) and **OpenAI** (export + self-host), jump to [Portability](#portability-audit--compile-across-runtimes).
+> The walkthrough below uses **Anthropic Managed Agents**, the reference target — live deploy, the fullest feature mapping. For **AWS Bedrock** (build-only preview, Claude-native), **Google** (live, preview), and **OpenAI** (export + self-host), jump to [Portability](#portability-audit--compile-across-runtimes).
 
 agentlift reads a convention you may already use. Minimal single-agent project:
 
@@ -172,27 +174,30 @@ The folder is provider-neutral, so agentlift treats each runtime as a back-end o
 | verb | what it does | network |
 |---|---|---|
 | `agentlift audit`  | report, per provider, what's `native` / `emulated` / `degraded` / `unsupported` | offline |
-| `agentlift export` | compile the folder to a provider artifact (`anthropic-yaml` for `ant`, `google-adk`, `openai-agents`) | offline |
-| `agentlift deploy` | push to a managed runtime via API (Anthropic + Google `--target google`, both live) | yes |
+| `agentlift export` | compile the folder to a provider artifact (`anthropic-yaml` for `ant`, `bedrock-strands`, `google-adk`, `openai-agents`) | offline |
+| `agentlift deploy` | push to a managed runtime via API (Anthropic + Google `--target google`, both live) — or `--target bedrock --build-only` to compile a deployable AWS Bedrock AgentCore container | yes / offline |
 
 ```console
-$ agentlift audit ./examples/team --targets anthropic,google,openai
-== Anthropic Managed Agents ==                   [9 native]
-== Google Vertex AI Agent Engine (ADK) ==        [4 native, 3 emulated, 1 degraded, 1 unsupported]
+$ agentlift audit ./examples/team --targets anthropic,bedrock,google,openai
+== Anthropic Managed Agents ==                        [9 native]
+== Amazon Bedrock AgentCore Runtime (Strands) ==      [4 native, 3 emulated, 1 degraded, 1 unsupported]
   emulated:
-    ~ Built-in web tools (web_search / web_fetch)
-        reason: web_search -> Google Search grounding, web_fetch -> URL Context (each a wrapped tool-agent)
+    ~ Built-in tool sandbox (bash / files / glob-grep)
+        reason: a *real* sandbox via the AgentCore Code Interpreter (shell + filesystem) + Browser - more than Google's Python/JS engine; surfaced as PLANNED, not yet wired
+  unsupported:
+    x Per-tool approval gate (:ask / human-in-the-loop)
+        reason: the hosted /invocations call is request/response - no interactive approval channel
+== Google Vertex AI Agent Engine (ADK) ==             [4 native, 3 emulated, 1 degraded, 1 unsupported]
   degraded:
     ! Built-in tool sandbox (bash / files / glob-grep)
         reason: hosted sandbox is Python/JS only - no bash, no persistent workspace filesystem
-  unsupported:
-    x Per-tool approval gate (:ask / human-in-the-loop)
-        reason: not enforced with VertexAiSessionService on the deployed runtime
-== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 2 emulated, 4 degraded]
+== OpenAI (Agent Builder / Agents SDK) ==             [3 native, 2 emulated, 4 degraded]
   emulated:
     ~ Subagents -> coordinator (deployed roster)
         reason: agent-as-tool composition works (confirmed); the delegation loop runs in your orchestrator, not OpenAI-hosted
 ```
+
+> Note the **sandbox** row: Bedrock rates `emulated` (AgentCore has a *real* shell+FS sandbox — agentlift just doesn't wire it yet), while Google rates `degraded` (its hosted sandbox is genuinely Python/JS-only). The audit rates the *platform*; see the [maturity disclaimer](#provider-support) for how that differs from what agentlift ships.
 
 The audit's `degraded`/`unsupported` rows are exactly the lossy spots a compile would hit — so `audit` tells you what survives before `export` or `deploy` runs.
 
@@ -202,13 +207,39 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 
 ### Provider support
 
-| Runtime | How agentlift targets it | Notes |
-|---|---|---|
-| **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
-| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | Live `reasoningEngine` with confirmed server-side coordinator→subagent delegation. The deploy maps **skills** (SKILL.md bundles ship inside the engine's source package, loaded via ADK `load_skill_from_dir`), **URL MCP servers** (each an ADK `McpToolset` with a `tool_filter` allowlist; inline auth header values resolve from your local env into Agent Engine `env_vars`, never inlined into source), and the **built-in web tools** (`web_search`→Google Search grounding, `web_fetch`→URL Context, each lowered as a wrapped single-tool ADK sub-agent). Idempotent create/update/skip via a spec hash. Remaining gaps: `:ask`/per-tool approval, the built-in **sandbox** tools (bash/files/glob-grep — Python/JS sandbox only), and stdio MCP servers; Claude models map to Gemini. See [tested-platforms](docs/tested-platforms.md). |
-| **OpenAI** | `export openai-agents` (preview, self-host) | subagents emulated via agent-as-tool (the delegation loop runs in your app); no code-define + OpenAI-host path, so `export`, never `deploy`. |
+agentlift targets four managed-agent runtimes. They sit at different **maturity tiers** —
+read the tier before assuming parity:
 
-> **Google is live but preview — read this before assuming parity.** Anthropic is the fullest managed-agent target today. Google deploys real Vertex AI Agent Engine agents (server-side delegation, skills, URL MCP with inline-auth-via-env-vars, and the built-in web tools — `web_search`/`web_fetch` — all map), but parity is not exact: the built-in **sandbox** tools (bash/files/glob-grep), `:ask` enforcement, and stdio MCP are not equivalent, and Claude model names become Gemini defaults. OpenAI is export + self-host only (no hosted-deploy path at all). For the row-by-row breakdown, see the **[full provider capability matrix](docs/provider-matrix.md)**.
+| Runtime | Primary path today | What it produces | Maturity |
+|---|---|---|---|
+| **Anthropic** Managed Agents | `agentlift deploy` (+ `export anthropic-yaml`) | a live managed agent | **LIVE** — reference target, full mapping; the folder maps 1:1 |
+| **AWS** Amazon Bedrock AgentCore | `agentlift deploy --target bedrock --build-only` (+ `export bedrock-strands`) | a complete, deployable **Strands / AgentCore Runtime container artifact** | **BUILD-ONLY PREVIEW** — **Claude-native mapping** (no remap; live Claude receipt pending Gate A); hosted create stays manual until live-verified |
+| **Google** Vertex AI Agent Engine | `agentlift deploy --target google` (+ `export google-adk`) | a live `reasoningEngine` | **HOSTED PREVIEW** — live deploy; Claude→Gemini remap |
+| **OpenAI** Agents SDK | `agentlift export openai-agents` (self-host) | an Agents SDK script | **EXPORT-ONLY** — no code-define + OpenAI-host path |
+
+The rows are ordered by **closeness to the Claude-native story**, not by maturity tier:
+**Anthropic** is the reference runtime; **AWS** is the natural *Claude-native* second home —
+agentlift targets Bedrock's Claude inference profiles directly, with no Gemini-style model
+remap (the live same-Claude composition receipt is still pending stable Gate A entitlement) —
+currently shipped as a build-only AgentCore artifact path; **Google** is the most complete
+*non-Anthropic hosted* preview but requires the Claude→Gemini remap; **OpenAI** remains
+export / self-host.
+
+> **Two axes, kept distinct.** `agentlift audit` rates each *platform's* capability (what the
+> runtime could do); the **Maturity** column above rates *what agentlift ships end-to-end
+> today*. They mostly agree. The sharpest gap is Bedrock's hosted runtime: the audit rates it
+> `native` (AgentCore genuinely hosts agents), but agentlift currently ships only the
+> **build-only** container artifact and *refuses* the unverified hosted-create call — so
+> "AgentCore hosting is native" (platform) and "agentlift's Bedrock deploy is build-only"
+> (implementation) are both true. The row-by-row breakdown across all four:
+> **[full provider capability matrix](docs/provider-matrix.md)**.
+
+> **Read the maturity tier before assuming parity.** `deploy --target google` creates a live
+> cloud resource; `deploy --target bedrock --build-only` builds a container *you* then push
+> and host (the hosted-create step is manual by design, gated on AWS IAM + the Anthropic
+> use-case form). Both are preview, in different senses. Anthropic is the fullest target;
+> OpenAI is export + self-host only. Details: [deploy-bedrock.md](docs/deploy-bedrock.md),
+> [deploy-google.md](docs/deploy-google.md).
 
 #### Live coverage matrix — what actually ran, not what the docs claim
 
@@ -360,9 +391,9 @@ Beyond that, the **live coverage matrix** ([`tests/live/`](tests/live/)) deploys
 ## Limitations (read these)
 
 - **Remote MCP only.** Managed agents connect to URL MCP servers; local `stdio` servers (`npx ...`) can't be deployed. Host them behind HTTPS first.
-- **No inline MCP auth on Anthropic.** A managed URL MCP server carries no credentials in the Anthropic API shape — the server must be public or authenticate itself. (The Google deploy *does* carry inline auth: the header value resolves from your local env into an Agent Engine `env_var` at deploy, never into the source.)
+- **No inline MCP auth on Anthropic.** A managed URL MCP server carries no credentials in the Anthropic API shape — the server must be public or authenticate itself. (The Bedrock and Google deploys *do* carry inline auth: the header value resolves from your local env into a runtime `env_var` at deploy, never into the source.)
 - **Knowledge files are inlined** into the system prompt (no persistent local FS in the managed sandbox). Large reference sets should become a skill bundle.
-- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; maps skills + URL MCP with inline-auth-via-env-vars + the built-in web tools `web_search`/`web_fetch`, but `:ask`, the built-in **sandbox** tools, and stdio MCP are not mapped, and Claude→Gemini). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
+- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). AWS Bedrock AgentCore deploy is **build-only preview** (`--target bedrock --build-only`; compiles a Strands package and builds a complete ARM64 AgentCore Runtime container — **Claude-native, no model remap** — mapping skills + URL MCP with inline-auth-via-env-vars; the hosted-create step is manual, gated on AWS IAM + the Anthropic use-case form; sandbox/web tools are `PLANNED`, `:ask` unsupported). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; maps skills + URL MCP with inline-auth-via-env-vars + the built-in web tools `web_search`/`web_fetch`, but `:ask`, the built-in **sandbox** tools, and stdio MCP are not mapped, and Claude→Gemini). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
 
 Each of these is surfaced as a `agentlift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
 
@@ -373,13 +404,14 @@ Everything is here or one click away:
 | Doc | What's in it |
 |---|---|
 | [docs/convention.md](docs/convention.md) | The `.managed-agents/` folder spec, frontmatter, skills, MCP, `:ask` permissions, native subagents |
-| [docs/provider-matrix.md](docs/provider-matrix.md) | Row-by-row capability matrix — what maps where across Anthropic / Google / OpenAI |
+| [docs/provider-matrix.md](docs/provider-matrix.md) | Row-by-row capability matrix — what maps where across Anthropic / AWS Bedrock / Google / OpenAI |
 | [docs/deploying.md](docs/deploying.md) | The three deploy paths, the lockfile / where IDs live, isolation, hooks |
 | [docs/how-it-works.md](docs/how-it-works.md) | `parse → plan → apply → run`, determinism, idempotency, the confirmed wire format |
 | [docs/anthropic-mapping.md](docs/anthropic-mapping.md) | Exact local → Managed Agents field mapping + API constraints |
 | [docs/limitations.md](docs/limitations.md) | Honest constraints (stdio MCP, MCP auth, knowledge inlining, skill descriptions) |
+| [docs/deploy-bedrock.md](docs/deploy-bedrock.md) | Deploying to AWS Bedrock AgentCore — bearer-token vs IAM, the two gates, the build-only artifact path |
 | [docs/deploy-google.md](docs/deploy-google.md) | Deploying to Google Vertex AI Agent Engine — the ADC credentials + setup path |
-| [docs/tested-platforms.md](docs/tested-platforms.md) | Per-platform test receipts (config, results, console links) for all three runtimes |
+| [docs/tested-platforms.md](docs/tested-platforms.md) | Per-platform test receipts (config, results, console links) for all four runtimes |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Architecture and dev setup |
 
 ### Examples ([examples/](examples/))
@@ -399,8 +431,16 @@ The live `deploy --target google` ships prompts + coordinator/`sub_agents` + **s
 - **Claude-on-Vertex models — offline-verified spike, not shipped.** Today Claude folder models map to Gemini. ADK 1.34.3 *can* resolve Claude on Vertex and the mixed-model shape composes (web sub-agents stay Gemini) — proven offline in [`experiments/claude-on-vertex/`](experiments/claude-on-vertex/) — but with no live receipt yet, a Claude `--google-model` is **refused**, not silently shipped.
 - **Per-agent IDs via A2A.** Google deploys the roster as one `reasoningEngine`; per-agent addressability would need the A2A protocol across deployments.
 
+The `deploy --target bedrock --build-only` path ships prompts + coordinator/agents-as-tools + **skills (`Skill.from_file` + `AgentSkills`) + URL MCP (`MCPClient` + `tool_filter`, inline-auth-via-env-vars), and emits the Bedrock Claude inference-profile ID natively (regional profile, no Gemini-style remap)**, idempotent via a spec hash, materializing a complete ARM64 AgentCore Runtime container. What's *not* yet wired on Bedrock — each surfaced as a `PLANNED` diagnostic, not a silent drop — is genuinely roadmap, not non-goal (unlike Google's sandbox), because AgentCore *can* host them:
+
+- **Hosted create (Gate B).** A bare `deploy --target bedrock` currently **refuses** — building a guessed `create-agent-runtime` call would violate the *confirm-live-before-encoding* rule. Wiring it needs AWS IAM + an execution role + ECR live-verified end-to-end; until then the artifact's `NOTES.txt` carries the manual build/push + starter-toolkit runbook.
+- **Built-in sandbox tools — a *real* AgentCore sandbox, PLANNED not non-goal.** Unlike Google, Bedrock offers the Code Interpreter (shell + filesystem) and Browser, so wiring `bash`/`files`/`glob`/`grep` to them is a TODO; until then expose equivalents via a URL MCP server.
+- **`web_fetch` → Browser tool.** No first-class hosted `web_search` primitive on Bedrock; `web_fetch` can map to the Browser tool. Both `PLANNED` today; supply `web_search` via a search MCP server.
+- **Live Claude-on-Bedrock composition receipt.** The Strands composition is [proven live](docs/tested-platforms.md#amazon-bedrock-agentcore-strands) (objective tool-call trace on Amazon Nova); the same-Claude-brain receipt waits on stable per-account Anthropic use-case-form entitlement (Gate A, eventually consistent).
+
 Genuinely on the roadmap:
 
+- **AWS Bedrock hosted deploy** — wire the AgentCore control-plane `create_agent_runtime` once the IAM + ECR + execution-role path is live-verified (Gate B), turning `--build-only` into a full `deploy --target bedrock`
 - **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)

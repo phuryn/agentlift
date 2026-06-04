@@ -1,19 +1,24 @@
 # Tested platforms — receipts + where to find more
 
-What "I ran it on all three" actually means, with the configuration, the results, and the
-console/docs links for each managed-agent platform. Two of the three are tested as a **live
-hosted deploy**; OpenAI is tested as the **agent-as-tool composition** (it has no
-code-define + host path, so there is nothing to "deploy" — see the audit).
+What "I ran it across the targets" actually means, with the configuration, the results, and
+the console/docs links for each managed-agent platform. **Two targets are tested as a live
+hosted deploy** (Anthropic, Google); **AWS Bedrock** is tested as the **live Strands
+composition** (bearer-token model inference) with the hosted runtime build-only by design;
+**OpenAI** is tested as the **agent-as-tool composition** (it has no code-define + host
+path, so there is nothing to "deploy" — see the audit).
 
 | Platform | What was tested | How | Result |
 |---|---|---|---|
 | **Anthropic** Managed Agents | live deploy + run + graded output; the 6-dimension coverage matrix | `agentlift deploy` → `agents.create`, run a session, LLM-grade | ✅ `tests/live/` + `benchmarks/` (managed vs local, 100% pass); coverage matrix **6/6 dimensions exercised** (native delegation event, both MCP servers, both skill markers) |
+| **AWS** Bedrock AgentCore (Strands) | live coordinator→subagent→tool composition (bearer token); compiled container artifact | `python bedrock_strands_subagents.py` (live Bedrock inference); `agentlift deploy --target bedrock --build-only` | ✅ composition **exercised live** (Strands agents-as-tools + deterministic tool, Amazon Nova); container artifact built. Claude id verified answerable; same-Claude receipt pending Gate A. Hosted create build-only (Gate B/IAM) |
 | **Google** Vertex AI Agent Engine | live deploy **+ query** of a coordinator + 2 subagents across **all 6 portability dimensions** | `agentlift deploy --target google` → ADK `sub_agents` / `McpToolset` / embedded skills → `agent_engines.create()`, then query the engine | ✅ live `reasoningEngine`; **6/6 dimensions exercised server-side** (`transfer_to_agent`, MCP tool calls, `load_skill`) |
 | **OpenAI** Agents SDK | coordinator delegates to a subagent **as a tool** | `researcher.as_tool()`, run with `Runner.run` | ✅ trace `function_call ask_researcher` (in-process loop) |
 
-The pattern is the same across all three; what differs is **where the orchestration loop
-runs** — the provider's runtime (Anthropic, Google) or your app (OpenAI). See
-[`experiments/subagent-composition/RESULTS.md`](../experiments/subagent-composition/RESULTS.md).
+The composition pattern is the same across all four; what differs is **where the
+orchestration loop runs** — the provider's runtime (Anthropic, Google), the AgentCore
+Runtime once hosted (AWS), or your app (OpenAI). See
+[`experiments/subagent-composition/RESULTS.md`](../experiments/subagent-composition/RESULTS.md)
+and [`experiments/bedrock-composition/RESULTS.md`](../experiments/bedrock-composition/RESULTS.md).
 
 ---
 
@@ -30,6 +35,13 @@ classified by what the runtime *actually did* at run time:
 > it is **receipt evidence, not a feature ranking.** Both deployed runtimes exercised all six
 > portability dimensions server-side — for async Anthropic subagents the proof is the native
 > delegation event, not a completed worker round-trip inside the coordinator's one-shot response.
+>
+> **Why this matrix is two-provider (no AWS column).** It records what ran inside a *hosted*
+> deploy fixture. Bedrock's hosted runtime is **build-only** today (the create call is refused
+> until live-verified — see [deploy-bedrock.md](deploy-bedrock.md)), so this fixture was never
+> deployed there; retrofitting an AWS column with caveats would weaken the evidence. Bedrock's
+> live proof is the **Strands composition** receipt, called out [in its own section
+> below](#amazon-bedrock-agentcore-strands).
 
 | Dimension | Anthropic (reference) | Google (preview) |
 |---|---|---|
@@ -90,6 +102,65 @@ runtimes. Google is unaffected (it loads skills via a SkillToolset, independent 
 
 **More:** managed agents in your workspace → <https://platform.claude.com/workspaces/default/agents>
 · docs → <https://platform.claude.com/docs/en/managed-agents/overview>
+
+---
+
+## Amazon Bedrock AgentCore (Strands)
+
+- **Config:** the [`experiments/bedrock-composition`](../experiments/bedrock-composition/)
+  script — a `coordinator` agent (Bedrock model) that delegates one factual question to a
+  `researcher` specialist (the Strands **agents-as-tools** idiom = a sub-agent) and calls a
+  deterministic `population_lookup` `@tool`. Run **locally** against Bedrock model inference,
+  authenticated solely by `AWS_BEARER_TOKEN_BEDROCK` (no IAM, no hosted runtime).
+- **How:** `python bedrock_strands_subagents.py` (live inference) for the composition proof;
+  `agentlift deploy --target bedrock --build-only` for the deployable container artifact
+  (Strands package + ARM64 Dockerfile + `NOTES.txt` runbook).
+- **Models:** Claude is **native** on Bedrock — a folder's `claude-haiku-4-5` maps to its
+  regional inference profile `eu.anthropic.claude-haiku-4-5-20251001-v1:0` (in `eu-north-1`),
+  **no Gemini-style remap**. This is the headline portability story — *as a mapping fact*: the
+  compiler emits the Bedrock Claude inference-profile ID directly, the same brain Anthropic
+  runs, no substitution. The end-to-end *live* same-Claude composition receipt is still
+  **pending stable Gate A** (the composition itself is live-proven on Nova — see the proof
+  points below).
+- **Orchestration loop:** **your process** today (local inference); the *same* composition
+  runs as **one** AgentCore Runtime once hosted (so Bedrock subagents classify `emulated`,
+  exactly like Google).
+
+**Proof points (honest status, classified like the matrix above):**
+
+| Bedrock proof point | Status |
+|---|---|
+| Strands package generation | ✅ offline-tested ([`tests/test_bedrock_*`](../tests/)) |
+| AgentCore Runtime container artifact | ✅ build-only path shipped (`deploy --target bedrock --build-only`) |
+| Agents-as-tools composition (coordinator → subagent + deterministic tool) | ✅ **EXERCISED live** — objective tool-call trace, on Amazon Nova Pro |
+| Claude model mapping | ✅ native Bedrock Claude id supported; **no remap** |
+| Claude composition receipt (same brain on AWS) | ⏳ **PENDING** — Claude id returned `BEDROCK_OK` in one window; the per-account Anthropic use-case-form entitlement (Gate A) is eventually consistent and had not durably propagated at capture time |
+| Hosted AgentCore create / update | 🚧 **build-only by design** — refused until the control-plane wire shape is live-verified (Gate B/IAM) |
+
+The composition receipt:
+
+```
+MODEL: eu.amazon.nova-pro-v1:0 region: eu-north-1
+QUESTION: What year was the Eiffel Tower completed, and what is the population of Paris?
+--- tool-call trace (objective: each is a real invocation) ---
+  1. subagent researcher(question='What year was the Eiffel Tower completed?')
+  2. deterministic-tool population_lookup(city='Paris')
+  model-emitted toolUse blocks: ['researcher', 'population_lookup']
+--- final coordinator answer ---
+  The Eiffel Tower was completed in 1889, and the population of Paris is 2,102,650.
+OK: coordinator delegated to a sub-agent AND used a deterministic tool.
+```
+
+The signal is objective on two independent channels — the python `@tool` bodies actually ran
+(the `TRACE` list) **and** the model emitted `toolUse` blocks in its conversation history.
+The composition ran on **Nova Pro** because Gate A flapped at capture time; the Claude id was
+separately verified answerable (a clean `BEDROCK_OK` via `converse`). Full write-up + the two
+gates: [`experiments/bedrock-composition/RESULTS.md`](../experiments/bedrock-composition/RESULTS.md)
+and [`docs/deploy-bedrock.md`](deploy-bedrock.md).
+
+**More:** AgentCore overview → <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html>
+· HTTP contract → <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-http-protocol-contract.html>
+· Strands Agents → <https://strandsagents.com/>
 
 ---
 
@@ -186,6 +257,8 @@ runtimes. Google is unaffected (it loads skills via a SkillToolset, independent 
 
 ---
 
-*All three were exercised with the live SDKs (not mocked). The subagent-composition traces
-are reproducible from [`experiments/subagent-composition/`](../experiments/subagent-composition/);
-the Google live deploy from [`docs/deploy-google.md`](deploy-google.md).*
+*All four were exercised with the live SDKs (not mocked). The subagent-composition traces
+are reproducible from [`experiments/subagent-composition/`](../experiments/subagent-composition/)
+(OpenAI/Google) and [`experiments/bedrock-composition/`](../experiments/bedrock-composition/)
+(AWS); the Google live deploy from [`docs/deploy-google.md`](deploy-google.md); the Bedrock
+build artifact + gates from [`docs/deploy-bedrock.md`](deploy-bedrock.md).*

@@ -105,6 +105,7 @@ def run_audit(project, targets: list) -> dict:
 _TIER_GLYPH = {"native": "+", "emulated": "~", "degraded": "!", "unsupported": "x"}
 _TARGET_TITLE = {
     "anthropic": "Anthropic Managed Agents",
+    "bedrock": "Amazon Bedrock AgentCore Runtime (Strands)",
     "google": "Google Vertex AI Agent Engine (ADK)",
     "openai": "OpenAI (Agent Builder / Agents SDK)",
 }

@@ -34,10 +34,19 @@ def test_detect_features_on_team(examples_dir):
 
 
 def test_audit_tiers_match_research(examples_dir):
-    report = run_audit(_team(examples_dir), ["anthropic", "google", "openai"])
+    report = run_audit(_team(examples_dir), ["anthropic", "bedrock", "google", "openai"])
 
     anth = {r["id"]: r["tier"] for r in report["targets"]["anthropic"]}
     assert set(anth.values()) == {"native"}
+
+    bed = {r["id"]: r["tier"] for r in report["targets"]["bedrock"]}
+    assert bed["remote_mcp"] == "native"            # Strands MCPClient + tool_filter
+    assert bed["skills"] == "emulated"              # embedded in source, update = redeploy
+    assert bed["subagents"] == "emulated"           # one runtime, agents-as-tools
+    assert bed["tool_approval"] == "unsupported"    # no interactive approval on /invocations
+    assert bed["builtin_web"] == "degraded"         # no first-class hosted web_search
+    # the portability headline: Claude (the model) is native, not remapped
+    assert bed["hosted_runtime"] == "native"
 
     goog = {r["id"]: r["tier"] for r in report["targets"]["google"]}
     assert goog["tool_approval"] == "unsupported"   # :ask not enforced on the hosted runtime
@@ -64,10 +73,12 @@ def test_audit_unknown_target_is_none(examples_dir):
 
 
 def test_render_is_stable_text(examples_dir):
-    text = render_audit(_team(examples_dir), ["anthropic", "google", "openai"],
-                        run_audit(_team(examples_dir), ["anthropic", "google", "openai"]))
+    targets = ["anthropic", "bedrock", "google", "openai"]
+    text = render_audit(_team(examples_dir), targets,
+                        run_audit(_team(examples_dir), targets))
     assert "Portability audit:" in text
     assert "Anthropic Managed Agents" in text
+    assert "Amazon Bedrock AgentCore Runtime (Strands)" in text
     assert "Verdict" in text
     # the degraded/unsupported reasons must surface for the user
     assert "reason:" in text
