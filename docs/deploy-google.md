@@ -8,15 +8,18 @@
 > [coverage matrix](tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking)
 > and the receipt under [`tests/live/receipts/`](../tests/live/receipts/)). The deploy maps
 > **skills** (the SKILL.md bundles ride inside the engine's source package, loaded with
-> ADK `load_skill_from_dir` at startup) and **URL MCP servers** (each wired as an ADK
+> ADK `load_skill_from_dir` at startup), **URL MCP servers** (each wired as an ADK
 > `McpToolset` with a `tool_filter` allowlist; inline auth header values are resolved
 > from your local environment at deploy time and passed as Agent Engine `env_vars`, never
-> inlined into the generated source). Deploys are idempotent — a spec hash drives
-> create / update / skip. `agentlift export google-adk` emits the ADK scaffold offline.
-> Remaining gaps: `:ask` / per-tool approval (not enforced on `VertexAiSessionService`)
-> and the built-in tool sandbox (Python/JS only — no bash/web/glob-grep); stdio MCP
-> servers can't be deployed (host them behind HTTPS first); and Claude models map to
-> Gemini. This doc is the credentials/setup the deploy needs.
+> inlined into the generated source), and the **built-in web tools** (`web_search` →
+> Gemini's Google Search grounding, `web_fetch` → URL Context, each lowered as a wrapped
+> single-tool ADK sub-agent — both exercised live on a deployed engine). Deploys are
+> idempotent — a spec hash drives create / update / skip. `agentlift export google-adk`
+> emits the ADK scaffold offline. Remaining gaps: `:ask` / per-tool approval (not enforced
+> on `VertexAiSessionService`) and the built-in **sandbox** tools (Python/JS only — no
+> bash/files/glob-grep); stdio MCP servers can't be deployed (host them behind HTTPS
+> first); and Claude models map to Gemini. This doc is the credentials/setup the deploy
+> needs.
 
 ## The one thing to get straight: API key vs ADC
 

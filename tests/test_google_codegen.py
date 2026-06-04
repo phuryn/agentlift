@@ -19,7 +19,12 @@ from agentlift.google_codegen import (
     write_package,
 )
 from agentlift.google_plan import build_google_plan
+from agentlift.model import AgentSpec, Project
 from agentlift.parser import parse_project
+
+WEB_TOOLS_FIXTURE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "live", "fixtures", "web-tools"
+)
 
 try:
     import google.adk  # noqa: F401
@@ -31,6 +36,43 @@ except Exception:
 needs_adk = pytest.mark.skipif(not _HAS_ADK, reason="google-adk / vertexai not installed")
 
 
+@pytest.fixture
+def offline_vertex(monkeypatch):
+    """Pin a fake project + anonymous credentials so the generated-agent exec tests build
+    REAL adk objects without ever touching ADC or the network.
+
+    ``AdkApp.__init__`` eagerly reads ``initializer.global_config.project``; with no project
+    set that calls ``google.auth.default()`` and fails on any box without Application
+    Default Credentials (i.e. CI). A project alone is not enough -- the initializer still
+    resolves credentials -- so we supply ``AnonymousCredentials`` via the public
+    ``vertexai.init`` (the same entrypoint the live harness uses). We then booby-trap
+    ``google.auth.default`` to raise, so the test actively *proves* the construction path
+    asks for no credentials (the trap has teeth: it fires if the project is unset).
+    ``register_operations()`` is a static dict, so no network. The Vertex global config is
+    snapshotted and restored so the fake project never leaks into other tests."""
+    import google.auth
+    import vertexai
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.aiplatform import initializer
+
+    saved = dict(initializer.global_config.__dict__)
+    vertexai.init(
+        project="agentlift-offline-test",
+        location="us-central1",
+        credentials=AnonymousCredentials(),
+    )
+
+    def _no_adc(*a, **k):
+        raise AssertionError("google.auth.default() called -- exec path must not touch ADC")
+
+    monkeypatch.setattr(google.auth, "default", _no_adc)
+    try:
+        yield
+    finally:
+        initializer.global_config.__dict__.clear()
+        initializer.global_config.__dict__.update(saved)
+
+
 def _team_plan(examples_dir, **kw):
     project, diags = parse_project(os.path.join(examples_dir, "team"))
     return build_google_plan(project, diags, **kw)
@@ -38,6 +80,11 @@ def _team_plan(examples_dir, **kw):
 
 def _auth_plan(fixtures_dir, **kw):
     project, diags = parse_project(os.path.join(fixtures_dir, "mcp-auth"))
+    return build_google_plan(project, diags, **kw)
+
+
+def _web_plan(**kw):
+    project, diags = parse_project(WEB_TOOLS_FIXTURE)
     return build_google_plan(project, diags, **kw)
 
 
@@ -84,6 +131,95 @@ def test_coordinator_defined_after_roster(examples_dir):
     # the lead's variable must be assigned after the agents it references
     assert code.index("agent_bug_finder = LlmAgent(") < code.index("agent_lead = LlmAgent(")
     assert code.index("agent_researcher = LlmAgent(") < code.index("agent_lead = LlmAgent(")
+
+
+# --- web built-ins lower to wrapped AgentTool sub-agents ------------------- #
+def test_web_search_emits_agenttool_wrapper(examples_dir):
+    code = render_agent_py(_team_plan(examples_dir))
+    # conditional imports ride in
+    assert "from google.adk.tools.agent_tool import AgentTool" in code
+    assert "from google.adk.tools.google_search_tool import GoogleSearchTool" in code
+    # the factory + a call scoped to the researcher
+    assert "def _web_search_tool(name, model):" in code
+    assert "_web_search_tool('researcher_web_search'," in code
+    assert "GoogleSearchTool()" in code
+    assert "propagate_grounding_metadata=True" in code
+
+
+def test_search_only_folder_omits_url_context():
+    # a folder whose only web tool is web_search must NOT import url_context or emit
+    # the fetch factory (conditional-import discipline, no unused symbols)
+    search_only = Project(root="x", layout="single", agents=[
+        AgentSpec(name="a", system="hi", model="claude-haiku-4-5", builtin_tools=["web_search"]),
+    ])
+    code = render_agent_py(build_google_plan(search_only))
+    compile(code, "agent.py", "exec")
+    assert "GoogleSearchTool" in code and "_web_search_tool(" in code
+    assert "url_context" not in code
+    assert "_web_fetch_tool" not in code
+
+
+def test_web_fetch_and_both_emit_url_context():
+    code = render_agent_py(_web_plan())
+    compile(code, "agent.py", "exec")
+    assert "from google.adk.tools import url_context" in code
+    assert "def _web_fetch_tool(name, model):" in code
+    assert "tools=[url_context]" in code
+    # both web tools on the fetcher, each scoped by the owning agent's name
+    assert "_web_fetch_tool('fetcher_web_fetch'," in code
+    assert "_web_search_tool('fetcher_web_search'," in code
+    # the coordinator carries web_search alongside its sub_agents (always-wrap so it
+    # never collides with the injected transfer tools)
+    assert "_web_search_tool('lead_web_search'," in code
+    assert "sub_agents=[agent_searcher, agent_fetcher]" in code
+
+
+def test_no_web_tools_means_no_web_imports():
+    no_web = Project(root="x", layout="single", agents=[
+        AgentSpec(name="a", system="hi", model="claude-haiku-4-5", builtin_tools=["read", "bash"]),
+    ])
+    code = render_agent_py(build_google_plan(no_web))
+    compile(code, "agent.py", "exec")
+    assert "AgentTool" not in code
+    assert "GoogleSearchTool" not in code
+    assert "url_context" not in code
+    assert "_web_search_tool" not in code and "_web_fetch_tool" not in code
+
+
+def test_web_agent_py_imports_only_adk_and_vertexai():
+    code = render_agent_py(_web_plan())
+    tree = ast.parse(code)
+    roots = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            roots |= {n.name.split(".")[0] for n in node.names}
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            roots.add(node.module.split(".")[0])
+    assert "agentlift" not in roots
+    assert roots <= {"os", "google", "vertexai"}
+
+
+@needs_adk
+def test_web_agent_py_executes_and_wraps_real_adk_tools(tmp_path, offline_vertex):
+    # build the REAL ADK objects from the generated source: the wrapped web tools
+    # must construct AND coexist with sub_agents/transfer tools on the coordinator.
+    plan = _web_plan()
+    build = os.path.join(str(tmp_path), "build")
+    write_package(plan, build)
+    agent_py = os.path.join(build, PACKAGE_NAME, "agent.py")
+    src = open(agent_py, encoding="utf-8").read()
+    ns: dict = {"__file__": agent_py}
+    exec(compile(src, agent_py, "exec"), ns)
+    root = ns[ROOT_SYMBOL]
+    assert root.name == "lead"
+    # the coordinator wraps web_search as an AgentTool tool AND keeps its roster
+    tool_names = {getattr(t, "name", None) for t in root.tools}
+    assert "lead_web_search" in tool_names
+    assert {s.name for s in root.sub_agents} == {"searcher", "fetcher"}
+    # the fetcher carries both wrapped web tools
+    fetcher = next(s for s in root.sub_agents if s.name == "fetcher")
+    fetcher_tools = {getattr(t, "name", None) for t in fetcher.tools}
+    assert {"fetcher_web_fetch", "fetcher_web_search"} <= fetcher_tools
 
 
 # --- secrets never inlined ------------------------------------------------- #
@@ -162,7 +298,7 @@ def test_evil_instruction_in_full_agent_py(examples_dir):
 
 # --- imports against the REAL adk (offline construction, no deploy) -------- #
 @needs_adk
-def test_agent_py_executes_and_builds_app(examples_dir, tmp_path, monkeypatch):
+def test_agent_py_executes_and_builds_app(examples_dir, tmp_path, offline_vertex):
     # construct the real ADK objects from the generated source -- proves the
     # imports/シグ are right and that MCP/skills build lazily without a network.
     plan = _team_plan(examples_dir)

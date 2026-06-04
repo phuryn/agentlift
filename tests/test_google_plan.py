@@ -4,11 +4,19 @@ and the spec hash is a stable function of the folder + deploy model. No network.
 import os
 
 from agentlift.google_plan import (
+    ADK_WEB_REQUIREMENT,
     DEFAULT_GOOGLE_MODEL,
     build_google_plan,
     safe_ident,
+    web_tool_agent_name,
 )
+from agentlift.model import AgentSpec, Project
 from agentlift.parser import parse_project
+
+# the focused web-tools fixture lives under the live tree but parses offline
+WEB_TOOLS_FIXTURE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "live", "fixtures", "web-tools"
+)
 
 
 def _plan(path, **kw):
@@ -20,8 +28,16 @@ def _team(examples_dir, **kw):
     return _plan(os.path.join(examples_dir, "team"), **kw)
 
 
+def _web(**kw):
+    return _plan(WEB_TOOLS_FIXTURE, **kw)
+
+
 def _node(plan, name):
     return next(n for n in plan.agents if n.name == name)
+
+
+def _codes(plan):
+    return [d.code for d in plan.diagnostics.items]
 
 
 # --- shape ----------------------------------------------------------------- #
@@ -94,6 +110,72 @@ def test_builtin_tools_flagged_degraded_not_dropped(examples_dir):
     # researcher (read, web_search) and bug-finder (read, glob, grep, bash) both use builtins
     flagged = {d.where for d in degraded}
     assert {"researcher", "bug-finder"} <= flagged
+
+
+# --- web built-ins lower to wrapped tool-agents ---------------------------- #
+def test_web_search_lowers_on_team(examples_dir):
+    plan, _ = _team(examples_dir)
+    # researcher (read, web_search) -> web_search lowers; read stays a degraded gap
+    assert _node(plan, "researcher").builtin_web == ["web_search"]
+    # bug-finder (read, glob, grep, bash) has no web tool
+    assert _node(plan, "bug-finder").builtin_web == []
+    # the mapping is surfaced as an info diagnostic, scoped to the agent
+    mapped = [d for d in plan.diagnostics.items if d.code == "google.builtin.web_mapped"]
+    assert any(d.where == "researcher" for d in mapped)
+
+
+def test_web_fetch_and_both_lower_on_fixture():
+    plan, _ = _web()
+    assert plan.deployable
+    # coordinator can itself carry web_search alongside its transfer tools
+    assert _node(plan, "lead").builtin_web == ["web_search"]
+    assert _node(plan, "lead").is_coordinator
+    # search-only leaf
+    assert _node(plan, "searcher").builtin_web == ["web_search"]
+    # both web tools on one agent, sorted (web_fetch before web_search)
+    assert _node(plan, "fetcher").builtin_web == ["web_fetch", "web_search"]
+
+
+def test_web_only_folder_has_no_sandbox_degradation():
+    # the web-tools fixture uses ONLY web built-ins -> web_mapped info, never the
+    # builtin.degraded warning (that is reserved for bash/files/glob-grep).
+    plan, _ = _web()
+    codes = _codes(plan)
+    assert "google.builtin.web_mapped" in codes
+    assert "google.builtin.degraded" not in codes
+
+
+def test_adk_web_requirement_added_only_when_web_present():
+    web_plan, _ = _web()
+    assert ADK_WEB_REQUIREMENT in web_plan.requirements
+    # a folder with no web tool must NOT pin the web ADK floor
+    no_web = Project(root="x", layout="single", agents=[
+        AgentSpec(name="a", system="hi", model="claude-haiku-4-5", builtin_tools=["read", "bash"]),
+    ])
+    plan = build_google_plan(no_web)
+    assert ADK_WEB_REQUIREMENT not in plan.requirements
+
+
+def test_builtin_web_enters_spec_hash():
+    base = Project(root="x", layout="single", agents=[
+        AgentSpec(name="a", system="hi", model="claude-haiku-4-5", builtin_tools=["read"]),
+    ])
+    withweb = Project(root="x", layout="single", agents=[
+        AgentSpec(name="a", system="hi", model="claude-haiku-4-5", builtin_tools=["read", "web_search"]),
+    ])
+    assert build_google_plan(base).spec_hash != build_google_plan(withweb).spec_hash
+
+
+def test_web_tool_agent_name_is_function_safe():
+    # scoped by the owning agent, valid identifier, distinct per tool
+    assert web_tool_agent_name("researcher", "web_search") == "researcher_web_search"
+    assert web_tool_agent_name("researcher", "web_fetch") == "researcher_web_fetch"
+    # leading digit gets a safe prefix
+    assert web_tool_agent_name("1bot", "web_search")[0] == "_"
+    # very long parent name is truncated with a stable hash suffix, <= 63 chars
+    long_name = web_tool_agent_name("a" * 80, "web_search")
+    assert len(long_name) <= 63
+    assert long_name == web_tool_agent_name("a" * 80, "web_search")  # deterministic
 
 
 def test_ask_policy_surfaces_as_unsupported(examples_dir):

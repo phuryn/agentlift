@@ -38,10 +38,22 @@ MAX_SUB_AGENTS = 50
 # Built-in (sandbox) tools the folder may enable. Agent Engine's hosted sandbox
 # is Python/JS only, so these do not map to native tools today -- we surface that
 # rather than silently dropping them. (Same gap the audit reports as "degraded".)
-_SANDBOX_TOOLS = {"bash", "edit", "write", "glob", "grep", "read", "web_fetch", "web_search"}
+_SANDBOX_TOOLS = {"bash", "edit", "write", "glob", "grep", "read"}
+
+# The two web built-ins DO map to Agent Engine: web_search -> Gemini's Google
+# Search grounding, web_fetch -> URL Context. Each is lowered as a dedicated
+# single-tool ADK sub-agent exposed to the owning agent via an AgentTool (the
+# pattern ADK itself uses in create_google_search_agent / create_url_context_agent),
+# so a built-in web tool can coexist with MCP toolsets, skills and transfer tools
+# on the same node regardless of topology.
+_WEB_TOOLS = {"web_search", "web_fetch"}
 
 DEFAULT_GOOGLE_MODEL = "gemini-2.5-flash"
 ENGINE_REQUIREMENT = "google-cloud-aiplatform[adk,agent_engines]"
+# Pin the ADK floor that ships the AgentTool(propagate_grounding_metadata=...),
+# GoogleSearchTool and url_context APIs the web-tool lowering relies on. Only added
+# to requirements when a node actually maps a web tool.
+ADK_WEB_REQUIREMENT = "google-adk>=1.34.3"
 
 
 def safe_ident(name: str) -> str:
@@ -57,6 +69,29 @@ def safe_ident(name: str) -> str:
 def _auth_env_var(server: str, header: str) -> str:
     """Stable engine env-var name that will carry one MCP auth header's value."""
     return "AGENTLIFT_MCP_" + safe_ident(server).upper() + "_" + safe_ident(header).upper()
+
+
+# A Gemini function-tool / ADK agent name must start with a letter or underscore,
+# contain only [A-Za-z0-9_], and stay <= 63 chars. The wrapped web sub-agent's name
+# becomes the transfer/function name the model sees, so it must satisfy that here.
+_NAME_MAX = 63
+
+
+def web_tool_agent_name(parent_safe_name: str, tool: str) -> str:
+    """Deterministic, function-safe name for a web tool's wrapped sub-agent.
+
+    ``tool`` is ``web_search`` / ``web_fetch``. The name is scoped by the owning
+    agent so two agents that both map web_search get distinct tool names, and it is
+    truncated with a short content hash if the parent name is long. Shared with
+    ``google_codegen`` so the generated source and the plan agree on every name.
+    """
+    base = f"{parent_safe_name}_{tool}"
+    if base and base[0].isdigit():
+        base = "_" + base
+    if len(base) <= _NAME_MAX:
+        return base
+    suffix = "_" + canonical_hash(base)[:8]
+    return base[: _NAME_MAX - len(suffix)] + suffix
 
 
 # --------------------------------------------------------------------------- #
@@ -90,6 +125,7 @@ class GoogleAgentNode:
     mcp: list[McpRecipe] = field(default_factory=list)
     skills: list[str] = field(default_factory=list)      # skill bundle names this agent loads
     sub_agents: list[str] = field(default_factory=list)  # roster agent names (makes it a coordinator)
+    builtin_web: list[str] = field(default_factory=list)  # web built-ins lowered to wrapped tool-agents
 
     @property
     def is_coordinator(self) -> bool:
@@ -105,6 +141,7 @@ class GoogleAgentNode:
             "mcp": [m.to_dict() for m in self.mcp],
             "skills": self.skills,
             "sub_agents": self.sub_agents,
+            "builtin_web": self.builtin_web,
         }
 
 
@@ -276,20 +313,42 @@ def _build_mcp_recipes(
 # --------------------------------------------------------------------------- #
 # build
 # --------------------------------------------------------------------------- #
+def _builtin_web_tools(agent: AgentSpec) -> list[str]:
+    """The web built-ins this agent enables, lowered to Agent Engine (sorted).
+
+    ``builtin_tools is None`` means "all built-ins enabled", so both web tools map.
+    """
+    if agent.builtin_tools is None:
+        return sorted(_WEB_TOOLS)
+    return sorted(set(agent.builtin_tools) & _WEB_TOOLS)
+
+
 def _flag_builtin_gap(agent: AgentSpec, diags: Diagnostics) -> None:
-    """Built-in (sandbox) tools don't map to native Agent Engine tools today.
-    Surface it per agent that uses them instead of dropping silently."""
-    used = (agent.builtin_tools is None) or bool(set(agent.builtin_tools or []) & _SANDBOX_TOOLS)
-    if not used:
-        return
-    which = "all built-ins" if agent.builtin_tools is None else ", ".join(agent.builtin_tools)
-    diags.warning(
-        "google.builtin.degraded",
-        f"built-in tools ({which}) are not mapped to Agent Engine (its hosted "
-        f"sandbox is Python/JS only -- no bash/glob/grep/web); supply equivalents "
-        f"via an MCP server. The agent deploys without them.",
-        agent.name,
-    )
+    """Surface the built-in story per agent: web tools MAP (info), the rest of the
+    sandbox does NOT (warning), and :ask on any built-in is unenforceable (warning).
+    Nothing is dropped silently."""
+    if agent.builtin_tools is None:
+        non_web = sorted(_SANDBOX_TOOLS)
+    else:
+        non_web = sorted(set(agent.builtin_tools) & _SANDBOX_TOOLS)
+    web = _builtin_web_tools(agent)
+
+    if web:
+        diags.info(
+            "google.builtin.web_mapped",
+            f"built-in web tool(s) {', '.join(web)} map to Gemini grounding on Agent "
+            f"Engine (web_search -> Google Search, web_fetch -> URL Context), each lowered "
+            f"as a dedicated wrapped tool-agent so they coexist with MCP/skills/transfer.",
+            agent.name,
+        )
+    if non_web:
+        diags.warning(
+            "google.builtin.degraded",
+            f"built-in tool(s) {', '.join(non_web)} are not mapped to Agent Engine (its "
+            f"hosted sandbox is Python/JS only -- no bash/files/glob/grep); supply "
+            f"equivalents via an MCP server. The agent deploys without them.",
+            agent.name,
+        )
     asks = [t for t, p in (agent.builtin_tool_policies or {}).items() if p == "ask"]
     if asks:
         diags.warning(
@@ -397,6 +456,7 @@ def build_google_plan(
             mcp=recipes,
             skills=[sk.name for sk in agent.skills],
             sub_agents=subs,
+            builtin_web=_builtin_web_tools(agent),
         ))
 
     if remapped:
@@ -410,6 +470,8 @@ def build_google_plan(
     ordered = [n for n in nodes if not n.is_coordinator] + [n for n in nodes if n.is_coordinator]
 
     requirements = [ENGINE_REQUIREMENT]
+    if any(n.builtin_web for n in nodes):
+        requirements.append(ADK_WEB_REQUIREMENT)
     skill_bundles = sorted(bundles.values(), key=lambda b: b.name)
 
     return GoogleDeployPlan(

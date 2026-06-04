@@ -11,7 +11,10 @@ from .capabilities import CAPABILITIES, FEATURES, TIER_ORDER
 
 # Built-in tool names (already mapped to managed builtins by the parser) that
 # imply the agent needs a real execution sandbox, not just a model call.
-SANDBOX_TOOLS = {"bash", "edit", "write", "glob", "grep", "web_fetch", "web_search"}
+SANDBOX_TOOLS = {"bash", "edit", "write", "glob", "grep"}
+# The web built-ins are a separate capability cell: they reach the public network
+# rather than a workspace sandbox, and they map differently per provider.
+WEB_TOOLS = {"web_search", "web_fetch"}
 _LABELS = {f["id"]: f["label"] for f in FEATURES}
 
 
@@ -28,6 +31,7 @@ def detect_used_features(project) -> dict:
         "streaming": "the caller streams the agent's events",
     }
     sandbox: set = set()
+    web: set = set()
     approvals: list = []
     skills: set = set()
     mcp: set = set()
@@ -37,8 +41,10 @@ def detect_used_features(project) -> dict:
     for a in project.agents:
         if a.builtin_tools is None:
             sandbox |= SANDBOX_TOOLS  # None == all builtins enabled
+            web |= WEB_TOOLS
         else:
             sandbox |= set(a.builtin_tools) & SANDBOX_TOOLS
+            web |= set(a.builtin_tools) & WEB_TOOLS
         for tool, policy in (a.builtin_tool_policies or {}).items():
             if policy == "ask":
                 approvals.append(f"{a.name}:{tool}")
@@ -56,6 +62,8 @@ def detect_used_features(project) -> dict:
 
     if sandbox:
         used["builtin_sandbox"] = "uses " + ", ".join(sorted(sandbox))
+    if web:
+        used["builtin_web"] = "uses " + ", ".join(sorted(web))
     if approvals:
         used["tool_approval"] = ":ask on " + ", ".join(sorted(set(approvals)))
     if skills:

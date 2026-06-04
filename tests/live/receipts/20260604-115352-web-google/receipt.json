@@ -1,0 +1,257 @@
+{
+  "provider": "web-google",
+  "when": "20260604-115352",
+  "fixture": "web-tools",
+  "state": {
+    "provider": "google",
+    "fixture": "web-tools",
+    "when": "20260604-114316",
+    "deploy_seconds": 213.1,
+    "action": "create",
+    "resource_name": "projects/********/locations/us-central1/reasoningEngines/******** (deleted)",
+    "spec_hash": "08de4c216c90daa462772a09a4a3382f3ea6a5c49b24fb6db0332c08023623bc",
+    "display_name": "agentlift-lead",
+    "deploy_model": "gemini-2.5-flash",
+    "project": "gen-********",
+    "location": "us-central1",
+    "plan": {
+      "display_name": "agentlift-lead",
+      "root_agent": "lead",
+      "deploy_model": "gemini-2.5-flash",
+      "agents": [
+        {
+          "name": "fetcher",
+          "safe_name": "fetcher",
+          "folder_model": "claude-haiku-4-5",
+          "instruction": "You are the Fetcher. When given a URL, retrieve it and answer only from its\ncontents, listing the source URL you read. Use web_search only to locate a URL\nwhen one is not supplied.",
+          "description": "Retrieves specific URLs and answers strictly from their contents.",
+          "mcp": [],
+          "skills": [],
+          "sub_agents": [],
+          "builtin_web": [
+            "web_fetch",
+            "web_search"
+          ]
+        },
+        {
+          "name": "searcher",
+          "safe_name": "searcher",
+          "folder_model": "claude-haiku-4-5",
+          "instruction": "You are the Searcher. Use web_search to answer open questions with current,\naccurate information. Always include the source URLs you relied on.",
+          "description": "Answers open questions using live web search.",
+          "mcp": [],
+          "skills": [],
+          "sub_agents": [],
+          "builtin_web": [
+            "web_search"
+          ]
+        },
+        {
+          "name": "lead",
+          "safe_name": "lead",
+          "folder_model": "claude-haiku-4-5",
+          "instruction": "You are the Team Lead. You can search the web yourself with web_search, and you\ndelegate: send open research questions to the searcher and URL-retrieval tasks to\nthe fetcher. Synthesize their results into one answer and always cite source URLs.",
+          "description": "Routes research and retrieval tasks to the team and synthesizes a cited answer.",
+          "mcp": [],
+          "skills": [],
+          "sub_agents": [
+            "searcher",
+            "fetcher"
+          ],
+          "builtin_web": [
+            "web_search"
+          ]
+        }
+      ],
+      "skill_bundles": [],
+      "requirements": [
+        "google-cloud-aiplatform[adk,agent_engines]",
+        "google-adk>=1.34.3"
+      ],
+      "env_var_names": [],
+      "spec_hash": "08de4c216c90daa462772a09a4a3382f3ea6a5c49b24fb6db0332c08023623bc",
+      "diagnostics": [
+        {
+          "level": "info",
+          "code": "google.builtin.web_mapped",
+          "message": "built-in web tool(s) web_fetch, web_search map to Gemini grounding on Agent Engine (web_search -> Google Search, web_fetch -> URL Context), each lowered as a dedicated wrapped tool-agent so they coexist with MCP/skills/transfer.",
+          "where": "fetcher"
+        },
+        {
+          "level": "info",
+          "code": "google.builtin.web_mapped",
+          "message": "built-in web tool(s) web_search map to Gemini grounding on Agent Engine (web_search -> Google Search, web_fetch -> URL Context), each lowered as a dedicated wrapped tool-agent so they coexist with MCP/skills/transfer.",
+          "where": "lead"
+        },
+        {
+          "level": "info",
+          "code": "google.builtin.web_mapped",
+          "message": "built-in web tool(s) web_search map to Gemini grounding on Agent Engine (web_search -> Google Search, web_fetch -> URL Context), each lowered as a dedicated wrapped tool-agent so they coexist with MCP/skills/transfer.",
+          "where": "searcher"
+        },
+        {
+          "level": "info",
+          "code": "google.model.remapped",
+          "message": "Claude model(s) on fetcher, lead, searcher map to 'gemini-2.5-flash' on Vertex (override with --google-model / AGENTLIFT_GOOGLE_MODEL).",
+          "where": ""
+        }
+      ],
+      "deployable": true
+    },
+    "versions": {
+      "google.adk": "1.34.3",
+      "vertexai": "1.154.0",
+      "agentlift": "0.5.0"
+    }
+  },
+  "queries": [
+    {
+      "prompt": "What is the Agent Engine in Google Vertex AI, in one or two sentences? Search the web for a current answer and include the source URL you relied on. Do not answer from memory.",
+      "session_id": "8130453699274211328",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "transfer_to_agent",
+          "args": {
+            "agent_name": "searcher"
+          }
+        },
+        {
+          "name": "searcher_web_search",
+          "args": {
+            "request": "Agent Engine in Google Vertex AI definition"
+          }
+        },
+        {
+          "name": "searcher_web_search",
+          "args": {
+            "request": "What is the Agent Engine in Google Vertex AI, with source URL?"
+          }
+        },
+        {
+          "name": "searcher_web_search",
+          "args": {
+            "request": "Google Vertex AI Agent Engine official documentation or blog post"
+          }
+        }
+      ],
+      "tool_responses": [
+        {
+          "name": "transfer_to_agent",
+          "result": ""
+        },
+        {
+          "name": "searcher_web_search",
+          "result": "The Agent Engine in Google Vertex AI is a fully managed runtime environment designed to facilitate the deployment, scaling, session management, and memory persistence of AI agents in a production setting. It is a core component of the Vertex AI Agent Builder, which was rebranded as the Gemini Enterprise Agent Platform at Google Cloud Next 2026.\n\nKey aspects of the Agent Engine include:\n*   **Managed Runtime** It handles the underlying infrastructure, allowing developers to focus on agent logic rather than deployment complexities.\n*   **Deployment and Scaling** The Agent Engine manages the deployment of custom agents to production, providing built-in testing, release capabilities, and reliability at a global and secure scale. It abstracts away infrastructure concerns and provides distributed session management for horizontal scaling.\n*   **Session and Memory Management** It supports short-term and long-term memory for agents, enabling them to recall past conversations and preferences and maintain context across sessions. This includes persistent session storage.\n*   **Framework Agnostic** While it integrates well with Google's Agent Development Kit (ADK), the Agent Engine is designed to work with various frameworks like LangGraph and Crew.ai, and supports different models such as Gemini, Claude, and Mistral AI.\n*   **Production-Ready** Its purpose is to bridge the \"production gap\" between developing an agent on a local machine and deploying it for thousands of users, ensuring scalability, security, and observability with tools like Cloud Logging, Monitoring, and Tracing.\n*   **Integration** It integrates with Vertex AI's evaluation tools to measure and improve agent quality.\n\nEssentially, the Agent Engine provides the governed runtime environment necessary to operate AI agents reliably and at scale within the Google Cloud ecosystem."
+        },
+        {
+          "name": "searcher_web_search",
+          "result": "The Agent Engine in Google Vertex AI is a fully managed runtime designed to help developers deploy, manage, and scale their AI agents from development to production. It is a core component of Google Cloud's platform for creating enterprise AI agents, which was originally known as Vertex AI Agent Builder and has since been rebranded as the Gemini Enterprise Agent Platform at Cloud Next 2026.\n\nKey aspects and functionalities of the Agent Engine include:\n*   **Managed Runtime** It abstracts away infrastructure concerns, handling aspects like server setup, containerization, and scaling complexities, allowing developers to focus on building the agent itself.\n*   **Deployment and Scaling** It simplifies the process of moving AI agents from a development environment to a scalable production environment, supporting deployments built using various frameworks like ADK, LangGraph, and others.\n*   **Context Management** The Agent Engine supports both short-term and long-term memory, enabling agents to maintain context across conversations and recall past interactions and preferences.\n*   **Security and Governance** It provides a secure isolated sandbox environment for code execution, integrates with Google Cloud IAM for fine-grained access control, includes audit logging for compliance, and offers network security boundaries via VPC Service Controls.\n*   **Integration** It seamlessly integrates with the Agent Development Kit (ADK) and other components of Vertex AI, offering monitoring, tracing, and evaluation tools to improve agent quality.\n*   **Cost** Pricing for the Agent Engine runtime is based on a pay-as-you-go model, with charges for vCPU-hours and session and memory events."
+        },
+        {
+          "name": "searcher_web_search",
+          "result": "Google Vertex AI Agent Engine is a managed service designed to help deploy, manage, and scale AI agents from development to production, handling backend complexities such as infrastructure management, scaling, security, and context management. It integrates with frameworks like Google's Agent Development Kit (ADK) and open-source options such as LangChain and LangGraph.\n\n**Official Documentation:**\n\nThe official documentation for Vertex AI Agent Engine can be found within the broader **Vertex AI Agent Builder documentation** on Google Cloud. This documentation suite includes an overview of the Agent Engine, its components, and how it fits into the agent development lifecycle.\n\n**Blog Posts:**\n\nSeveral Google Cloud blog posts offer insights and updates on the Vertex AI Agent Engine:\n\n*   **\"Vertex AI Agent Engine\" on Google Cloud - Medium** (January 21, 2025): This post explains how to build AI Agents with Vertex AI Agent Engine (Reasoning Engine), highlighting its use of LLMs (like Gemini), tools, orchestration, and memory for multi-step workflows.\n*   **\"Get started with Vertex AI Agent Builder\"** (September 19, 2025): This blog post discusses Vertex AI Agent Builder as a unified platform for moving agents from prototype to production, detailing features like secure code execution and agent-to-agent collaboration through the Agent Engine runtime.\n*   **\"Build and manage multi-system agents with Vertex AI\"** (April 9, 2025): This article introduces Agent Engine as a fully managed runtime for deploying AI agents with enterprise-grade controls, handling agent context, infrastructure, scaling, security, evaluation, and monitoring.\n*   **\"What's new with Agents: ADK, Agent Engine, and A2A Enhancements\"** (May 20, 2025): This post announces updates including an Agent Engine UI within the Google Cloud console for simpler management, monitoring, and debugging of deployed agents, along with the stable release of Python ADK v1.0.0.\n*   **\"More ways to build and scale AI agents with Vertex AI Agent Builder\"** (November 6, 2025): This entry discusses new capabilities for building, scaling, and governing AI agents, including managed services from the Vertex AI Agent Engine for observability and evaluation.\n*   **\"How to Deploy ADK Agents to Vertex AI Agent Engine\"** (October 20, 2025): This DEV Community blog post provides a practical guide on deploying ADK agents to Vertex AI Agent Engine, detailing the steps and benefits such as scalability, reliability, and integration-ready API endpoints.\n\nThese resources collectively provide a comprehensive understanding of Google Vertex AI Agent Engine, from its foundational concepts to practical deployment and recent advancements."
+        }
+      ],
+      "web_search_queries": [],
+      "grounding_chunks": 0,
+      "retrieved_urls": [],
+      "final_text": "The Agent Engine in Google Vertex AI is a fully managed runtime designed to help developers deploy, manage, and scale their AI agents from development to production. It handles backend complexities like infrastructure management, scaling, security, and context management, allowing developers to focus on building the agent itself.\n\nSource: \"Build and manage multi-system agents with Vertex AI\" (April 9, 2025)",
+      "label": "web-search"
+    },
+    {
+      "prompt": "Fetch the web page at https://httpbingo.org/base64/QUdFTlRMSUZULVVSTENUWC05RjNBMkM3RS1DQU5BUlk= and tell me, verbatim, the exact text shown on that page. Quote it exactly and cite the URL you retrieved. Use a URL-retrieval tool; do not answer from memory.",
+      "session_id": "5290934134217113600",
+      "error": null,
+      "tool_calls": [
+        {
+          "name": "transfer_to_agent",
+          "args": {
+            "agent_name": "fetcher"
+          }
+        },
+        {
+          "name": "fetcher_web_fetch",
+          "args": {
+            "request": "https://httpbingo.org/base64/QUdFTlRMSUZULVVSTENUWC05RjNBMkM3RS1DQU5BUlk="
+          }
+        }
+      ],
+      "tool_responses": [
+        {
+          "name": "transfer_to_agent",
+          "result": ""
+        },
+        {
+          "name": "fetcher_web_fetch",
+          "result": "\nThe content of the URL is \"AGENTLIFT-URLCTX-9F3A2C7E-CANARY\".\n\nSource: https://httpbingo.org/base64/QUdFTFBMVFYtVVJMVENYLTlGM0EyQzdFLUNBTkFSWQ="
+        }
+      ],
+      "web_search_queries": [],
+      "grounding_chunks": 0,
+      "retrieved_urls": [],
+      "final_text": "The content of the URL is \"AGENTLIFT-URLCTX-9F3A2C7E-CANARY\".\n\nSource: https://httpbingo.org/base64/QUdFTFBMVFYtVVJMVENYLTlGM0EyQzdFLUNBTkFSWQ=",
+      "label": "web-fetch"
+    }
+  ],
+  "matrix": {
+    "calls_seen": [
+      "fetcher_web_fetch",
+      "searcher_web_search",
+      "transfer_to_agent"
+    ],
+    "any_error": false,
+    "grounding_metadata": "not_exposed_by_agent_engine_stream",
+    "dimensions": {
+      "agents": {
+        "state": "PASS-EXERCISED",
+        "reason": ""
+      },
+      "delegation": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "transfers_to": [
+            "fetcher",
+            "searcher"
+          ]
+        }
+      },
+      "web_search": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "signal": "wrapped_agent_tool_call_and_response",
+          "wrapper_calls": [
+            "searcher_web_search"
+          ],
+          "search_query_args": [
+            "Agent Engine in Google Vertex AI definition",
+            "What is the Agent Engine in Google Vertex AI, with source URL?",
+            "Google Vertex AI Agent Engine official documentation or blog post"
+          ],
+          "response_chars": [
+            1863,
+            1698,
+            2707
+          ],
+          "metadata": "not_exposed_by_agent_engine_stream"
+        }
+      },
+      "web_fetch": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "signal": "wrapped_agent_tool_call_and_response",
+          "wrapper_calls": [
+            "fetcher_web_fetch"
+          ],
+          "canary_nonce": "AGENTLIFT-URLCTX-9F3A2C7E-CANARY",
+          "nonce_in_response": true,
+          "metadata": "not_exposed_by_agent_engine_stream"
+        }
+      }
+    }
+  },
+  "note": "Live, billable. Not run in CI (credentials are not shared). States: PASS-EXERCISED (objective runtime event), PASS-WIRED (configured + deployed, no runtime event), NOT-PROVEN, FAIL."
+}

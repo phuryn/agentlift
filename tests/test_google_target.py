@@ -88,7 +88,12 @@ def test_create_on_fresh_lock(examples_dir, tmp_path):
     kw = eng.create_calls[0]
     # ships the package as a RELATIVE top-level dir (matches the remote layout)
     assert kw["extra_packages"] == ["agentlift_engine"]
-    assert kw["requirements"] == ["google-cloud-aiplatform[adk,agent_engines]"]
+    # the team's no-tools lead enables all built-ins -> web tools lower -> the
+    # web ADK floor is pinned alongside the engine requirement
+    assert kw["requirements"] == [
+        "google-cloud-aiplatform[adk,agent_engines]",
+        "google-adk>=1.34.3",
+    ]
     assert kw["display_name"] == "agentlift-lead"
     assert kw["gcs_dir_name"] == "agentlift_lead"
     assert kw["env_vars"] is None          # team example has no inline auth

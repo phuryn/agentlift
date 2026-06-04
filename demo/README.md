@@ -20,12 +20,13 @@ The input is one neutral agent folder â€” [`examples/team`](../examples/team) â€
 $ agentlift audit examples/team --targets anthropic,google,openai
 Portability audit: examples/team
 Agents: bug-finder, lead, researcher
-Capabilities this folder uses: 8
+Capabilities this folder uses: 9
 
-== Anthropic Managed Agents ==   [8 native]
+== Anthropic Managed Agents ==   [9 native]
   native:
     + Hosted runtime (provider runs the loop, callable by id)
-    + Built-in tool sandbox (bash / files / glob-grep / web)
+    + Built-in tool sandbox (bash / files / glob-grep)
+    + Built-in web tools (web_search / web_fetch)
     + Per-tool approval gate (:ask / human-in-the-loop)
     + Skills (SKILL.md bundles)
     + Remote MCP servers (URL + allowlist)
@@ -33,24 +34,28 @@ Capabilities this folder uses: 8
     + Durable versioned deploy
     + Session / event streaming
 
-== Google Vertex AI Agent Engine (ADK) ==   [4 native, 2 emulated, 1 degraded, 1 unsupported]
+== Google Vertex AI Agent Engine (ADK) ==   [4 native, 3 emulated, 1 degraded, 1 unsupported]
   emulated:
+    ~ Built-in web tools (web_search / web_fetch)
+        reason: web_search maps to Gemini's Google Search grounding and web_fetch to URL Context; agentlift deploy lowers each as a dedicated single-tool ADK sub-agent wrapped in an AgentTool (propagating grounding metadata) so they coexist with MCP/skills/transfer. web_fetch is approximate - URL Context grounds the model over URLs rather than performing a literal on-demand fetch
     ~ Skills (SKILL.md bundles)
         reason: same SKILL.md spec, but build-time embedded into the deployed artifact (no upload-once shared registry; update = redeploy)
     ~ Subagents -> coordinator (deployed roster)
         reason: root + sub_agents deploy as ONE reasoningEngine with server-side delegation; the roster is not addressable per-agent-id
         fix:    use the A2A protocol across deployments if you need per-agent ids
   degraded:
-    ! Built-in tool sandbox (bash / files / glob-grep / web)
-        reason: hosted sandbox is Python/JS only - no bash, no network, no glob/grep
+    ! Built-in tool sandbox (bash / files / glob-grep)
+        reason: hosted sandbox is Python/JS only - no bash, no file edit/write, no glob/grep over a workspace
         fix:    supply those tools via MCP or external FunctionTools
   unsupported:
     x Per-tool approval gate (:ask / human-in-the-loop)
         reason: ADK tool-confirmation is not enforced with VertexAiSessionService (the Agent Engine session service)
         fix:    enforce approval client-side, or keep :ask agents on the Anthropic target
 
-== OpenAI (Agent Builder / Agents SDK) ==   [3 native, 1 emulated, 4 degraded]
+== OpenAI (Agent Builder / Agents SDK) ==   [3 native, 2 emulated, 4 degraded]
   emulated:
+    ~ Built-in web tools (web_search / web_fetch)
+        reason: web_search maps natively to the Agents SDK hosted WebSearchTool (Responses API), but there is no hosted web_fetch primitive; the export wires web_fetch as a function tool the self-hosted runner provides
     ~ Subagents -> coordinator (deployed roster)
         reason: agent-as-tool composition works (confirmed in experiments/subagent-composition); the delegation loop runs in your orchestrator, not OpenAI-hosted
   degraded:
@@ -62,7 +67,7 @@ Capabilities this folder uses: 8
 Verdict (lower is more portable):
   Anthropic Managed Agents: drops in cleanly
   Google Vertex AI Agent Engine (ADK): 1 unsupported, 1 degraded
-  OpenAI (Agent Builder / Agents SDK): 1 unsupported, 4 degraded
+  OpenAI (Agent Builder / Agents SDK): 4 feature(s) degrade, none lost
 ```
 
 The audit is a compiler diagnostic, not a marketing table: it parses *your* folder and tells
@@ -119,15 +124,21 @@ A runnable-shaped ADK app, with every gap the audit flagged annotated inline:
 ```python
 from google.adk.agents import LlmAgent
 from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
+from google.adk.tools.agent_tool import AgentTool
+from google.adk.tools.google_search_tool import GoogleSearchTool
 
 # --- agent: researcher ---
-# DEGRADED (built-in sandbox): hosted sandbox is Python/JS only - no bash, no network, no glob/grep
+# EMULATED (built-in web): web_search -> Google Search grounding, web_fetch -> URL Context;
+#   each lowered as a single-tool sub-agent wrapped in an AgentTool (propagate_grounding_metadata=True)
 agent_researcher = LlmAgent(
     name='researcher',
-    model='claude-haiku-4-5',          # NOTE: map to a Gemini / Claude-on-Vertex id
+    model=vertex_model('claude-haiku-4-5'),   # claude-haiku-4-5 -> gemini-2.5-flash
     instruction="""You are the Researcher...""",
     tools=[
         McpToolset(connection_params=StreamableHTTPConnectionParams(url='https://example.com/mcp'), tool_filter=['search']),
+        AgentTool(agent=LlmAgent(name='researcher_web_search', model=vertex_model('claude-haiku-4-5'),
+                                 description='Search the public web with Google Search...',
+                                 tools=[GoogleSearchTool()]), propagate_grounding_metadata=True),
     ],
 )
 # ... agent_lead with sub_agents=[agent_bug_finder, agent_researcher]

@@ -9,8 +9,9 @@ audit` and `agentlift export` both read.
 **`audit` vs `deploy` — they answer different questions.** `audit` reports each
 *platform's* capability (what the runtime could do); `deploy` reports *agentlift's
 current implementation* (what the compiler ships today). They agree on almost everything;
-where they differ it's called out below (built-in tools and `:ask` on Google: `audit`
-rates the platform `degraded`/`unsupported`, and `deploy` correspondingly skips/refuses).
+where they differ it's called out below (the built-in **sandbox** tools and `:ask` on
+Google: `audit` rates the platform `degraded`/`unsupported`, and `deploy` correspondingly
+skips/refuses — the built-in **web** tools now map on both sides).
 
 **Legend:** ✅ native / maps 1:1 · 🟡 live, preview · 🔁 translated to a different shape
 (export, or model remap) · 🚧 not mapped / not enforced yet (surfaced as a diagnostic,
@@ -27,7 +28,8 @@ never a silent drop) · ❌ refused / not applicable.
 | **Private MCP (URL)** | ✅ | ✅ | 🔁 scaffold |
 | **MCP inline auth** | 🚧 dropped (diagnostic) | ✅ resolved to Agent Engine `env_vars` (never inlined) | 🚧 scaffold |
 | **stdio MCP** | ❌ refused (host behind HTTPS) | ❌ refused (host behind HTTPS) | ❌ n/a |
-| **Built-in tools** | ✅ mapped (`read/glob/grep/bash/edit/write/web_*`) | 🚧 skipped — Vertex sandbox is Python/JS only | 🔁 self-host runner |
+| **Built-in web tools** (`web_search`/`web_fetch`) | ✅ mapped | 🟡 mapped — `web_search`→Google Search grounding, `web_fetch`→URL Context (each a wrapped tool-agent) | 🔁 `WebSearchTool` / self-host fetch |
+| **Built-in sandbox tools** (`bash/files/glob-grep`) | ✅ mapped | 🚧 skipped — Vertex sandbox is Python/JS only | 🔁 self-host runner |
 | **`:ask` per-tool** | ✅ permission policy | 🚧 not enforced on `VertexAiSessionService` | 🔁 client-side (your runner) |
 | **Idempotency** | ✅ lockfile + content hashes | ✅ `.agentlift-google.json` spec hash → create / update / skip | ❌ n/a |
 | **Model** | ✅ Claude (native) | 🔁 Gemini (`gemini-2.5-flash`, override with `--google-model`) | 🔁 `gpt-*` |
@@ -41,9 +43,18 @@ never a silent drop) · ❌ refused / not applicable.
   env-var *name* is ever written into the plan, source, or lockfile.
 - **stdio MCP.** A hosted engine can't spawn a local subprocess, so a `command:`/`npx`
   server is refused on both deploy targets. Host it behind an HTTPS URL first.
-- **Built-in tools (Google).** Agent Engine's hosted sandbox is Python/JS only — no
-  shell, no network fetch, no glob/grep over a workspace (there is no workspace). Supply
-  equivalents via an MCP server. The agent deploys without the built-ins, with a warning.
+- **Built-in web tools (Google).** `web_search` and `web_fetch` *do* map: deploy lowers
+  each as a dedicated single-tool ADK sub-agent — `web_search`→`GoogleSearchTool()`
+  (Gemini's Google Search grounding), `web_fetch`→`url_context` (URL Context) — wrapped in
+  an `AgentTool` with `propagate_grounding_metadata=True` so the grounding/retrieval
+  metadata surfaces on the outer event stream. The wrap is unconditional (an agent with no
+  `tools:` enables all built-ins, so it gets both), which keeps the coordinator's own
+  `web_search` from colliding with ADK's injected `transfer_to_agent` tools. `web_fetch` is
+  **approximate**: URL Context decides what to fetch from the prompt rather than taking an
+  explicit URL argument. Deploy pins `google-adk>=1.34.3` when any web tool is present.
+- **Built-in sandbox tools (Google).** Agent Engine's hosted sandbox is Python/JS only — no
+  shell, no glob/grep over a workspace (there is no workspace). Supply equivalents via an
+  MCP server. `bash/edit/write/glob/grep/read` deploy without the built-in, with a warning.
 - **`:ask` (Google).** ADK tool-confirmation is not enforced under the Agent Engine
   session service today, so a `:ask`-gated tool stays available without a gate. Keep
   `:ask` agents on the Anthropic target where the gate is real.

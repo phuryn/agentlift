@@ -177,14 +177,18 @@ The folder is provider-neutral, so agentlift treats each runtime as a back-end o
 
 ```console
 $ agentlift audit ./examples/team --targets anthropic,google,openai
-== Anthropic Managed Agents ==                   [8 native]
-== Google Vertex AI Agent Engine (ADK) ==        [4 native, 2 emulated, 1 degraded, 1 unsupported]
+== Anthropic Managed Agents ==                   [9 native]
+== Google Vertex AI Agent Engine (ADK) ==        [4 native, 3 emulated, 1 degraded, 1 unsupported]
+  emulated:
+    ~ Built-in web tools (web_search / web_fetch)
+        reason: web_search -> Google Search grounding, web_fetch -> URL Context (each a wrapped tool-agent)
+  degraded:
+    ! Built-in tool sandbox (bash / files / glob-grep)
+        reason: hosted sandbox is Python/JS only
   unsupported:
     x Per-tool approval gate (:ask / human-in-the-loop)
         reason: not enforced with VertexAiSessionService on the deployed runtime
-  degraded:
-    ! Built-in tool sandbox (bash / files / glob-grep / web)
-== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 1 emulated, 4 degraded]
+== OpenAI (Agent Builder / Agents SDK) ==        [3 native, 2 emulated, 4 degraded]
   emulated:
     ~ Subagents -> coordinator (deployed roster)
         reason: agent-as-tool composition works (confirmed); the delegation loop runs in your orchestrator, not OpenAI-hosted
@@ -201,10 +205,10 @@ A subagent roster is a **universal** capability, not a per-provider lottery: `na
 | Runtime | How agentlift targets it | Notes |
 |---|---|---|
 | **Anthropic Managed Agents** | `deploy` (live) + `export anthropic-yaml` | reference target; the folder maps 1:1. `export` emits the YAML the official `ant` CLI consumes — `ant` is one of agentlift's *outputs*, not a competitor. |
-| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | Live `reasoningEngine` with confirmed server-side coordinator→subagent delegation. The deploy now also maps **skills** (SKILL.md bundles ship inside the engine's source package, loaded via ADK `load_skill_from_dir`) and **URL MCP servers** (each an ADK `McpToolset` with a `tool_filter` allowlist; inline auth header values resolve from your local env into Agent Engine `env_vars`, never inlined into source). Idempotent create/update/skip via a spec hash. Remaining gaps: `:ask`/per-tool approval, the built-in tool sandbox (Python/JS only), and stdio MCP servers; Claude models map to Gemini. See [tested-platforms](docs/tested-platforms.md). |
+| **Google Vertex AI Agent Engine** | `deploy --target google` (live, preview) + `export google-adk` | Live `reasoningEngine` with confirmed server-side coordinator→subagent delegation. The deploy maps **skills** (SKILL.md bundles ship inside the engine's source package, loaded via ADK `load_skill_from_dir`), **URL MCP servers** (each an ADK `McpToolset` with a `tool_filter` allowlist; inline auth header values resolve from your local env into Agent Engine `env_vars`, never inlined into source), and the **built-in web tools** (`web_search`→Google Search grounding, `web_fetch`→URL Context, each lowered as a wrapped single-tool ADK sub-agent). Idempotent create/update/skip via a spec hash. Remaining gaps: `:ask`/per-tool approval, the built-in **sandbox** tools (bash/files/glob-grep — Python/JS sandbox only), and stdio MCP servers; Claude models map to Gemini. See [tested-platforms](docs/tested-platforms.md). |
 | **OpenAI** | `export openai-agents` (preview, self-host) | subagents emulated via agent-as-tool (the delegation loop runs in your app); no code-define + OpenAI-host path, so `export`, never `deploy`. |
 
-> **Google is live but preview — read this before assuming parity.** Anthropic is the fullest managed-agent target today. Google deploys real Vertex AI Agent Engine agents (server-side delegation, skills, and URL MCP with inline-auth-via-env-vars all map), but parity is not exact: the built-in tool sandbox, `:ask` enforcement, and stdio MCP are not equivalent, and Claude model names become Gemini defaults. OpenAI is export + self-host only (no hosted-deploy path at all). For the row-by-row breakdown, see the **[full provider capability matrix](docs/provider-matrix.md)**.
+> **Google is live but preview — read this before assuming parity.** Anthropic is the fullest managed-agent target today. Google deploys real Vertex AI Agent Engine agents (server-side delegation, skills, URL MCP with inline-auth-via-env-vars, and the built-in web tools — `web_search`/`web_fetch` — all map), but parity is not exact: the built-in **sandbox** tools (bash/files/glob-grep), `:ask` enforcement, and stdio MCP are not equivalent, and Claude model names become Gemini defaults. OpenAI is export + self-host only (no hosted-deploy path at all). For the row-by-row breakdown, see the **[full provider capability matrix](docs/provider-matrix.md)**.
 
 #### Live coverage matrix — what actually ran, not what the docs claim
 
@@ -358,7 +362,7 @@ Beyond that, the **live coverage matrix** ([`tests/live/`](tests/live/)) deploys
 - **Remote MCP only.** Managed agents connect to URL MCP servers; local `stdio` servers (`npx ...`) can't be deployed. Host them behind HTTPS first.
 - **No inline MCP auth on Anthropic.** A managed URL MCP server carries no credentials in the Anthropic API shape — the server must be public or authenticate itself. (The Google deploy *does* carry inline auth: the header value resolves from your local env into an Agent Engine `env_var` at deploy, never into the source.)
 - **Knowledge files are inlined** into the system prompt (no persistent local FS in the managed sandbox). Large reference sets should become a skill bundle.
-- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; maps skills + URL MCP with inline-auth-via-env-vars, but `:ask`, the built-in sandbox, and stdio MCP are not mapped, and Claude→Gemini). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
+- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; maps skills + URL MCP with inline-auth-via-env-vars + the built-in web tools `web_search`/`web_fetch`, but `:ask`, the built-in **sandbox** tools, and stdio MCP are not mapped, and Claude→Gemini). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
 
 Each of these is surfaced as a `agentlift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
 
@@ -388,7 +392,7 @@ Everything is here or one click away:
 
 ## Roadmap
 
-- **Google deploy parity** — the live `deploy --target google` now ships prompts + coordinator/`sub_agents` + **skills + URL MCP (with inline-auth-via-env-vars)** + model, idempotent via a spec hash. Remaining for full parity: the built-in tool sandbox (Vertex's is Python/JS only), `:ask`/per-tool approval (not enforced on `VertexAiSessionService`), Claude-on-Vertex models (today Claude→Gemini), and per-agent IDs via A2A.
+- **Google deploy parity** — the live `deploy --target google` now ships prompts + coordinator/`sub_agents` + **skills + URL MCP (with inline-auth-via-env-vars) + built-in web tools (`web_search`→Google Search grounding, `web_fetch`→URL Context)** + model, idempotent via a spec hash. Remaining for full parity: the built-in **sandbox** tools (bash/files/glob-grep — Vertex's sandbox is Python/JS only), `:ask`/per-tool approval (not enforced on `VertexAiSessionService`), Claude-on-Vertex models (today Claude→Gemini), and per-agent IDs via A2A.
 - **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)

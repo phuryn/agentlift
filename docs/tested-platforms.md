@@ -104,13 +104,15 @@ runtimes. Google is unaffected (it loads skills via a SkillToolset, independent 
   [`docs/deploy-google.md`](deploy-google.md).
 - **Models:** `claude-haiku-4-5` in the folder is mapped to `gemini-2.5-flash` for Agent
   Engine (a Gemini project). **Preview scope:** the deploy maps **skills** (SKILL.md bundles
-  embedded in the source package, loaded via ADK `load_skill_from_dir`) and **URL MCP
+  embedded in the source package, loaded via ADK `load_skill_from_dir`), **URL MCP
   servers** (each an ADK `McpToolset` with a `tool_filter` allowlist; inline auth header
   values resolve from the local env into Agent Engine `env_vars`, never inlined into the
-  source). Still skipped: the built-in tool sandbox (Vertex's is Python/JS only) and
-  `:ask`/per-tool approval (not enforced on `VertexAiSessionService`); stdio MCP servers are
-  refused. **The skills + MCP wiring is now confirmed live, not just by offline tests** — see the
-  coverage matrix above and the receipt below.
+  source), and the **built-in web tools** (`web_search` → Gemini's Google Search grounding,
+  `web_fetch` → URL Context, each lowered as a wrapped single-tool ADK sub-agent — see the
+  web-tools receipt below). Still skipped: the built-in **sandbox** tools (`bash/files/glob-grep`
+  — Vertex's sandbox is Python/JS only) and `:ask`/per-tool approval (not enforced on
+  `VertexAiSessionService`); stdio MCP servers are refused. **The skills + MCP wiring is now
+  confirmed live, not just by offline tests** — see the coverage matrix above and the receipt below.
 - **Orchestration loop:** hosted (Vertex runs `transfer_to_agent` delegation server-side as
   one `reasoningEngine`).
 - **Result:** live `reasoningEngine`
@@ -134,6 +136,32 @@ runtimes. Google is unaffected (it loads skills via a SkillToolset, independent 
   tool-call evidence: [`tests/live/receipts/20260604-004318-google/receipt.json`](../tests/live/receipts/).
   (An earlier prompt-only receipt — a separate engine, 2026-06-03 — tested just the
   coordinator→subagent shape before the skills/MCP mapping landed; this one supersedes it.)
+- **Built-in web tools (separate fixture, exercised live).** The
+  [`tests/live/fixtures/web-tools`](../tests/live/fixtures/web-tools/) folder — a `lead`
+  coordinator over a `searcher` (carries `web_search`) and a `fetcher` (carries both) — was
+  deployed to its own `reasoningEngine` and queried. Both web tool-agents fired server-side:
+
+  ```
+  QUERY (search): "...Agent Engine in Vertex AI... search the web, cite the URL. Do not answer from memory."
+    [delegation]  lead -> transfer_to_agent({'agent_name': 'searcher'})
+    [web_search]  searcher_web_search({'request': 'Agent Engine in Google Vertex AI definition'})  (+2 refined queries)
+                  -> grounded, current product copy ("Gemini Enterprise Agent Platform", "ADK", ...)
+  QUERY (fetch):  "Fetch https://httpbingo.org/base64/<nonce> and quote it verbatim. Use a URL-retrieval tool."
+    [delegation]  lead -> transfer_to_agent({'agent_name': 'fetcher'})
+    [web_fetch]   fetcher_web_fetch({'request': 'https://httpbingo.org/base64/...'})
+                  -> "The content of the URL is \"AGENTLIFT-URLCTX-9F3A2C7E-CANARY\"."   # nonce returned verbatim
+  ```
+
+  The fetch proof is airtight: the response contains a **unique nonce** served by the URL, which a
+  model cannot reproduce from memory — so URL Context demonstrably retrieved it. One honest caveat:
+  the inner wrapped-agent's structured `grounding_metadata` / `url_context_metadata` does **not**
+  cross the `AgentTool` → Agent-Engine `stream_query` boundary (even with
+  `propagate_grounding_metadata=True`), so the objective signal is the wrapped-agent `function_call`
+  + its `function_response` content, not citation chunks on the outer stream. Receipt:
+  [`tests/live/receipts/20260604-115352-web-google/receipt.json`](../tests/live/receipts/);
+  reproduce with [`tests/live/web_tools.py`](../tests/live/web_tools.py). Pinned offline in
+  [`tests/test_google_plan.py`](../tests/test_google_plan.py) /
+  [`tests/test_google_codegen.py`](../tests/test_google_codegen.py).
 
 **More:** Agent Platform console (visual) → <https://console.cloud.google.com/agent-platform>
 · Agent Studio overview → <https://docs.cloud.google.com/gemini-enterprise-agent-platform/agent-studio>
