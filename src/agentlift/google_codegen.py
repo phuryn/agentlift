@@ -98,10 +98,16 @@ def _mcp_toolset_src(recipe) -> str:
 
 
 def _web_tool_src(node: GoogleAgentNode, tool: str) -> str:
-    """One web built-in lowered to a wrapped tool-agent constructor call."""
+    """One web built-in lowered to a wrapped tool-agent constructor call.
+
+    The wrapped sub-agent is built with ``web_model(...)`` (not ``vertex_model``):
+    Google Search grounding and URL Context are Gemini built-ins, so the web tool-agent
+    must run on a web-capable Gemini model even when its parent agent does not -- the
+    mixed-model invariant a Claude-on-Vertex parent would otherwise break.
+    """
     name = web_tool_agent_name(node.safe_name, tool)
     factory = "_web_search_tool" if tool == "web_search" else "_web_fetch_tool"
-    return f"{factory}({name!r}, vertex_model({node.folder_model!r}))"
+    return f"{factory}({name!r}, web_model({node.folder_model!r}))"
 
 
 def _agent_block(node: GoogleAgentNode, var_by_name: dict[str, str]) -> list[str]:
@@ -134,6 +140,16 @@ def _agent_block(node: GoogleAgentNode, var_by_name: dict[str, str]) -> list[str
 def _web_helper_defs(any_search: bool, any_fetch: bool) -> list[str]:
     """Generated factories for the wrapped web tool-agents (emitted only when used)."""
     defs: list[str] = []
+    if any_search or any_fetch:
+        defs += [
+            "# Google Search grounding and URL Context are Gemini built-ins, so a wrapped web",
+            "# tool-agent must run on a web-capable Gemini model even when its parent agent does",
+            "# not (e.g. a Claude-on-Vertex parent). Independent of vertex_model's Claude policy.",
+            "def web_model(folder_model):",
+            '    return folder_model if folder_model.startswith("gemini") else DEFAULT_VERTEX_MODEL',
+            "",
+            "",
+        ]
     if any_search:
         defs += [
             "def _web_search_tool(name, model):",

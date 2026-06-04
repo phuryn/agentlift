@@ -53,11 +53,21 @@ never a silent drop) · ❌ refused / not applicable.
   **approximate**: URL Context decides what to fetch from the prompt rather than taking an
   explicit URL argument. Deploy pins `google-adk>=1.34.3` when any web tool is present.
 - **Built-in sandbox tools (Google).** Agent Engine's hosted sandbox is Python/JS only — no
-  shell, no glob/grep over a workspace (there is no workspace). Supply equivalents via an
-  MCP server. `bash/edit/write/glob/grep/read` deploy without the built-in, with a warning.
+  shell, no glob/grep over a workspace (there is no workspace). `bash/edit/write/glob/grep/read`
+  deploy without the built-in, with a warning. Emulating a shell+FS *inside* the engine is an
+  explicit **non-goal** (it would be the silent degradation the tool exists to surface); the
+  supported path is a URL MCP server, which does deploy — see
+  [the workaround](deploy-google.md#two-known-gaps-and-how-to-work-around-them).
 - **`:ask` (Google).** ADK tool-confirmation is not enforced under the Agent Engine
-  session service today, so a `:ask`-gated tool stays available without a gate. Keep
-  `:ask` agents on the Anthropic target where the gate is real.
+  session service today, so a `:ask`-gated tool stays available without a gate. Enforce
+  approval **client-side** in the loop that calls the engine, or keep `:ask` agents on the
+  Anthropic target where the gate is native — see
+  [the workaround](deploy-google.md#two-known-gaps-and-how-to-work-around-them).
+- **Model (Google).** Claude folder models map to Gemini (`gemini-2.5-flash`). Keeping a
+  Claude brain via **Claude-on-Vertex** is offline-verified but **not shipped** — ADK 1.34.3
+  resolves Claude on Vertex and the mixed-model shape composes (web sub-agents stay Gemini),
+  but with no live receipt a Claude `--google-model` is refused, not silently deployed. See
+  [`experiments/claude-on-vertex/`](../experiments/claude-on-vertex/).
 - **Subagents (per-agent IDs).** Anthropic gives each agent its own addressable id;
   Google deploys the whole roster as **one** `reasoningEngine` with server-side
   delegation, so the roster is not individually addressable (the A2A protocol across

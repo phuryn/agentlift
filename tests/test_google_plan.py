@@ -69,6 +69,17 @@ def test_custom_model_changes_spec_hash(examples_dir):
     assert plan_b.deploy_model == "gemini-2.5-pro"
 
 
+def test_claude_deploy_model_is_rejected(examples_dir):
+    # selecting a Claude-on-Vertex model as the deploy model would silently encode an
+    # unsupported path (ADK can resolve it, but we have no live receipt yet). Reject it.
+    plan, _ = _team(examples_dir, model="claude-sonnet-4-5@20250929")
+    assert not plan.deployable
+    assert any(d.code == "google.deploy_model.claude_unsupported" for d in plan.diagnostics.errors)
+    # a non-default *Gemini* model is still accepted (the supported override path)
+    ok, _ = _team(examples_dir, model="gemini-2.5-pro")
+    assert ok.deployable
+
+
 # --- skills become shipped bundles ----------------------------------------- #
 def test_skills_become_dedup_bundles(examples_dir):
     plan, _ = _team(examples_dir)

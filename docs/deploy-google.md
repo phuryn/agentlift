@@ -98,6 +98,55 @@ into the generated agent code. At deploy time it:
 **"Env vars to populate"**) so you can confirm the referenced local variables are set
 before deploying. A referenced-but-unset variable is flagged, not silently skipped.
 
+## Two known gaps, and how to work around them
+
+Google deploy maps skills, URL MCP (with inline auth), and the built-in **web** tools. Two
+capabilities don't map — but both have a workaround that keeps the *same* neutral folder.
+
+### Built-in sandbox tools (`bash`/`files`/`glob`/`grep`) → expose them as an MCP server
+
+Agent Engine's hosted sandbox runs **Python/JS only** — there is no shell, and no workspace
+filesystem to glob/grep over. So `bash`/`edit`/`write`/`glob`/`grep`/`read` deploy *without*
+their built-in (a `google.builtin.degraded` warning, never a silent drop).
+
+The escape hatch: anything the sandbox tools would have done, a **URL MCP server can do** —
+and URL MCP *is* mapped on Google. Host a small MCP server that exposes the capability you
+need (a filesystem server over a bucket/volume, a shell-exec server, a code-search server),
+put it behind HTTPS, and add it to the agent's `mcp.json`. The agent then calls e.g.
+`fs.read`/`shell.run` as MCP tools instead of the built-in `read`/`bash`. agentlift wires it
+as an ADK `McpToolset` with a `tool_filter` allowlist, and inline auth resolves into an
+Agent Engine `env_var` (see above) — so a private server stays private. This is the
+provider-neutral way to give a Google deploy real filesystem/shell reach: the *definition*
+is still one folder; only the runtime substrate differs (rented MCP server vs Anthropic's
+built-in sandbox).
+
+> Reframe, not a TODO: emulating Anthropic's sandbox tools *inside* Agent Engine is an
+> explicit **non-goal** — the substrate is Python/JS, not a shell+FS, and pretending
+> otherwise would be the kind of silent degradation agentlift exists to surface. MCP is the
+> supported path.
+
+### `:ask` / per-tool approval → gate it in your runner (or keep the agent on Anthropic)
+
+A `:ask` suffix is a human-in-the-loop **permission policy**. On Anthropic it deploys as a
+real per-tool gate. On Google it is **not enforced** — ADK tool-confirmation doesn't ride
+through `VertexAiSessionService` on the deployed engine today — so a `:ask`-gated tool stays
+callable without a prompt (a `google.tool_approval.unsupported` warning at plan time).
+
+Two ways to keep the approval semantics:
+
+1. **Gate client-side.** You already invoke a deployed engine *from your own code*
+   (`remote.stream_query(...)`) — that loop is where approval belongs. Stream the events,
+   pause when the model requests a `:ask`-marked tool, prompt your operator, and only then
+   continue. The deployed engine is a callable; the human-in-the-loop lives in the caller,
+   exactly as it would for any hosted API. (This is the same "where does the loop run"
+   split as subagents: rented runtime, self-hosted control.)
+2. **Keep `:ask` agents on Anthropic.** If the gate must be enforced *by the runtime* rather
+   than your caller, deploy that agent to Anthropic, where the policy is native. The folder
+   is unchanged; only the target differs.
+
+Either way the `:ask` in the folder is never lost — it surfaces as a diagnostic, and the
+policy is honored at the boundary you control.
+
 ## Cost
 
 A deployed Agent Engine is billed compute (it provisions a managed `reasoningEngine`),

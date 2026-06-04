@@ -174,6 +174,24 @@ def test_web_fetch_and_both_emit_url_context():
     assert "sub_agents=[agent_searcher, agent_fetcher]" in code
 
 
+def test_web_sub_agents_pin_a_gemini_model():
+    # Google Search / URL Context are Gemini built-ins: a wrapped web sub-agent must run
+    # on a web-capable Gemini model regardless of the parent agent's (here Claude) model.
+    code = render_agent_py(_web_plan())
+    compile(code, "agent.py", "exec")
+    assert "def web_model(folder_model):" in code
+    # web sub-agents are constructed with web_model(...); parent agents with vertex_model(...)
+    assert "_web_search_tool('lead_web_search', web_model('claude-haiku-4-5'))" in code
+    assert "model=vertex_model('claude-haiku-4-5')" in code
+    # the generated web_model forces Gemini for a non-Gemini parent, passes Gemini through
+    import re
+    ns = {"DEFAULT_VERTEX_MODEL": "gemini-2.5-flash"}
+    exec(re.search(r"def web_model\(folder_model\):\n(?:    .*\n)+", code).group(0), ns)
+    assert ns["web_model"]("claude-haiku-4-5") == "gemini-2.5-flash"
+    assert ns["web_model"]("claude-sonnet-4-5@20250929").startswith("gemini")
+    assert ns["web_model"]("gemini-2.5-pro") == "gemini-2.5-pro"
+
+
 def test_no_web_tools_means_no_web_imports():
     no_web = Project(root="x", layout="single", agents=[
         AgentSpec(name="a", system="hi", model="claude-haiku-4-5", builtin_tools=["read", "bash"]),
@@ -220,6 +238,11 @@ def test_web_agent_py_executes_and_wraps_real_adk_tools(tmp_path, offline_vertex
     fetcher = next(s for s in root.sub_agents if s.name == "fetcher")
     fetcher_tools = {getattr(t, "name", None) for t in fetcher.tools}
     assert {"fetcher_web_fetch", "fetcher_web_search"} <= fetcher_tools
+    # mixed-model invariant: every folder agent here is Claude, but each wrapped web
+    # sub-agent must resolve to a Gemini model (Search/URL-Context are Gemini built-ins)
+    web_tool = next(t for t in root.tools if getattr(t, "name", None) == "lead_web_search")
+    assert str(web_tool.agent.model).startswith("gemini")
+    assert ns["web_model"]("claude-haiku-4-5").startswith("gemini")
 
 
 # --- secrets never inlined ------------------------------------------------- #

@@ -82,10 +82,10 @@ A bare ref resolves to the agent's **own** resource first, then `shared/`.
 | Skills | uploaded, shared by id (skill-bearing agents auto-get `read` — Managed Agents needs it to open `SKILL.md`) | ✅ embedded in source package, loaded via ADK `load_skill_from_dir` (update = redeploy) | export comment only |
 | Remote MCP | mapped | ✅ URL → ADK `McpToolset` + `tool_filter`; inline auth → Agent Engine `env_vars` (resolved at deploy, never inlined) | export comment only |
 | Built-in web tools (`web_search`/`web_fetch`) | mapped | ✅ `web_search`→Google Search grounding, `web_fetch`→URL Context, each a wrapped single-tool ADK sub-agent (`AgentTool`, `propagate_grounding_metadata=True`); always-wrap so they coexist with `transfer_to_agent`; pins `google-adk>=1.34.3` | `WebSearchTool` / self-host fetch |
-| Built-in sandbox tools (`bash/files/glob-grep`) | mapped | 🚧 skipped (sandbox is Python/JS only) | self-host runner |
-| `:ask` | permission policy | 🚧 unsupported on `VertexAiSessionService` | client-side |
+| Built-in sandbox tools (`bash/files/glob-grep`) | mapped | 🚧 skipped (sandbox is Python/JS only — in-engine emulation is a **non-goal**; expose equivalents via a URL MCP server) | self-host runner |
+| `:ask` | permission policy | 🚧 unsupported on `VertexAiSessionService` (gate client-side, or keep on Anthropic) | client-side |
 | Idempotency | lockfile + content hashes | ✅ `.agentlift-google.json` spec hash → create/update/skip | n/a |
-| Model | Claude (native) | 🔁 mapped to Gemini (`gemini-2.5-flash`) | 🔁 mapped to `gpt-*` |
+| Model | Claude (native) | 🔁 mapped to Gemini (`gemini-2.5-flash`); Claude-on-Vertex is an offline-verified **spike, not shipped** (`experiments/claude-on-vertex/`) — a Claude `--google-model` is refused (`google.deploy_model.claude_unsupported`) | 🔁 mapped to `gpt-*` |
 
 **Live-verified (6/6 both):** one neutral fixture (`tests/live/fixtures/coverage-matrix`) was deployed
 + queried on **both** Anthropic and Google; all six portability dimensions (agents · subagents ·
@@ -111,9 +111,19 @@ so the objective signal is the tool-call + its response content, not citation ch
 `deploy --target google` reports *agentlift's current implementation*. These now agree on
 skills, URL MCP, and the built-in **web** tools (all mapped). They still diverge on the
 built-in **sandbox** tools and `:ask` (`audit` rates them `degraded`/`unsupported` for
-Google; `deploy` skips a stdio MCP server / sandbox-tool-only folder). Pipeline for Google
-mirrors Anthropic's *plan-is-the-contract* discipline: `google_plan.py` is pure and
-offline-tested, only `google_target.py` touches the network.
+Google; `deploy` skips a stdio MCP server / sandbox-tool-only folder). Those two are framed
+as **non-goals with workarounds**, not parity TODOs (sandbox → expose via a URL MCP server;
+`:ask` → gate client-side or keep on Anthropic — see
+[docs/deploy-google.md](docs/deploy-google.md)). Pipeline for Google mirrors Anthropic's
+*plan-is-the-contract* discipline: `google_plan.py` is pure and offline-tested, only
+`google_target.py` touches the network.
+
+**Claude-on-Vertex (spike, not shipped):** ADK 1.34.3 resolves Claude on Vertex and the
+mixed-model shape composes (web sub-agents must stay Gemini — Search/URL-Context are Gemini
+built-ins, encoded by `web_model()` in `google_codegen.py`). Offline-verified in
+`experiments/claude-on-vertex/`; no live receipt yet, so `build_google_plan` **refuses** a
+Claude `--google-model` (`google.deploy_model.claude_unsupported`) rather than silently
+shipping it (the *confirm-live-before-encoding* rule).
 
 ## Commands
 

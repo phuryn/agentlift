@@ -184,7 +184,7 @@ $ agentlift audit ./examples/team --targets anthropic,google,openai
         reason: web_search -> Google Search grounding, web_fetch -> URL Context (each a wrapped tool-agent)
   degraded:
     ! Built-in tool sandbox (bash / files / glob-grep)
-        reason: hosted sandbox is Python/JS only
+        reason: hosted sandbox is Python/JS only - no bash, no persistent workspace filesystem
   unsupported:
     x Per-tool approval gate (:ask / human-in-the-loop)
         reason: not enforced with VertexAiSessionService on the deployed runtime
@@ -225,7 +225,7 @@ One neutral [coverage fixture](tests/live/fixtures/coverage-matrix/) — a coord
 
 > `*` **OpenAI is an export target, not a live deploy** — there is no code-define-and-OpenAI-host path. agents + subagents are real (the `as_tool` composition is trace-verified in [`experiments/subagent-composition`](experiments/subagent-composition/)); MCP and skills compile to guided self-host scaffolding (`HostedMCPTool` / Skills-API call sites), since the orchestration loop runs in *your* app. `◐` = compiled to a self-host stub, not live-exercised.
 >
-> `EXERCISED` = an objective runtime event proved it. **Both Anthropic and Google exercised all six dimensions server-side (6/6)** on a real, billable deploy. Anthropic's subagents cell keys on the native delegation event (`session.thread_created` + `agent.thread_message_sent`) because coordinator delegation is async (the worker's reply lands after a one-shot query returns). The **wired** layer is pinned offline in [`tests/test_coverage_matrix_plan.py`](tests/test_coverage_matrix_plan.py) (CI); the EXERCISED column comes from committed live receipts under [`tests/live/receipts/`](tests/live/receipts/). Full evidence + reproduce steps: [`docs/tested-platforms.md`](docs/tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking) and [`tests/live/README.md`](tests/live/README.md).
+> `EXERCISED` = an objective runtime event proved it. **Both Anthropic and Google exercised all six dimensions server-side (6/6)** on a real, billable deploy. Anthropic's subagents cell keys on the native delegation event (`session.thread_created` + `agent.thread_message_sent`) because coordinator delegation is async (the worker's reply lands after a one-shot query returns). The **wired** layer is pinned offline in [`tests/test_coverage_matrix_plan.py`](tests/test_coverage_matrix_plan.py) (CI); the EXERCISED column comes from committed live receipts under [`tests/live/receipts/`](tests/live/receipts/). The built-in **web tools** (`web_search`/`web_fetch`) are not part of this six-dimension fixture — they were exercised on a **separate** Google live deploy (both tool-agents fired server-side), receipted independently. Full evidence + reproduce steps: [`docs/tested-platforms.md`](docs/tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking) and [`tests/live/README.md`](tests/live/README.md).
 
 ## Isolation: each agent gets only its folder
 
@@ -392,7 +392,15 @@ Everything is here or one click away:
 
 ## Roadmap
 
-- **Google deploy parity** — the live `deploy --target google` now ships prompts + coordinator/`sub_agents` + **skills + URL MCP (with inline-auth-via-env-vars) + built-in web tools (`web_search`→Google Search grounding, `web_fetch`→URL Context)** + model, idempotent via a spec hash. Remaining for full parity: the built-in **sandbox** tools (bash/files/glob-grep — Vertex's sandbox is Python/JS only), `:ask`/per-tool approval (not enforced on `VertexAiSessionService`), Claude-on-Vertex models (today Claude→Gemini), and per-agent IDs via A2A.
+The live `deploy --target google` ships prompts + coordinator/`sub_agents` + **skills + URL MCP (with inline-auth-via-env-vars) + built-in web tools (`web_search`→Google Search grounding, `web_fetch`→URL Context)** + model, idempotent via a spec hash. The remaining Google differences are **known gaps and non-equivalences, not all roadmap items** — two are deliberate non-goals:
+
+- **Built-in sandbox tools (bash/files/glob-grep) — emulating them in-engine is a non-goal, not a TODO.** Vertex's hosted sandbox is Python/JS only with no persistent workspace filesystem; pretending it's a shell+FS *inside* Agent Engine would be exactly the silent degradation agentlift exists to surface. If a Google-hosted agent needs filesystem/shell/code-search, expose that environment deliberately through a URL MCP server, which *does* deploy — see [the workaround](docs/deploy-google.md#two-known-gaps-and-how-to-work-around-them).
+- **`:ask` / per-tool approval — gate it in your caller, don't fake it in the runtime.** Not enforced on `VertexAiSessionService`, so enforce approval client-side in the loop that calls the engine, or keep `:ask` agents on Anthropic where the gate is native. Surfaced as a diagnostic, never lost.
+- **Claude-on-Vertex models — offline-verified spike, not shipped.** Today Claude folder models map to Gemini. ADK 1.34.3 *can* resolve Claude on Vertex and the mixed-model shape composes (web sub-agents stay Gemini) — proven offline in [`experiments/claude-on-vertex/`](experiments/claude-on-vertex/) — but with no live receipt yet, a Claude `--google-model` is **refused**, not silently shipped.
+- **Per-agent IDs via A2A.** Google deploys the roster as one `reasoningEngine`; per-agent addressability would need the A2A protocol across deployments.
+
+Genuinely on the roadmap:
+
 - **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
 - Authenticated remote MCP via the Vaults API
 - `agentlift diff --remote` deeper drift detection (full account reconciliation)

@@ -376,6 +376,20 @@ def build_google_plan(
             env_var_names=[], diagnostics=diags,
         )
 
+    # The deploy model is the Gemini model Claude folder models map TO. Selecting a
+    # Claude-on-Vertex id here (e.g. --google-model claude-sonnet-4-5@20250929) would
+    # silently encode an unsupported deploy path: ADK *can* resolve Claude on Vertex
+    # (offline-verified -- see experiments/claude-on-vertex/), but agentlift does not
+    # deploy it to Agent Engine yet (no live receipt). Reject it rather than ship it.
+    if model.startswith("claude"):
+        diags.error(
+            "google.deploy_model.claude_unsupported",
+            f"--google-model '{model}' selects a Claude-on-Vertex model, which agentlift "
+            f"does not deploy to Agent Engine yet (offline-verified spike only -- see "
+            f"experiments/claude-on-vertex/). The Google target maps Claude folder models to "
+            f"a Gemini model; pass a gemini-* id to --google-model.",
+        )
+
     # which agents are roster vs coordinators (root)
     roster = [a for a in project.agents if not a.subagents]
     coords = [a for a in project.agents if a.subagents]
