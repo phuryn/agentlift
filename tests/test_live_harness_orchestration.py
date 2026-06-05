@@ -16,6 +16,10 @@ import shutil
 
 import pytest
 
+# this test patches boto3.client to drive the deploy wrapper offline; skip cleanly if the
+# AWS extra (`pip install agentlift[bedrock]`) isn't installed rather than erroring.
+pytest.importorskip("boto3")
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ACCOUNT = "424242424242"          # fake account id the receipt must redact
 ARN = f"arn:aws:bedrock-agentcore:us-west-2:{ACCOUNT}:harness/agentlift_assistant-abc1234567"

@@ -33,6 +33,13 @@ google = [
     "google-adk>=1.34.3",
     "google-cloud-aiplatform[adk,agent_engines]>=1.119",
 ]
+# Optional: the AWS Bedrock AgentCore stack. Needed only for the *live* `--target
+# bedrock` deploy paths (the harness create/invoke + skill S3 upload, and the Runtime
+# hosted create); `audit`/`plan`/`export bedrock-strands` are offline and need none of
+# it. The AgentCore harness/runtime control-plane ops require a recent botocore.
+bedrock = [
+    "boto3>=1.43",
+]
 
 [project.urls]
 Homepage = "https://github.com/phuryn/agentlift"

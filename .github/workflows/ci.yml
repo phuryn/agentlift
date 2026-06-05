@@ -17,9 +17,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      # install the Google ADK stack too, so the ADK-dependent offline tests
-      # (generated-package build + import) actually run on GitHub instead of skipping
-      - run: python -m pip install -e ".[dev,google]"
+      # install the Google ADK + AWS Bedrock (boto3) stacks too, so the ADK- and
+      # boto3-dependent offline tests (generated-package build + import; the harness
+      # deploy-path orchestration test that patches boto3.client) actually run on
+      # GitHub instead of skipping
+      - run: python -m pip install -e ".[dev,google,bedrock]"
       - name: run offline suite (no API key)
         run: pytest -m "not live" -q
 
@@ -34,7 +36,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install -e ".[dev]"
+      - run: python -m pip install -e ".[dev,bedrock]"
       - name: run live suite (skips automatically if no key)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

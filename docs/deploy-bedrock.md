@@ -106,6 +106,8 @@ managed AgentCore Harness: config only, no container, minutes. `--mode auto` sel
 single-agent folder; a multi-agent *team* routes to the Runtime instead.
 
 ```bash
+pip install "agentlift[bedrock]"          # the live deploy paths need boto3 (audit/plan/export don't)
+
 # IAM creds on PATH (NOT the bearer token), the execution role, + a skills bucket if you have skills:
 export AGENTLIFT_BEDROCK_EXECUTION_ROLE_ARN=arn:aws:iam::<acct>:role/agentlift-harness
 export AGENTLIFT_BEDROCK_S3_BUCKET=my-agentlift-skills-bucket   # only if the folder has skills
