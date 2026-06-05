@@ -8,10 +8,19 @@ back-ends over the same parsed folder:
   - ``agentlift audit``  cross-references the features a folder actually uses
     against this map and reports native / emulated / degraded / unsupported.
   - ``agentlift export`` emits a provider-native artifact, and ``deploy
-    --target {anthropic,google}`` ships it to the hosted runtime; both honor the
-    same tiers (the Google deploy maps skills + MCP per the rows below).
+    --target {anthropic,google,bedrock}`` ships it to the hosted runtime; all
+    honor the same tiers (the Google + Bedrock deploys map skills + MCP per the
+    rows below).
 
 One neutral definition, many backends. Pure data, no network.
+
+These tiers rate each *platform's* capability (what the hosted runtime could do),
+not agentlift's shipped maturity for that feature (the README maturity table owns
+that). Bedrock is the sharpest case: AgentCore exposes TWO primitives -- the
+custom-container **Runtime** (Strands, multi-agent) and the newer config-only
+managed **Harness** (single agent) -- so a Bedrock reason below often names which
+primitive serves a feature and how. The harness deploy is a live preview; that
+preview status lives in the maturity table + plan diagnostics, not in these tiers.
 
 Support tiers:
   native       first-class; deploys/compiles as-is.
@@ -52,32 +61,32 @@ CAPABILITIES = {
     # profile), so the SAME model runs on Anthropic AND AWS.
     "bedrock": {
         "hosted_runtime": {"tier": "native",
-            "reason": "agentlift deploy ships a Strands app as an AgentCore Runtime container (POST /invocations + GET /ping), a durable runtime addressable by ARN; AgentCore runs the agent loop server-side", "remediation": ""},
+            "reason": "two AgentCore primitives: the custom-container Runtime (agentlift ships a Strands app serving POST /invocations + GET /ping, addressable by ARN) and the config-only managed Harness (agentlift declares model + systemPrompt + tools, AWS runs the loop); both are durable server-side runtimes", "remediation": ""},
         "builtin_sandbox": {"tier": "emulated",
-            "reason": "the platform offers a real sandbox via the AgentCore Code Interpreter (shell + filesystem) and Browser tools - more than Google's Python/JS-only engine - so nothing is lost, it is just wired through a different primitive than the source's native built-ins; agentlift's current deploy surfaces these as PLANNED (a plan diagnostic) and does not yet wire them",
-            "remediation": "until wired, expose equivalents via a URL MCP server, or keep sandbox-heavy agents on Anthropic"},
+            "reason": "the managed Harness base session always carries shell + file_operations, so the sandbox built-ins (bash / read / write / glob-grep) map onto those native @builtin tools (config-only, no container); the Runtime path has a richer AgentCore Code Interpreter (shell + filesystem) that is still PLANNED there - so nothing is lost, it is wired through a different primitive than the source's native built-ins",
+            "remediation": "single skill-less agents map natively on the harness today; for the Runtime path, expose equivalents via a URL MCP server until the Code Interpreter is wired"},
         "builtin_web": {"tier": "degraded",
-            "reason": "web_fetch can map to the AgentCore Browser tool, but there is no first-class hosted web_search primitive on Bedrock the way Anthropic and Gemini expose one; agentlift surfaces both as PLANNED today and wires neither yet",
-            "remediation": "supply web_search via a search MCP server, or keep web agents on Anthropic / Google"},
+            "reason": "the managed Harness maps web_search / web_fetch onto its agentcore_browser tool, but a browser is not a first-class hosted web_search grounding primitive the way Anthropic and Gemini expose one (web_fetch maps cleanly; web_search is approximate); the Runtime path surfaces both as PLANNED",
+            "remediation": "supply a dedicated web_search via a search MCP server, or keep search-heavy agents on Anthropic / Google"},
         "tool_approval": {"tier": "unsupported",
-            "reason": "the hosted AgentCore /invocations call is request/response with no interactive approval channel; Strands human-in-the-loop hooks do not cross the hosted boundary",
+            "reason": "neither hosted primitive has an interactive approval channel - the Runtime /invocations call is request/response and the managed Harness invoke is non-interactive - so :ask cannot be enforced server-side",
             "remediation": "enforce approval client-side, or keep :ask agents on the Anthropic target"},
         "skills": {"tier": "emulated",
-            "reason": "same SKILL.md spec; agentlift deploy embeds the bundles in the runtime's source package and loads them with Strands Skill.from_file + AgentSkills at startup (no upload-once shared registry, so update = redeploy)",
+            "reason": "same SKILL.md spec; on the Runtime path agentlift embeds the bundles in the source package and loads them with Strands Skill.from_file + AgentSkills at startup (update = redeploy). The managed Harness 'skills' parameter is only a POINTER to a path already baked into the environment - it does not upload - so a skill-bearing folder routes to the Runtime (no upload-once shared registry on either)",
             "remediation": ""},
         "remote_mcp": {"tier": "native",
-            "reason": "agentlift deploy wires each URL MCP server as a Strands MCPClient (streamable-HTTP) with a raw-name tool_filter allowlist and a server-name prefix; inline auth headers resolve from AgentCore Runtime env vars at deploy (stdio/command servers remain unsupported)",
+            "reason": "URL MCP servers map on both primitives: the Runtime as a Strands MCPClient (streamable-HTTP) with a tool_filter allowlist + server-name prefix, the Harness as a remote_mcp tool with an allowedTools glob allowlist; inline auth headers resolve from the local env into AgentCore env vars / harness headers at deploy (stdio/command servers remain unsupported)",
             "remediation": "host stdio MCP servers behind an HTTPS URL to deploy them"},
         "subagents": {"tier": "emulated",
-            "reason": "root + roster deploy as ONE AgentCore runtime; each sub-agent becomes an agents-as-tools @tool the coordinator delegates to in-model (not addressable per-agent-id the way Anthropic gives each its own id)",
-            "remediation": "deploy specialists as separate runtimes and call across them if you need per-agent ids"},
+            "reason": "the Runtime deploys root + roster as ONE container; each sub-agent becomes an agents-as-tools @tool the coordinator delegates to in-model (not per-agent-id the way Anthropic gives each its own id). The managed Harness is single-agent (no sub-agent tool type), so multi-agent folders route to the Runtime",
+            "remediation": "deploy specialists as separate runtimes/harnesses and call across them if you need per-agent ids"},
         "knowledge": {"tier": "emulated",
             "reason": "no single bundled primitive; agentlift folds knowledge/ files into the system prompt at build (large sets truncate, surfaced as a diagnostic); Bedrock Knowledge Bases offer a RAG primitive agentlift does not yet wire",
             "remediation": "for large corpora, attach a Bedrock Knowledge Base or a retrieval MCP server"},
         "deploy_versioning": {"tier": "native",
-            "reason": "AgentCore create/update keeps the runtime ARN; agentlift's .agentlift-bedrock.json spec-hash drives idempotent create/update/skip", "remediation": ""},
+            "reason": "create/update keeps the resource identity (Runtime ARN / harness id); agentlift's spec-hash lock drives idempotent create/update/skip (.agentlift-bedrock.json for the Runtime, .agentlift-harness.json for the Harness)", "remediation": ""},
         "streaming": {"tier": "native",
-            "reason": "AgentCore Runtime streams the /invocations response; Strands emits incremental events", "remediation": ""},
+            "reason": "the Runtime streams the /invocations response (Strands emits incremental events); the managed Harness streams InvokeHarness events", "remediation": ""},
     },
 
     "google": {

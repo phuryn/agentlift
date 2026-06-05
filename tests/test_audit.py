@@ -78,7 +78,7 @@ def test_render_is_stable_text(examples_dir):
                         run_audit(_team(examples_dir), targets))
     assert "Portability audit:" in text
     assert "Anthropic Managed Agents" in text
-    assert "Amazon Bedrock AgentCore Runtime (Strands)" in text
+    assert "Amazon Bedrock AgentCore (Runtime + Harness)" in text
     assert "Verdict" in text
     # the degraded/unsupported reasons must surface for the user
     assert "reason:" in text

@@ -4,6 +4,31 @@ agentlift is declarative: your `.managed-agents/` folder is the desired state, a
 `deploy` makes the cloud match it. *How* you trigger that deploy is up to you —
 three paths, all reusing things you already know.
 
+## Install & the `agentlift` command
+
+```bash
+pip install agentlift
+export ANTHROPIC_API_KEY=sk-ant-...   # needs Managed Agents beta access
+```
+
+From source (development): `git clone https://github.com/phuryn/agentlift && cd agentlift && pip install -e .`
+
+**`agentlift` "not found" / "not recognized" after install?** The package is fine — `pip`
+just put the launcher in a Scripts directory that isn't on your `PATH`. Two fixes:
+
+- **Module form (always works, no PATH needed):** every `agentlift <cmd>` is also
+  `python -m agentlift.cli <cmd>` — e.g. `python -m agentlift.cli audit ./examples/team`.
+- **Add the launcher dir to PATH.** On **Windows** (where per-user installs usually land
+  off-PATH), add it to your user PATH and open a **new** terminal:
+
+  ```powershell
+  $d = python -c "import sysconfig; print(sysconfig.get_path('scripts','nt_user'))"
+  [Environment]::SetEnvironmentVariable("Path", ([Environment]::GetEnvironmentVariable("Path","User").TrimEnd(';') + ";" + $d), "User")
+  ```
+
+  On **macOS / Linux** it's usually already on PATH; otherwise find it with
+  `python -c "import sysconfig; print(sysconfig.get_path('scripts'))"` and add it to your shell profile.
+
 ## 1. A command (individuals)
 
 ```bash

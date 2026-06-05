@@ -1,6 +1,6 @@
 # agentlift
 
-![Own the definition. Rent the runtime. One neutral agent folder, deployed to Claude Managed Agents, AWS Bedrock AgentCore, Google Agent Engine, and OpenAI.](hero.png)
+![Own the definition. Rent the runtime. One neutral agent folder, deployed to Claude Managed Agents, AWS Bedrock AgentCore, Google Agent Engine, and OpenAI.](img/herov3.png)
 
 [![PyPI](https://img.shields.io/pypi/v/agentlift.svg)](https://pypi.org/project/agentlift/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -9,443 +9,207 @@
 ![Google ADK](https://img.shields.io/badge/Google-ADK-4285F4)
 ![OpenAI Agents SDK](https://img.shields.io/badge/OpenAI-Agents%20SDK-412991)
 
-**Define your agent once as a folder. Audit how portable it is, compile it to any runtime's format, and deploy it — live to Anthropic Managed Agents or Google Vertex AI Agent Engine, as a Claude-native AWS Bedrock AgentCore container, or as an OpenAI Agents SDK script. One neutral definition, many backends.**
+**Agent runtimes all want your agent in a different shape.** agentlift lets you define it
+**once** as a neutral `.managed-agents/` folder — system prompt, skills, MCP servers, tool
+allowlist, subagents — then **audit**, **export**, or **deploy** it to Anthropic Managed
+Agents, AWS Bedrock AgentCore, Google Agent Engine, or OpenAI Agents SDK.
 
-Managed-agent runtimes are arriving fast: Anthropic Managed Agents, AWS Bedrock AgentCore, Google Vertex AI Agent Engine, OpenAI's Agent Builder. Each wants your agent in *its* shape — Anthropic's `ant` CLI takes Anthropic YAML, Bedrock takes a Strands container, Google takes ADK Python, OpenAI a visual graph. Author against one and your definition becomes that vendor's shape; moving runtimes means re-authoring it.
+> **Own the definition. Rent the runtime.**
 
-agentlift keeps the definition neutral. Point it at the agent folder you already use with Claude Code / the Agent SDK (`CLAUDE.md`/`agent.md` + skills + `.mcp.json` + a subagent roster), and treat each runtime as a back-end of one compiler: `deploy` it to a managed cloud, `audit` how it maps across providers, or `export` it to a provider's own format (including the YAML the official `ant` CLI consumes — agentlift sits *above* `ant`, not against it).
+It's the folder you already use with Claude Code / the Agent SDK (`CLAUDE.md`/`agent.md` +
+`skills/` + `.mcp.json` + a roster). Nothing new to learn — the thing you have *is* the input,
+and it stays yours, not a vendor's.
 
 ```bash
 pip install agentlift
-agentlift audit  ./my-agent                              # how portable is it, per provider? (offline)
-agentlift deploy ./my-agent                              # deploy to Anthropic Managed Agents (reference target)
-agentlift deploy ./my-agent --target bedrock --build-only # compile a Claude-native AWS Bedrock AgentCore container (preview)
-agentlift deploy ./my-agent --target google              # deploy to Google Vertex Agent Engine (live, preview)
-agentlift export openai-agents ./my-agent                # compile to an OpenAI Agents SDK script (self-host)
+agentlift audit  ./my-agent                  # how portable is it, per provider? (offline)
+agentlift deploy ./my-agent                  # → Anthropic Managed Agents (reference target)
+agentlift deploy ./my-agent --target bedrock # → AWS Bedrock AgentCore (Claude-native)
+agentlift deploy ./my-agent --target google  # → Google Vertex AI Agent Engine (preview)
+agentlift export openai-agents ./my-agent    # → an OpenAI Agents SDK script (self-host)
 ```
 
-> The agent definition is the portable asset. The runtime is a deploy choice.
-> **Own the definition. Rent the runtime.**
-
----
+> `agentlift` not found after install? Run it module-style — `python -m agentlift.cli <cmd>`
+> (the launcher just landed off `PATH`; [add it](docs/deploying.md) if you prefer the short form).
 
 ## Why this exists
 
-A real agent is a system prompt, a few skills (each a directory of files), an MCP server or two, a tool allowlist, maybe a subagent roster. Every provider now has a way to deploy one — but each captures that definition in its own format (Anthropic YAML, Google ADK, an OpenAI graph). Adopt a provider's native tooling and your agents are now shaped by that provider; the day you want a different runtime, you re-author everything.
+Adopt a provider's native tooling — Anthropic YAML, a Bedrock Strands container, Google ADK
+Python, an OpenAI graph — and your agents are now shaped by that provider. The day you want a
+different runtime, you re-author everything. agentlift makes the **deploy unit the same folder
+you develop against**, keeps it provider-neutral, and treats each runtime as a back-end of one
+compiler. One definition, many backends, no lock-in.
 
-agentlift makes the deploy unit the same folder you develop against locally, and keeps it provider-neutral. Nothing new to learn; the thing you already have *is* the input — and it stays yours, not a vendor's.
+## See it happen (a skill that runs *in the cloud*)
 
-## Install
+The believable bit isn't "we generated config" — it's that an uploaded skill actually fires
+inside the hosted runtime. `plan` is a deterministic, no-network dry run; `deploy` pushes it;
+`run` proves the skill rode along:
 
-```bash
-pip install agentlift
-export ANTHROPIC_API_KEY=sk-ant-...   # needs Managed Agents beta access
+```console
+$ agentlift plan ./examples/quickstart
+Skills to upload: 1
+  - receipt-stamp  (035823c8, 1 file)  used by: knowledge-agent
+Agents to create: 1
+  - knowledge-agent  [claude-haiku-4-5]  tools: read/glob/grep  skills: @skill:035823c8
+Deployable: yes
+
+$ agentlift deploy ./examples/quickstart -y
+  skill 'receipt-stamp': uploaded skill_01Ph…   agent 'knowledge-agent': created agent_019L…
+  Lockfile written: ./examples/quickstart/.agentlift-lock.json
+
+$ agentlift run knowledge-agent --project ./examples/quickstart --task "What is a North Star metric?"
+  A North Star metric is the single measure that best captures the value users get…
+  RECEIPT: metric captured          ← the uploaded SKILL.md firing inside the hosted runtime
+  latency 5.9s | in 4121 out 220 | ~$0.0044
 ```
 
-From source (for development):
-
-```bash
-git clone https://github.com/phuryn/agentlift && cd agentlift
-pip install -e .
-```
-
-**`agentlift` "not found" / "not recognized" after install?** The package is fine; `pip` just put the launcher in a Scripts directory that isn't on your PATH. Two fixes:
-
-- Run it module-style (always works, no PATH needed): `python -m agentlift.cli audit ./examples/team --targets anthropic,google,openai` — every `agentlift <cmd>` maps to `python -m agentlift.cli <cmd>`.
-- Or add the launcher's folder to PATH. On **Windows** (where pip's per-user installs usually land off-PATH), add it to your user PATH and open a **new** terminal:
-
-  ```powershell
-  $d = python -c "import sysconfig; print(sysconfig.get_path('scripts','nt_user'))"
-  [Environment]::SetEnvironmentVariable("Path", ([Environment]::GetEnvironmentVariable("Path","User").TrimEnd(';') + ";" + $d), "User")
-  ```
-
-  On **macOS / Linux** the dir is usually already on PATH; if not, find it with `python -c "import sysconfig; print(sysconfig.get_path('scripts'))"` and add it to your shell profile.
+The plan is a pure function of the folder (same input → same plan): it's the dry-run, the diff,
+and what the offline tests assert against.
 
 ## The folder is the agent
 
-> The walkthrough below uses **Anthropic Managed Agents**, the reference target — live deploy, the fullest feature mapping. For **AWS Bedrock** (build-only preview, Claude-native), **Google** (live, preview), and **OpenAI** (export + self-host), jump to [Portability](#portability-audit--compile-across-runtimes).
-
-agentlift reads a convention you may already use. Minimal single-agent project:
+agentlift reads a convention you may already use. A minimal single agent:
 
 ```
-my-agent/
-└── .managed-agents/              # the deploy folder — everything here is a deploy target
-    └── knowledge-agent/
-        ├── agent.md              # YAML frontmatter + system prompt
-        ├── skills/
-        │   └── receipt-stamp/
-        │       └── SKILL.md      # uploaded as a managed skill
-        └── knowledge/
-            └── pm-basics.md      # folded into the system prompt
+my-agent/.managed-agents/knowledge-agent/
+├── agent.md          # YAML frontmatter + system prompt
+├── skills/receipt-stamp/SKILL.md   # uploaded as a managed skill
+└── knowledge/pm-basics.md          # folded into the system prompt
 ```
-
-`agent.md`:
 
 ```markdown
 ---
 name: knowledge-agent
 model: claude-haiku-4-5
-tools: [read, glob, grep]      # built-in tool allowlist (omit = all)
+tools: [read, glob, grep]      # built-in allowlist (omit = all)
 ---
 You are the Knowledge Agent. Answer product questions concisely.
-Always sign off as "Best, Knowledge Agent".
 ```
 
-Why a dedicated `.managed-agents/` folder instead of reusing `.claude/agents/`? Because that's where Claude's **local** agents and native subagents live — and those aren't deploy targets. A separate folder keeps "ship to the cloud" cleanly apart from "runs on my machine." Already have an embedded agent folder (`.claude/agents/<name>/` with `CLAUDE.md` + `.mcp.json` + `.claude/skills/...`)? Point agentlift straight at it to deploy just that one — `CLAUDE.md`, `.mcp.json`, and `.claude/skills/` are all read for back-compat. See [docs/convention.md](docs/convention.md).
-
-## See exactly what will happen (no network)
-
-```console
-$ agentlift plan ./examples/quickstart
-
-Skills to upload: 1
-  - receipt-stamp  (035823c8, 1 file(s))  used by: knowledge-agent
-
-Agents to create: 1
-  - knowledge-agent  [claude-haiku-4-5]
-      tools: builtins:read/glob/grep
-      skills: @skill:035823c8
-
-Diagnostics:
-  info [knowledge-agent]: inlined 1 knowledge file(s) into the system prompt
-
-Deployable: yes
-```
-
-The plan is a pure function of the folder — same input, same plan. It is the dry-run, the diff, and the thing the tests assert against.
-
-## Deploy and run
-
-```console
-$ agentlift deploy ./examples/quickstart -y
-Uploading skills...
-  skill 'receipt-stamp': uploaded skill_01Ph... (used by knowledge-agent)
-Creating agents...
-  agent 'knowledge-agent': created agent_019L... v1
-Lockfile written: ./examples/quickstart/.agentlift-lock.json
-
-$ agentlift run knowledge-agent --project ./examples/quickstart \
-    --task "What is a North Star metric? One sentence."
-
-[managed] knowledge-agent
-  ------------------------------------------------------------
-  A North Star metric is the single measure that best captures the value
-  users get from your product.
-
-  RECEIPT: metric captured
-
-  Best, Knowledge Agent
-  ------------------------------------------------------------
-  latency 5.9s | in 4121 out 220 | ~$0.0044 | tool_used=False
-```
-
-The `RECEIPT:` line is the uploaded `SKILL.md` firing **inside the hosted runtime** — proof the skill rode along, not just the prompt.
-
-## Proven, not asserted
-
-`benchmarks/run_benchmark.py` deploys the quickstart agent and runs it on both runtimes. Real numbers ([benchmarks/results.md](benchmarks/results.md), `claude-haiku-4-5`, N=5):
-
-| Arm | N | Pass% | Median latency | Avg cost |
-|---|---|---|---|---|
-| managed (cloud) | 5 | 100% | 5.9s | $0.0052 |
-| local (your machine) | 5 | 100% | 2.3s | $0.0034 |
-
-Pass = the uploaded skill fired **and** the answer was on-topic. Same folder, two runtimes, identical behavior. (The live deploy → cloud-run → skill-applied path is also pinned by `tests/live/`.)
-
-## What agentlift maps
-
-| Local definition | → Managed Agents | Notes |
-|---|---|---|
-| `CLAUDE.md` / `agent.md` body | `system` prompt | frontmatter sets model, tools, etc. |
-| `tools: [read, glob, ...]` | `agent_toolset_20260401` configs | mapped to `read/glob/grep/bash/edit/write/web_fetch/web_search`; unmappable tools dropped with a warning |
-| `tools: [bash:ask]` / `allowedTools: [x:ask]` | tool `permission_policy` | `:ask` gates a tool behind caller approval; `:allow` (default) auto-approves — the deployable form of a hook |
-| `skills/<name>/SKILL.md` (+ files) | uploaded skill → `{type:"custom", skill_id}` | content-addressed; identical skills upload **once** and are shared across agents |
-| `.mcp.json` **remote** server | `mcp_servers:[{type:"url"}]` + `mcp_toolset` | per-server `allowedTools` becomes the **specific-tool** allowlist (and supports `:ask`) |
-| `.mcp.json` **stdio** server (`npx ...`) | ✗ rejected | managed agents need a remote URL; clear error (or `--skip-unsupported`) |
-| `knowledge/*.md` | folded into `system` | managed agents have no persistent local FS; see [limitations](docs/limitations.md) |
-| `subagents: [a, b]` | `multiagent` coordinator | roster deployed first; depth-limit-1 enforced |
-
-Full table and the exact wire format: [docs/anthropic-mapping.md](docs/anthropic-mapping.md).
-
-## Portability: audit + compile across runtimes
-
-The folder is provider-neutral, so agentlift treats each runtime as a back-end of one compiler. Same parsed model, three outputs:
-
-| verb | what it does | network |
-|---|---|---|
-| `agentlift audit`  | report, per provider, what's `native` / `emulated` / `degraded` / `unsupported` | offline |
-| `agentlift export` | compile the folder to a provider artifact (`anthropic-yaml` for `ant`, `bedrock-strands`, `google-adk`, `openai-agents`) | offline |
-| `agentlift deploy` | push to a managed runtime via API (Anthropic + Google `--target google`, both live) — or `--target bedrock --build-only` to compile a deployable AWS Bedrock AgentCore container | yes / offline |
-
-```console
-$ agentlift audit ./examples/team --targets anthropic,bedrock,google,openai
-== Anthropic Managed Agents ==                        [9 native]
-== Amazon Bedrock AgentCore Runtime (Strands) ==      [4 native, 3 emulated, 1 degraded, 1 unsupported]
-  emulated:
-    ~ Built-in tool sandbox (bash / files / glob-grep)
-        reason: a *real* sandbox via the AgentCore Code Interpreter (shell + filesystem) + Browser - more than Google's Python/JS engine; surfaced as PLANNED, not yet wired
-  unsupported:
-    x Per-tool approval gate (:ask / human-in-the-loop)
-        reason: the hosted /invocations call is request/response - no interactive approval channel
-== Google Vertex AI Agent Engine (ADK) ==             [4 native, 3 emulated, 1 degraded, 1 unsupported]
-  degraded:
-    ! Built-in tool sandbox (bash / files / glob-grep)
-        reason: hosted sandbox is Python/JS only - no bash, no persistent workspace filesystem
-== OpenAI (Agent Builder / Agents SDK) ==             [3 native, 2 emulated, 4 degraded]
-  emulated:
-    ~ Subagents -> coordinator (deployed roster)
-        reason: agent-as-tool composition works (confirmed); the delegation loop runs in your orchestrator, not OpenAI-hosted
-```
-
-> Note the **sandbox** row: Bedrock rates `emulated` (AgentCore has a *real* shell+FS sandbox — agentlift just doesn't wire it yet), while Google rates `degraded` (its hosted sandbox is genuinely Python/JS-only). The audit rates the *platform*; see the [maturity disclaimer](#provider-support) for how that differs from what agentlift ships.
-
-The audit's `degraded`/`unsupported` rows are exactly the lossy spots a compile would hit — so `audit` tells you what survives before `export` or `deploy` runs.
-
-See the whole thing run offline (audit + both compiles, no API key) in [`demo/`](demo/): `./demo/portability-demo.sh` (Windows: `.\demo\portability-demo.ps1`).
-
-A subagent roster is a **universal** capability, not a per-provider lottery: `native` on Anthropic (server-side coordinator), `emulated` elsewhere via agent-as-tool. Confirmed by actually running it on OpenAI (Agents SDK `as_tool`) and Google (ADK `sub_agents`) in [`experiments/subagent-composition`](experiments/subagent-composition/) — the only difference is whether the delegation loop runs in the provider's runtime or yours. Full per-platform test receipts, including a **live Google Agent Engine deploy** (a real `reasoningEngine`, server-side delegation confirmed) and the console/docs links for each provider: [`docs/tested-platforms.md`](docs/tested-platforms.md).
-
-### Provider support
-
-agentlift targets four managed-agent runtimes. They sit at different **maturity tiers** —
-read the tier before assuming parity:
-
-| Runtime | Primary path today | What it produces | Maturity |
-|---|---|---|---|
-| **Anthropic** Managed Agents | `agentlift deploy` (+ `export anthropic-yaml`) | a live managed agent | **LIVE** — reference target, full mapping; the folder maps 1:1 |
-| **AWS** Amazon Bedrock AgentCore | `agentlift deploy --target bedrock --build-only` (+ `export bedrock-strands`) | a complete, deployable **Strands / AgentCore Runtime container artifact** | **BUILD-ONLY PREVIEW** — **Claude-native mapping** (no remap; live Claude receipt pending Gate A); hosted create stays manual until live-verified |
-| **Google** Vertex AI Agent Engine | `agentlift deploy --target google` (+ `export google-adk`) | a live `reasoningEngine` | **HOSTED PREVIEW** — live deploy; Claude→Gemini remap |
-| **OpenAI** Agents SDK | `agentlift export openai-agents` (self-host) | an Agents SDK script | **EXPORT-ONLY** — no code-define + OpenAI-host path |
-
-The rows are ordered by **closeness to the Claude-native story**, not by maturity tier:
-**Anthropic** is the reference runtime; **AWS** is the natural *Claude-native* second home —
-agentlift targets Bedrock's Claude inference profiles directly, with no Gemini-style model
-remap (the live same-Claude composition receipt is still pending stable Gate A entitlement) —
-currently shipped as a build-only AgentCore artifact path; **Google** is the most complete
-*non-Anthropic hosted* preview but requires the Claude→Gemini remap; **OpenAI** remains
-export / self-host.
-
-> **Two axes, kept distinct.** `agentlift audit` rates each *platform's* capability (what the
-> runtime could do); the **Maturity** column above rates *what agentlift ships end-to-end
-> today*. They mostly agree. The sharpest gap is Bedrock's hosted runtime: the audit rates it
-> `native` (AgentCore genuinely hosts agents), but agentlift currently ships only the
-> **build-only** container artifact and *refuses* the unverified hosted-create call — so
-> "AgentCore hosting is native" (platform) and "agentlift's Bedrock deploy is build-only"
-> (implementation) are both true. The row-by-row breakdown across all four:
-> **[full provider capability matrix](docs/provider-matrix.md)**.
-
-> **Read the maturity tier before assuming parity.** `deploy --target google` creates a live
-> cloud resource; `deploy --target bedrock --build-only` builds a container *you* then push
-> and host (the hosted-create step is manual by design, gated on AWS IAM + the Anthropic
-> use-case form). Both are preview, in different senses. Anthropic is the fullest target;
-> OpenAI is export + self-host only. Details: [deploy-bedrock.md](docs/deploy-bedrock.md),
-> [deploy-google.md](docs/deploy-google.md).
-
-#### Live coverage matrix — what actually ran, not what the docs claim
-
-One neutral [coverage fixture](tests/live/fixtures/coverage-matrix/) — a coordinator `lead` over a `researcher` (shared **DeepWiki** MCP + private **GitMCP** + shared `house-style` skill) and a `reporter` (shared `house-style` + private `report-format` skill) — was deployed and queried on each runtime. Cells are classified by what the runtime *actually did*, never by answer text:
-
-| Dimension | Anthropic — `deploy` (reference) | Google — `deploy` (preview) | OpenAI — `export`* |
-|---|---|---|---|
-| agents | ✅ EXERCISED | ✅ EXERCISED | ✅ exported |
-| subagents | ✅ EXERCISED — native delegation event | ✅ EXERCISED — `transfer_to_agent` | ✅ exported — `as_tool`, in-process (trace-verified) |
-| shared MCP | ✅ EXERCISED — `read_wiki_structure` | ✅ EXERCISED — `read_wiki_structure` | ◐ export scaffold (self-host) |
-| individual MCP | ✅ EXERCISED — GitMCP `search`/`fetch` | ✅ EXERCISED — same | ◐ export scaffold (self-host) |
-| shared skill | ✅ EXERCISED — `HOUSESTYLEOK` | ✅ EXERCISED — `load_skill` + marker | ◐ export scaffold (self-host) |
-| individual skill | ✅ EXERCISED — `REPORTFMTOK` | ✅ EXERCISED — marker | ◐ export scaffold (self-host) |
-
-> `*` **OpenAI is an export target, not a live deploy** — there is no code-define-and-OpenAI-host path. agents + subagents are real (the `as_tool` composition is trace-verified in [`experiments/subagent-composition`](experiments/subagent-composition/)); MCP and skills compile to guided self-host scaffolding (`HostedMCPTool` / Skills-API call sites), since the orchestration loop runs in *your* app. `◐` = compiled to a self-host stub, not live-exercised.
->
-> `EXERCISED` = an objective runtime event proved it. **Both Anthropic and Google exercised all six dimensions server-side (6/6)** on a real, billable deploy. Anthropic's subagents cell keys on the native delegation event (`session.thread_created` + `agent.thread_message_sent`) because coordinator delegation is async (the worker's reply lands after a one-shot query returns). The **wired** layer is pinned offline in [`tests/test_coverage_matrix_plan.py`](tests/test_coverage_matrix_plan.py) (CI); the EXERCISED column comes from committed live receipts under [`tests/live/receipts/`](tests/live/receipts/). The built-in **web tools** (`web_search`/`web_fetch`) are not part of this six-dimension fixture — they were exercised on a **separate** Google live deploy (both tool-agents fired server-side), receipted independently. Full evidence + reproduce steps: [`docs/tested-platforms.md`](docs/tested-platforms.md#live-coverage-matrix--receipt-evidence-not-a-capability-ranking) and [`tests/live/README.md`](tests/live/README.md).
-
-## Isolation: each agent gets only its folder
-
-A deployed agent's context is exactly its own system prompt + its own (and `shared/`) skills + its own (and `shared/`) MCP servers + its inlined knowledge. The repo-root `CLAUDE.md`, a sibling agent's skills, and your machine's MCP servers **cannot leak in.**
-
-This is the same isolation the local Agent SDK has to fight for — there the CLI walks up the directory tree and pulls in the repo-root `CLAUDE.md`, repo-root skills, and user-level MCP servers unless you set an explicit skills allowlist and `strictMcpConfig: true`. In the cloud there's no tree to walk: the agent only ever gets what agentlift uploads, and agentlift scopes uploads to the agent folder. You get isolation **by construction** — pinned by [`tests/test_isolation.py`](tests/test_isolation.py).
-
-## Permissions and hooks
-
-Claude Code hooks are local scripts, so they can't run in a cloud sandbox. Their main job — gating a tool behind approval — deploys as a per-tool **permission policy**. Append `:ask` to any built-in or specific MCP tool:
-
-```yaml
-tools: [read, glob, grep, bash:ask]                 # bash pauses for approval
-```
-```jsonc
-{ "mcpServers": { "github": { "type": "url", "url": "https://…/mcp",
-    "allowedTools": ["search_issues", "create_issue:ask"] } } }   // writes gated
-```
-
-At runtime an `:ask` call pauses the session (`requires_action`) for your app to approve or reject. Arbitrary hook *code* (custom block logic, PostToolUse capture) doesn't deploy — do path-guarding by not enabling the tool, and metadata capture from the session event stream. Details: [docs/deploying.md](docs/deploying.md#permissions-the-deployable-hook).
-
-## Multi-agent, shared resources, subagents
+…and the same convention scales to a **multi-agent system** — a coordinator, workers, shared
+*and* private skills/MCP servers, all wired by frontmatter:
 
 ```
 .managed-agents/
-├── shared/
-│   ├── skills/cite-sources/SKILL.md     # shared skill — uploaded once, used by many
-│   └── mcp.json                         # shared MCP — one server, many agents
-├── lead/agent.md                        # subagents: [bug-finder, researcher]  → coordinator
-├── bug-finder/
-│   ├── agent.md                         # skills: [shared/cite-sources, bug-report]
-│   └── skills/bug-report/SKILL.md       # agent-specific skill (only bug-finder)
-└── researcher/
-    ├── agent.md                         # mcp: [shared/docs, search]
-    └── mcp.json                         # agent-specific MCP (only researcher)
+├── shared/skills/cite-sources/SKILL.md   # shared skill — uploaded once, used by many
+├── shared/mcp.json                        # shared MCP — one server, many agents
+├── lead/agent.md                          # subagents: [bug-finder, researcher] → coordinator
+├── bug-finder/  (agent.md + skills/bug-report/)     # private skill
+└── researcher/  (agent.md + mcp.json)               # private MCP
 ```
 
-One folder shows the whole capability model: a coordinator, two workers, a **shared**
-skill and a **shared** MCP server, plus a **private** skill on one agent and a
-**private** MCP server on another. The wiring is the frontmatter: shared resources
-attach to any agent that references them; an agent-local `skills/` or `mcp.json` adds
-private capability for that one agent. A bare name (`search`) resolves to the agent's
-**own** resource first, then the shared one; `shared/<name>` always means the shared
-copy. So `researcher` gets the shared `docs` server **and** its private `search`
-server; `bug-finder` gets the shared `cite-sources` skill **and** its private
-`bug-report`.
-
-Subagents are unambiguous here: `lead`'s roster references other agents **in the
-same `.managed-agents/` folder**, so they're deploy targets too. Your local
-Claude subagents in `.claude/agents/` are never swept in.
-
-```console
-$ agentlift plan ./examples/team
-Skills to upload: 2
-  - cite-sources  (417213e5)  used by: bug-finder, researcher     # shared skill
-  - bug-report    (d0f1cc36)  used by: bug-finder                 # agent-specific skill
-Agents to create: 3
-  - bug-finder  [claude-haiku-4-5]   tools: read/glob/grep/bash(ask)
-  - researcher  [claude-haiku-4-5]   mcp: docs (shared) + search (private)
-  - lead        [claude-haiku-4-5]   (coordinator -> @agent:bug-finder, @agent:researcher)
-Deployable: yes
-```
-
-`bash(ask)` is a per-tool permission: `bug-finder` declares `tools: [..., bash:ask]`,
-so the hosted agent pauses for caller approval before each `bash` call.
+A bare ref (`search`) resolves to the agent's own resource first, then `shared/`. Your local
+`.claude/agents/` are never swept in. Full spec: [docs/convention.md](docs/convention.md).
 
 ## How it works
 
-`parse → plan → apply → run`.
+`parse → plan → apply → run` — and only `apply`/`run` touch the network.
 
-- **parse** — read the folder into an in-memory project. Pure file IO.
-- **plan** — produce a deterministic list of API operations with symbolic refs (`@skill:hash`, `@agent:name`), skill dedup, validation, and diagnostics. No network. This is what `agentlift plan` prints and what the offline tests assert.
-- **apply** — execute the plan: upload skills (deduped), create agents in dependency order, write a `.agentlift-lock.json` mapping local definitions → remote IDs.
-- **run** — invoke a deployed agent by ID (or run the same folder locally with `--local`).
+- **parse** — read the folder into an in-memory project (pure file IO).
+- **plan** — a deterministic list of API ops with symbolic refs, skill dedup, validation, and
+  diagnostics. No network. This is the dry-run *and* the test contract.
+- **apply** — upload skills (deduped), create agents in order, write `.agentlift-lock.json`
+  (local definition → remote IDs) so re-deploys are idempotent. [Commit it.](docs/deploying.md)
+- **run** — invoke a deployed agent by ID, or run the same folder locally with `--local`.
 
-The lockfile makes re-deploys idempotent: an unchanged skill is not re-uploaded, an unchanged agent is not re-created (verified in `tests/test_idempotency.py`, no network). Details: [docs/how-it-works.md](docs/how-it-works.md).
+Diagnostics surface anything a runtime can't represent — never a silent drop. Internals:
+[docs/how-it-works.md](docs/how-it-works.md).
 
-## Deploying — three ways, all things you already know
+## Provider snapshot
 
-Deploy is declarative: the folder is the desired state, and `deploy` makes the cloud match it. Trigger it however you already work.
+One folder, four managed-agent runtimes — at **different maturity tiers**. `agentlift audit`
+rates portability per provider *before* you deploy; the table below is what agentlift ships
+**today**:
 
-1. **A command** (solo): `agentlift plan .` then `agentlift deploy . --yes`.
-2. **Git push** (teams, recommended): commit `.managed-agents/`, copy [`examples/deploy-workflow/ci-deploy.yml`](examples/deploy-workflow/ci-deploy.yml) into `.github/workflows/`, add an `ANTHROPIC_API_KEY` secret. Every push that touches the folder validates, deploys (idempotent), and commits the updated lockfile. Review in PRs; roll back with `git revert`.
-3. **From Claude Code**: drop [`examples/claude-code-skill/deploy-managed-agents/`](examples/claude-code-skill/) into `.claude/skills/` and just say *"deploy my managed agents."*
+| Runtime | Deploy status | Model | Notes |
+|---|---|---|---|
+| **Anthropic** Managed Agents | ✅ Live — reference target, fullest mapping | Claude (native) | skills · MCP · `:ask` · coordinator |
+| **AWS** Bedrock AgentCore | ✅ **Live** — single-agent deploy via the managed **Harness** (agent · skills · MCP · sandbox · browser, **6/6 [live-verified](docs/tested-platforms.md#amazon-bedrock-agentcore-runtime--harness)**); the AWS Harness feature is in public preview | Claude (**native, no remap**) | multi-agent → build-only **Runtime** container ([deploy-bedrock.md](docs/deploy-bedrock.md)) |
+| **Google** Vertex AI Agent Engine | 🟡 Live (preview) | Claude → Gemini | skills · MCP · web tools; [deploy-google.md](docs/deploy-google.md) |
+| **OpenAI** Agents SDK | 📦 Export / self-host | `gpt-*` | `as_tool` composition; no hosted-deploy path |
 
-Full guide + trade-offs: [docs/deploying.md](docs/deploying.md).
+Each runtime captures the agent differently (Anthropic YAML, a Strands/AgentCore container, ADK
+Python, an Agents SDK script) — the full cell-by-cell map is
+[docs/provider-matrix.md](docs/provider-matrix.md). **Read the tier before assuming parity:**
+Google is preview, and the AWS Harness is **single-agent** — a multi-agent *team* (subagents +
+per-agent skill/MCP scoping) compiles to the build-only **Runtime** container instead.
 
-```
-agentlift validate <path>              parse + plan, report problems (exit 1 on errors)
-agentlift plan     <path> [--json]     show the deploy plan (dry run, no network)
-agentlift audit    <path> --targets    portability report per provider (native/degraded/unsupported)
-agentlift export   <target> <path>     compile the folder to a provider artifact (anthropic-yaml, google-adk, openai-agents)
-agentlift diff     <path> [--remote]   what a deploy would change vs the lockfile
-agentlift deploy   <path> [--prune]    upload skills + create agents; write lockfile
-agentlift run <agent> --task "..."     invoke a deployed agent (--local for the same folder locally)
-agentlift list     <path>              what's currently deployed (from the lockfile)
-agentlift destroy  <path>              archive every agent in the lockfile
-agentlift bench <agent> --task "..."   managed vs local: latency / cost / pass
-```
+## Proof, not assertion
 
-`agentlift diff` shows new / changed / unchanged / stale before you deploy:
+agentlift's claims are pinned by tests and committed live receipts, not prose:
 
-```console
-$ agentlift diff .
-Skills:
-  + house-style  (new)
-  = cite-sources  (unchanged)
-Agents:
-  ~ researcher  (changed)
-  = fact-checker  (unchanged)
-Stale (in lockfile, not in folder — archived with --prune):
-  - old-agent
+- **Live coverage matrix** — one neutral fixture deployed + queried on **Anthropic and Google**,
+  with all six portability dimensions (agents · subagents · shared/individual MCP ·
+  shared/individual skill) **EXERCISED server-side** (committed receipts under
+  [`tests/live/receipts/`](tests/live/receipts/)).
+- **AWS Bedrock Harness — live-verified, 6/6** (single agent): a committed Nova receipt shows
+  `CreateHarness → READY` then `InvokeHarness` exercising **agent + base-session sandbox + remote
+  MCP + S3-loaded skill + `agentcore_browser`** — agentlift's full single-agent deploy, end to
+  end. (The AgentCore Harness feature is in AWS public preview; Claude inference runs but is
+  Gate-A-gated, so the wire-shape receipt is on Nova.) Evidence: [docs/tested-platforms.md](docs/tested-platforms.md).
+- **Managed vs local benchmark** ([benchmarks/results.md](benchmarks/results.md),
+  `claude-haiku-4-5`):
 
-2 change(s) pending.  Run: agentlift deploy <path>
-```
+  | Arm | Pass rate | Median latency | Avg cost |
+  |---|---|---|---|
+  | managed (cloud) | 100% on N=5 runs | 5.9s | $0.0052 |
+  | local (your machine) | 100% on N=5 runs | 2.3s | $0.0034 |
 
-## Where the deployed IDs live
-
-`deploy` writes **`.agentlift-lock.json`** next to the path you deployed — a map from each local definition to the remote object it became (`skill_…`, `agent_…`, version, spec hash). **Commit it.** It's what makes re-deploys idempotent (unchanged skills/agents are skipped), makes `agentlift run lead …` resolve by name, and lets a teammate or CI reuse the same cloud objects instead of duplicating them. It holds only IDs/hashes/titles — no secrets. It's per Anthropic account; commit it when your team shares one. More: [docs/deploying.md](docs/deploying.md#where-the-ids-live-the-lockfile).
-
-## Tests
+  Pass = the uploaded skill fired **and** the answer was on-topic. Same folder, two runtimes,
+  identical behavior.
 
 ```bash
-pytest -m "not live"     # deterministic translation + idempotency — no API key, runs in CI
-pytest -m live           # deploy to the real API, run, LLM-grade the output (needs ANTHROPIC_API_KEY)
+pytest -m "not live"   # deterministic translation + idempotency — no API key, runs in CI
+pytest -m live         # deploy to the real API, run, LLM-grade (needs credentials)
 ```
 
-Offline tests pin the translation (tool mapping, per-tool permissions, skill dedup, stdio rejection, coordinator ordering, context isolation, diff, idempotency) — including both providers' plans for the six-dimension coverage fixture ([`tests/test_coverage_matrix_plan.py`](tests/test_coverage_matrix_plan.py)). Live tests deploy to Anthropic and confirm the uploaded skill actually fires in the cloud, graded by an LLM. CI runs the offline suite on every push and the live suite when an `ANTHROPIC_API_KEY` secret is present ([.github/workflows/ci.yml](.github/workflows/ci.yml)). A separate on-demand [live-demo workflow](.github/workflows/live-demo.yml) deploys the team example to a real account, runs the benchmark, and tears everything down — so the deploy path is demonstrably live, not just asserted.
+## What you get, briefly
 
-Beyond that, the **live coverage matrix** ([`tests/live/`](tests/live/)) deploys one neutral fixture to **both** Anthropic and Google, queries the live engines, and records committed receipts of what each runtime *actually did* across all six portability dimensions (6/6 EXERCISED on both — see the [matrix above](#live-coverage-matrix--what-actually-ran-not-what-the-docs-claim)). It is billable, credential-gated, and skipped in CI; reproduce it with the standalone harness or the gated wrapper (`AGENTLIFT_LIVE_COVERAGE=1 pytest -m live`).
-
-## Limitations (read these)
-
-- **Remote MCP only.** Managed agents connect to URL MCP servers; local `stdio` servers (`npx ...`) can't be deployed. Host them behind HTTPS first.
-- **No inline MCP auth on Anthropic.** A managed URL MCP server carries no credentials in the Anthropic API shape — the server must be public or authenticate itself. (The Bedrock and Google deploys *do* carry inline auth: the header value resolves from your local env into a runtime `env_var` at deploy, never into the source.)
-- **Knowledge files are inlined** into the system prompt (no persistent local FS in the managed sandbox). Large reference sets should become a skill bundle.
-- **Targets differ by handoff.** Anthropic Managed Agents has live deploy + the fullest mapping (the reference target). AWS Bedrock AgentCore deploy is **build-only preview** (`--target bedrock --build-only`; compiles a Strands package and builds a complete ARM64 AgentCore Runtime container — **Claude-native, no model remap** — mapping skills + URL MCP with inline-auth-via-env-vars; the hosted-create step is manual, gated on AWS IAM + the Anthropic use-case form; sandbox/web tools are `PLANNED`, `:ask` unsupported). Google Vertex AI Agent Engine deploy is live in preview (`--target google`; maps skills + URL MCP with inline-auth-via-env-vars + the built-in web tools `web_search`/`web_fetch`, but `:ask`, the built-in **sandbox** tools, and stdio MCP are not mapped, and Claude→Gemini). OpenAI is export + self-host only (Agents SDK composition; no hosted-deploy path).
-
-Each of these is surfaced as a `agentlift plan` diagnostic, not a silent surprise. More: [docs/limitations.md](docs/limitations.md).
+- **Isolation by construction** — a deployed agent gets only its own folder (+ `shared/`); the
+  repo-root `CLAUDE.md`, a sibling's skills, and your machine's MCP servers can't leak in. Pinned
+  by [`tests/test_isolation.py`](tests/test_isolation.py).
+- **Permissions that deploy** — append `:ask` to any tool (`bash:ask`, `create_issue:ask`) and
+  the hosted agent pauses for caller approval — the deployable form of a hook.
+- **Deploy how you work** — a command (`deploy --yes`), a [git-push workflow](examples/deploy-workflow/),
+  or [from inside Claude Code](examples/claude-code-skill/). Idempotent via the lockfile.
+- **A full CLI** — `validate` · `plan` · `audit` · `export` · `diff` · `deploy` · `run` ·
+  `list` · `destroy` · `bench`. See [docs/deploying.md](docs/deploying.md).
 
 ## Documentation
 
-Everything is here or one click away:
-
 | Doc | What's in it |
 |---|---|
-| [docs/convention.md](docs/convention.md) | The `.managed-agents/` folder spec, frontmatter, skills, MCP, `:ask` permissions, native subagents |
-| [docs/provider-matrix.md](docs/provider-matrix.md) | Row-by-row capability matrix — what maps where across Anthropic / AWS Bedrock / Google / OpenAI |
-| [docs/deploying.md](docs/deploying.md) | The three deploy paths, the lockfile / where IDs live, isolation, hooks |
-| [docs/how-it-works.md](docs/how-it-works.md) | `parse → plan → apply → run`, determinism, idempotency, the confirmed wire format |
-| [docs/anthropic-mapping.md](docs/anthropic-mapping.md) | Exact local → Managed Agents field mapping + API constraints |
-| [docs/limitations.md](docs/limitations.md) | Honest constraints (stdio MCP, MCP auth, knowledge inlining, skill descriptions) |
-| [docs/deploy-bedrock.md](docs/deploy-bedrock.md) | Deploying to AWS Bedrock AgentCore — bearer-token vs IAM, the two gates, the build-only artifact path |
-| [docs/deploy-google.md](docs/deploy-google.md) | Deploying to Google Vertex AI Agent Engine — the ADC credentials + setup path |
-| [docs/tested-platforms.md](docs/tested-platforms.md) | Per-platform test receipts (config, results, console links) for all four runtimes |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Architecture and dev setup |
+| [docs/convention.md](docs/convention.md) | The `.managed-agents/` folder spec — frontmatter, skills, MCP, `:ask`, subagents |
+| [docs/how-it-works.md](docs/how-it-works.md) | `parse → plan → apply → run`, determinism, idempotency, the lockfile |
+| [docs/deploying.md](docs/deploying.md) | The three deploy paths, commands, the lockfile, install/PATH |
+| [docs/provider-matrix.md](docs/provider-matrix.md) | Cell-by-cell capability matrix across all four runtimes |
+| [docs/anthropic-mapping.md](docs/anthropic-mapping.md) | Exact local → Managed Agents field mapping |
+| [docs/deploy-bedrock.md](docs/deploy-bedrock.md) · [deploy-google.md](docs/deploy-google.md) | Per-provider credentials, gates, and caveats |
+| [docs/tested-platforms.md](docs/tested-platforms.md) | Per-platform live receipts + reproduce steps |
+| [docs/limitations.md](docs/limitations.md) | Honest constraints (stdio MCP, MCP auth, knowledge inlining) |
 
-### Examples ([examples/](examples/))
+**Examples:** [`quickstart/`](examples/quickstart/) (one agent) ·
+[`team/`](examples/team/) (coordinator + roster, shared skill, MCP, `bash:ask`) ·
+[`in-a-project/`](examples/in-a-project/) (embedded in a real repo, proves isolation) ·
+[`deploy-workflow/`](examples/deploy-workflow/) · [`claude-code-skill/`](examples/claude-code-skill/).
 
-- [`quickstart/`](examples/quickstart/) — one agent, one skill, knowledge, a tool allowlist
-- [`team/`](examples/team/) — multi-agent: coordinator + roster, a shared skill, a remote MCP server, a `bash:ask` permission
-- [`in-a-project/`](examples/in-a-project/) — `.managed-agents/` embedded in a real project; proves isolation (repo `CLAUDE.md`, app code, and a local `.claude/agents/` subagent are never deployed) + a coordinator with two shared-skill subagents
-- [`deploy-workflow/`](examples/deploy-workflow/) — the git-push-to-deploy GitHub Action
-- [`claude-code-skill/`](examples/claude-code-skill/) — deploy from inside Claude Code
+## Limitations
+
+Each is surfaced as a `agentlift plan` diagnostic, never a silent surprise — full list in
+[docs/limitations.md](docs/limitations.md):
+
+- **Remote MCP only** — local `stdio` servers (`npx …`) can't be deployed; host behind HTTPS.
+- **No inline MCP auth on Anthropic** (Bedrock + Google carry it via runtime env vars).
+- **Knowledge files are inlined** into the system prompt (no persistent FS in the sandbox).
+- **Maturity varies** — Anthropic is live/full; the AWS **Harness** is a live single-agent deploy (the AgentCore feature is in AWS preview; multi-agent → build-only Runtime); Google is live preview; OpenAI is export-only.
 
 ## Roadmap
 
-The live `deploy --target google` ships prompts + coordinator/`sub_agents` + **skills + URL MCP (with inline-auth-via-env-vars) + built-in web tools (`web_search`→Google Search grounding, `web_fetch`→URL Context)** + model, idempotent via a spec hash. The remaining Google differences are **known gaps and non-equivalences, not all roadmap items** — two are deliberate non-goals:
-
-- **Built-in sandbox tools (bash/files/glob-grep) — emulating them in-engine is a non-goal, not a TODO.** Vertex's hosted sandbox is Python/JS only with no persistent workspace filesystem; pretending it's a shell+FS *inside* Agent Engine would be exactly the silent degradation agentlift exists to surface. If a Google-hosted agent needs filesystem/shell/code-search, expose that environment deliberately through a URL MCP server, which *does* deploy — see [the workaround](docs/deploy-google.md#two-known-gaps-and-how-to-work-around-them).
-- **`:ask` / per-tool approval — gate it in your caller, don't fake it in the runtime.** Not enforced on `VertexAiSessionService`, so enforce approval client-side in the loop that calls the engine, or keep `:ask` agents on Anthropic where the gate is native. Surfaced as a diagnostic, never lost.
-- **Claude-on-Vertex models — offline-verified spike, not shipped.** Today Claude folder models map to Gemini. ADK 1.34.3 *can* resolve Claude on Vertex and the mixed-model shape composes (web sub-agents stay Gemini) — proven offline in [`experiments/claude-on-vertex/`](experiments/claude-on-vertex/) — but with no live receipt yet, a Claude `--google-model` is **refused**, not silently shipped.
-- **Per-agent IDs via A2A.** Google deploys the roster as one `reasoningEngine`; per-agent addressability would need the A2A protocol across deployments.
-
-The `deploy --target bedrock --build-only` path ships prompts + coordinator/agents-as-tools + **skills (`Skill.from_file` + `AgentSkills`) + URL MCP (`MCPClient` + `tool_filter`, inline-auth-via-env-vars), and emits the Bedrock Claude inference-profile ID natively (regional profile, no Gemini-style remap)**, idempotent via a spec hash, materializing a complete ARM64 AgentCore Runtime container. What's *not* yet wired on Bedrock — each surfaced as a `PLANNED` diagnostic, not a silent drop — is genuinely roadmap, not non-goal (unlike Google's sandbox), because AgentCore *can* host them:
-
-- **Hosted create (Gate B).** A bare `deploy --target bedrock` currently **refuses** — building a guessed `create-agent-runtime` call would violate the *confirm-live-before-encoding* rule. Wiring it needs AWS IAM + an execution role + ECR live-verified end-to-end; until then the artifact's `NOTES.txt` carries the manual build/push + starter-toolkit runbook.
-- **Built-in sandbox tools — a *real* AgentCore sandbox, PLANNED not non-goal.** Unlike Google, Bedrock offers the Code Interpreter (shell + filesystem) and Browser, so wiring `bash`/`files`/`glob`/`grep` to them is a TODO; until then expose equivalents via a URL MCP server.
-- **`web_fetch` → Browser tool.** No first-class hosted `web_search` primitive on Bedrock; `web_fetch` can map to the Browser tool. Both `PLANNED` today; supply `web_search` via a search MCP server.
-- **Live Claude-on-Bedrock composition receipt.** The Strands composition is [proven live](docs/tested-platforms.md#amazon-bedrock-agentcore-strands) (objective tool-call trace on Amazon Nova); the same-Claude-brain receipt waits on stable per-account Anthropic use-case-form entitlement (Gate A, eventually consistent).
-
-Genuinely on the roadmap:
-
-- **AWS Bedrock hosted deploy** — wire the AgentCore control-plane `create_agent_runtime` once the IAM + ECR + execution-role path is live-verified (Gate B), turning `--build-only` into a full `deploy --target bedrock`
-- **`export openai-chatkit`** — wrap the `openai-agents` script in a self-hostable ChatKit server (the Agents SDK export already ships)
-- Authenticated remote MCP via the Vaults API
-- `agentlift diff --remote` deeper drift detection (full account reconciliation)
-- A skill-bundle mode for large `knowledge/` sets
+Current focus: turn the AWS Bedrock **Runtime** `--build-only` artifact into a full hosted
+deploy (Gate B: IAM + ECR + role), and a self-hostable `openai-chatkit` export. Per-provider
+gaps and status live in their deploy docs and [docs/provider-matrix.md](docs/provider-matrix.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Built on the [Anthropic Python SDK](https://github.com/anthropics/anthropic-sdk-python).
+MIT — see [LICENSE](LICENSE).

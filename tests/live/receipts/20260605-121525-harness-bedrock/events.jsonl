@@ -1,0 +1,570 @@
+{"label": "sandbox", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "<thinking"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " need"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " execute"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " provided"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " shell"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " command"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " and"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " report"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " stdout"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " verbatim"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " </"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "thinking"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">\n"}}}}
+{"label": "sandbox", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "sandbox", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_neM8ZXJ036a5SkUv84tK9T", "name": "shell"}}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"command\":\"echo HARNESS-SHELL-3C5F8A21-OK\"}"}}}}}
+{"label": "sandbox", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "sandbox", "event": {"messageStop": {"stopReason": "tool_use"}}}
+{"label": "sandbox", "event": {"metadata": {"usage": {"inputTokens": 5688, "outputTokens": 51, "totalTokens": 5739}, "metrics": {"latencyMs": 942}}}}
+{"label": "sandbox", "event": {"messageStart": {"role": "user"}}}
+{"label": "sandbox", "event": {"contentBlockStart": {"contentBlockIndex": 0, "start": {"toolResult": {"toolUseId": "tooluse_neM8ZXJ036a5SkUv84tK9T", "status": "success"}}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "{\"stdout\": \"HARNESS-SHELL-3C5F8A21-OK\\n\", \"stderr\": \"\", \"exit_code\": 0}"}]}}}}
+{"label": "sandbox", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "sandbox", "event": {"messageStop": {"stopReason": "tool_result"}}}
+{"label": "sandbox", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "The"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " stdout"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " of"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " command"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " `"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "echo"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " HAR"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NESS"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "SHELL"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "3"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "C"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "5"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "F"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "8"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "A"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "2"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "1"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "OK"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "`"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " is"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " `"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "HAR"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NESS"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "SHELL"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "3"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "C"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "5"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "F"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "8"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "A"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "2"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "1"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "OK"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "`.\n\n"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "HAR"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NESS"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "AGENT"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "OK"}}}}
+{"label": "sandbox", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "sandbox", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "sandbox", "event": {"messageStop": {"stopReason": "end_turn"}}}
+{"label": "sandbox", "event": {"metadata": {"usage": {"inputTokens": 5796, "outputTokens": 49, "totalTokens": 5845}, "metrics": {"latencyMs": 2166}}}}
+{"label": "mcp", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "<thinking"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " To"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " complete"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " task"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ","}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " need"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " use"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " `"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "docs"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "_"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "read"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "_"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "wiki"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "_"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "structure"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "`"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " tool"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " fetch"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " wiki"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " structure"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " of"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " facebook"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "/"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "react"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " repository"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Once"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " have"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " structure"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ","}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " will"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " extract"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " and"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " list"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " two"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " top"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "level"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " sections"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " </"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "thinking"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">\n"}}}}
+{"label": "mcp", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "mcp", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_VBe7TBfxEYQbTVVkFz4SO4", "name": "docs_read_wiki_structure"}}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"repoName\":\"facebook/react\"}"}}}}}
+{"label": "mcp", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "mcp", "event": {"messageStop": {"stopReason": "tool_use"}}}
+{"label": "mcp", "event": {"metadata": {"usage": {"inputTokens": 5696, "outputTokens": 78, "totalTokens": 5774}, "metrics": {"latencyMs": 1372}}}}
+{"label": "mcp", "event": {"messageStart": {"role": "user"}}}
+{"label": "mcp", "event": {"contentBlockStart": {"contentBlockIndex": 0, "start": {"toolResult": {"toolUseId": "tooluse_VBe7TBfxEYQbTVVkFz4SO4", "status": "success"}}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "Available pages for facebook/react:\n\n- 1 Overview\n  - 1.1 Repository Structure and Packages\n- 2 Feature Flags System\n- 3 Build System and Package Distribution\n  - 3.1 Build Pipeline and Module Forking\n  - 3.2 Release Channels and Environment Forks\n- 4 React Reconciler\n  - 4.1 Fiber Architecture and Data Structures\n  - 4.2 Work Loop and Rendering Phases\n  - 4.3 React Hooks System\n  - 4.4 Lane-Based Scheduling and Priorities\n  - 4.5 Suspense, Error Boundaries, and Offscreen\n  - 4.6 Profiling and Performance Tracking\n- 5 Server-Side Rendering\n  - 5.1 React Fizz (Streaming SSR)\n  - 5.2 React Server Components (Flight)\n  - 5.3 Server Actions and Form Handling\n  - 5.4 Hydration System\n- 6 Platform Renderers\n  - 6.1 Host Configuration Abstraction\n  - 6.2 React DOM Implementation\n  - 6.3 React Native Renderers\n  - 6.4 Test Renderers\n- 7 Developer Tools\n  - 7.1 DevTools Backend Architecture\n  - 7.2 DevTools Frontend and Distribution\n- 8 React Compiler\n  - 8.1 Compiler Architecture and Pipeline\n  - 8.2 Compiler Validat"}]}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "ion and ESLint Integration\n  - 8.3 Compiler Tooling and Playground\n- 9 Testing Infrastructure\n  - 9.1 Jest Setup and Test Utilities\n  - 9.2 CI/CD and Release Process\n- 10 Glossary"}]}}}}
+{"label": "mcp", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "mcp", "event": {"messageStop": {"stopReason": "tool_result"}}}
+{"label": "mcp", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "The"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " two"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " top"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "level"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " sections"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " of"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " facebook"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "/"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "react"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " repository"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " wiki"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " are"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ":\n\n"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "1"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Overview"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "\n2"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Feature"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Flags"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " System"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "\n\nHAR"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NESS"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "AGENT"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "OK"}}}}
+{"label": "mcp", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "mcp", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "mcp", "event": {"messageStop": {"stopReason": "end_turn"}}}
+{"label": "mcp", "event": {"metadata": {"usage": {"inputTokens": 6173, "outputTokens": 32, "totalTokens": 6205}, "metrics": {"latencyMs": 661}}}}
+{"label": "fetch", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "<thinking"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " need"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " fetch"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " web"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " page"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " at"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " provided"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " URL"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " retrieve"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " exact"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " text"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " shown"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " on"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " page"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " will"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " use"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " `"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "web"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "_"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "fetch"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "`"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " tool"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " accomplish"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " this"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " </"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "thinking"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">\n"}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_aWzpY73EzC895jcyUBPbqP", "name": "browser"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"browser_input\":{\"action\":{\"type\":\"navigate\",\"url\":\"https://httpbingo.org/base64/QUdFTlRMSUZULUhBUk5FU1MtN0IxRDRFOUEtQ0FOQVJZ\",\"session_name\":\"fetch-page\"}}}"}}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "fetch", "event": {"messageStop": {"stopReason": "tool_use"}}}
+{"label": "fetch", "event": {"metadata": {"usage": {"inputTokens": 5731, "outputTokens": 121, "totalTokens": 5852}, "metrics": {"latencyMs": 1371}}}}
+{"label": "fetch", "event": {"messageStart": {"role": "user"}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 0, "start": {"toolResult": {"toolUseId": "tooluse_aWzpY73EzC895jcyUBPbqP", "status": "error"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "Session 'fetch-page' not found"}]}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "fetch", "event": {"messageStop": {"stopReason": "tool_result"}}}
+{"label": "fetch", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "<thinking"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " It"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " appears"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " that"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " session"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " fetch"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " web"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " page"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " was"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " not"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " initialized"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " properly"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " need"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " initialize"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " a"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " new"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " session"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " and"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " then"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " navigate"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " URL"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " retrieve"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " page"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " content"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " </"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "thinking"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " "}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_hdjGP1UsPxBzYfXD5xK9nn", "name": "browser"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"browser_input\":{\"action\":{\"type\":\"init_session\",\"description\":\"Initialize session to fetch web page\",\"session_name\":\"fetch-page\"}}}"}}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 2, "start": {"toolUse": {"toolUseId": "tooluse_XctQ6aFUXbOH70KRr0ttNk", "name": "browser"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 2, "delta": {"toolUse": {"input": "{\"browser_input\":{\"action\":{\"type\":\"navigate\",\"session_name\":\"fetch-page\",\"url\":\"https://httpbingo.org/base64/QUdFTlRMSUZULUhBUk5FU1MtN0IxRDRFOUEtQ0FOQVJZ\"}}}"}}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 2}}}
+{"label": "fetch", "event": {"messageStop": {"stopReason": "tool_use"}}}
+{"label": "fetch", "event": {"metadata": {"usage": {"inputTokens": 5885, "outputTokens": 158, "totalTokens": 6043}, "metrics": {"latencyMs": 2102}}}}
+{"label": "fetch", "event": {"messageStart": {"role": "user"}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 0, "start": {"toolResult": {"toolUseId": "tooluse_hdjGP1UsPxBzYfXD5xK9nn", "status": "success"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"json": {"description": "Initialize session to fetch web page", "sessionName": "fetch-page"}}]}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolResult": {"toolUseId": "tooluse_XctQ6aFUXbOH70KRr0ttNk", "status": "success"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolResult": [{"text": "Navigated to https://httpbingo.org/base64/QUdFTlRMSUZULUhBUk5FU1MtN0IxRDRFOUEtQ0FOQVJZ"}]}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "fetch", "event": {"messageStop": {"stopReason": "tool_result"}}}
+{"label": "fetch", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "<thinking"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " The"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " session"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " has"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " been"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " initialized"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " and"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " navigation"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " URL"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " has"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " been"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " successful"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Now"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ","}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " need"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " extract"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " text"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " content"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " from"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " page"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " </"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "thinking"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " "}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_nPuS8OmDiAUWrguUUpf6Sj", "name": "browser"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"browser_input\":{\"action\":{\"type\":\"get_text\",\"session_name\":\"fetch-page\",\"selector\":\"body\"}}}"}}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "fetch", "event": {"messageStop": {"stopReason": "tool_use"}}}
+{"label": "fetch", "event": {"metadata": {"usage": {"inputTokens": 6144, "outputTokens": 76, "totalTokens": 6220}, "metrics": {"latencyMs": 1050}}}}
+{"label": "fetch", "event": {"messageStart": {"role": "user"}}}
+{"label": "fetch", "event": {"contentBlockStart": {"contentBlockIndex": 0, "start": {"toolResult": {"toolUseId": "tooluse_nPuS8OmDiAUWrguUUpf6Sj", "status": "success"}}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "Text content: AGENTLIFT-HARNESS-7B1D4E9A-CANARY"}]}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "fetch", "event": {"messageStop": {"stopReason": "tool_result"}}}
+{"label": "fetch", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "The"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " exact"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " text"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " shown"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " on"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " page"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " is"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ":"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " \""}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "AGENT"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "L"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "IFT"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "HAR"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NESS"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "7"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "B"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "1"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "D"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "4"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "E"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "9"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "A"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "CAN"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "ARY"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "\"\n\n"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "HAR"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NESS"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "AGENT"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "OK"}}}}
+{"label": "fetch", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "fetch", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "fetch", "event": {"messageStop": {"stopReason": "end_turn"}}}
+{"label": "fetch", "event": {"metadata": {"usage": {"inputTokens": 6267, "outputTokens": 36, "totalTokens": 6303}, "metrics": {"latencyMs": 768}}}}
+{"label": "skill", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "<thinking"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " need"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " consult"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " house"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "style"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " skill"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " ensure"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " my"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " response"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " aligns"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " with"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " team"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "'"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "s"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " writing"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " style"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Once"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " have"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " loaded"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " skill"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ","}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " will"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " proceed"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " answer"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " user"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "'"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "s"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " question"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " about"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " a"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " North"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Star"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " metric"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " </"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "thinking"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">\n"}}}}
+{"label": "skill", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "skill", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_mlY2ZcWtrxFjSyaK2nHkXV", "name": "skills"}}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"skill_name\":\"house-style\"}"}}}}}
+{"label": "skill", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "skill", "event": {"messageStop": {"stopReason": "tool_use"}}}
+{"label": "skill", "event": {"metadata": {"usage": {"inputTokens": 5676, "outputTokens": 69, "totalTokens": 5745}, "metrics": {"latencyMs": 973}}}}
+{"label": "skill", "event": {"messageStart": {"role": "user"}}}
+{"label": "skill", "event": {"contentBlockStart": {"contentBlockIndex": 0, "start": {"toolResult": {"toolUseId": "tooluse_mlY2ZcWtrxFjSyaK2nHkXV", "status": "success"}}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "# House style\n\nWhen you finalize ANY answer, append the exact token `HOUSESTYLE-OK` on its own line.\nThis proves the house-style skill was loaded (from S3 on the harness) and applied.\n\n---\nLocation: /home/.agents/skills/s3/house-style/SKILL.md"}]}}}}
+{"label": "skill", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "skill", "event": {"messageStop": {"stopReason": "tool_result"}}}
+{"label": "skill", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "<thinking"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " I"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " have"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " loaded"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " house"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "style"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " skill"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " and"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " will"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " now"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " answer"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " user"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "'"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "s"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " question"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " about"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " a"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " North"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Star"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " metric"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ","}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " ensuring"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " response"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " adhere"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "s"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " to"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " house"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " style"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " </"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "thinking"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ">"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " "}}}}
+{"label": "skill", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "skill", "event": {"contentBlockStart": {"contentBlockIndex": 1, "start": {"toolUse": {"toolUseId": "tooluse_fLr2tAHpEGbndMxxZ3wm1Y", "name": "docs_ask_question"}}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 1, "delta": {"toolUse": {"input": "{\"question\":\"What is a North Star metric?\",\"repoName\":\"facebook/react\"}"}}}}}
+{"label": "skill", "event": {"contentBlockStop": {"contentBlockIndex": 1}}}
+{"label": "skill", "event": {"messageStop": {"stopReason": "tool_use"}}}
+{"label": "skill", "event": {"metadata": {"usage": {"inputTokens": 5837, "outputTokens": 71, "totalTokens": 5908}, "metrics": {"latencyMs": 1054}}}}
+{"label": "skill", "event": {"messageStart": {"role": "user"}}}
+{"label": "skill", "event": {"contentBlockStart": {"contentBlockIndex": 0, "start": {"toolResult": {"toolUseId": "tooluse_fLr2tAHpEGbndMxxZ3wm1Y", "status": "success"}}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "A North Star metric, in the context of the `facebook/react` codebase, refers to a key performance indicator that guides optimization efforts, particularly in the area of web performance and user experience . Specifically, the `TARGET_VANITY_METRIC` is identified as a North Star metric, set to 2300 milliseconds, with the goal of achieving a Largest Contentful Paint (LCP) of 2.5 seconds .\n\n## Usage in Performance Optimization\n\nThe `TARGET_VANITY_METRIC` is used within the `revealCompletedBoundariesWithViewTransitions` function to adjust throttling heuristics during the rendering of Suspense boundaries . The purpose is to avoid throttling if doing so would allow the application to meet this target metric .\n\nThe logic checks the current time against `TARGET_VANITY_METRIC` and `FALLBACK_THROTTLE_MS` to determine the `msUntilTimeout` for a `setTimeout` call . If the current time is within a window that would cause the `TARGET_VANITY_METRIC` to be missed due to throttling, the throttle duration is shortened to prior"}]}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "itize hitting the target .\n\nSimilarly, in the `completeBoundary` function, the `TARGET_VANITY_METRIC` is used to calculate the `msUntilTimeout` for scheduling the flushing of a batch of completed boundaries . This ensures that even if the throttle would cause the metric to be missed, the timeout is adjusted to help achieve the target .\n\n## Notes\n\nWhile the term \"North Star metric\" is explicitly mentioned in the context of `TARGET_VANITY_METRIC` for web performance , the codebase also defines various other metrics and priorities. For instance, the `react-mcp-server` tool includes goals for LCP, INP, and CLS, classifying them as good, needs-improvement, or poor . These are performance-related metrics, but `TARGET_VANITY_METRIC` is specifically highlighted as the \"North Star\" for throttling heuristics . The React reconciler also uses a lane model for scheduling and prioritizing updates, with different lanes representing various priority levels like `SyncLane`, `TransitionLanes`, and `IdleLane` . These are intern"}]}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"toolResult": [{"text": "al scheduling priorities rather than user-facing performance metrics.\n\nWiki pages you might want to explore:\n- [Lane-Based Scheduling and Priorities (facebook/react)](/wiki/facebook/react#4.4)\n- [Compiler Tooling and Playground (facebook/react)](/wiki/facebook/react#8.3)\n\nView this search on DeepWiki: https://deepwiki.com/search/what-is-a-north-star-metric_514fb260-82df-4b41-8dd7-ff69dff3d7da\n"}]}}}}
+{"label": "skill", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "skill", "event": {"messageStop": {"stopReason": "tool_result"}}}
+{"label": "skill", "event": {"messageStart": {"role": "assistant"}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "A"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " North"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Star"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " metric"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " is"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " a"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " key"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " performance"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " indicator"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " that"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " guides"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " optimization"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " efforts"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ","}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " such"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " as"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " `"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "TARGET"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "_"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "VA"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NITY"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "_"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "METRIC"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "`"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " in"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " the"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " `"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "facebook"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "/"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "react"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "`"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " code"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "base"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ","}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " which"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " aims"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " for"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " a"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Largest"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Content"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "ful"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " Paint"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " ("}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "L"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "CP"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ")"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " of"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " 2"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "5"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " seconds"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "."}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": " HOUSE"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "STYLE"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "OK"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "\n\nHAR"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "NESS"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "AGENT"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "-"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": "OK"}}}}
+{"label": "skill", "event": {"contentBlockDelta": {"contentBlockIndex": 0, "delta": {"text": ""}}}}
+{"label": "skill", "event": {"contentBlockStop": {"contentBlockIndex": 0}}}
+{"label": "skill", "event": {"messageStop": {"stopReason": "end_turn"}}}
+{"label": "skill", "event": {"metadata": {"usage": {"inputTokens": 6523, "outputTokens": 66, "totalTokens": 6589}, "metrics": {"latencyMs": 1024}}}}

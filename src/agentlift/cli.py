@@ -167,6 +167,58 @@ def print_bedrock_plan(plan) -> None:
     print(f"\nDeployable: {'yes' if plan.deployable else 'NO (fix errors above)'}")
 
 
+def print_harness_plan(plan, *, mode_reason: str = "") -> None:
+    """The Bedrock AgentCore *harness* plan: one MANAGED single agent (config-only,
+    no container, IAM-only deploy), Claude mapped to a regional inference profile
+    (native, not remapped), remote_mcp tools, the glob allowlist, and the env vars
+    a deploy populates from the local env. A PREVIEW shape -- see diagnostics."""
+    print(f"\nAgentCore Harness: {plan.display_name}  "
+          f"(name: {plan.harness_name}, region: {plan.region})")
+    if mode_reason:
+        print(f"  mode: harness  ({mode_reason})")
+    print(f"  model: {plan.folder_model} -> {plan.bedrock_model}")
+    if plan.instruction:
+        print(f"  systemPrompt: {len(plan.instruction)} char(s)")
+    for m in plan.mcp:
+        auth = (f"  auth->{', '.join(sorted(m.auth_env_vars.values()))}"
+                if m.auth_env_vars else "")
+        print(f"      mcp: {m.server}={m.url}{auth}")
+    if plan.builtin_tool_types:
+        print(f"      builtin tool types: {', '.join(plan.builtin_tool_types)}")
+    if plan.allowed_tools:
+        print(f"      allowedTools: {', '.join(plan.allowed_tools)}")
+    if plan.env_var_names:
+        print("\nHarness env vars the deploy will populate from your local env (MCP auth):")
+        for name in plan.env_var_names:
+            print(f"  - {name}")
+    print(f"\nSpec hash: {plan.spec_hash[:12]}")
+    print("Live-verified wire shape: "
+          + ("yes" if plan.live_verified else "no (PREVIEW -- provisional CreateHarness shape)"))
+    print()
+    print_diagnostics(plan.diagnostics)
+    print(f"\nDeployable: {'yes' if plan.deployable else 'NO (fix errors above)'}")
+
+
+def _resolve_bedrock_mode(project, args):
+    """Resolve the Bedrock primitive and its region from ``--mode`` / ``--bedrock-region``.
+
+    ``--mode auto`` defers to ``select_bedrock_mode`` (least-powerful-mode-that-
+    preserves-semantics, never a silent downgrade). The two primitives have
+    different default regions -- the managed harness is preview in a specific set
+    (default us-west-2), the runtime composition was verified in eu-north-1 -- so an
+    unset ``--bedrock-region`` resolves per mode; an explicit one always wins.
+    Returns ``(mode, region, reason)`` where ``reason`` explains an auto choice."""
+    from .bedrock_plan import DEFAULT_BEDROCK_REGION
+    from .harness_plan import DEFAULT_HARNESS_REGION, select_bedrock_mode
+    mode = getattr(args, "mode", "auto")
+    reason = ""
+    if mode == "auto":
+        mode, reason = select_bedrock_mode(project)
+    default_region = DEFAULT_HARNESS_REGION if mode == "harness" else DEFAULT_BEDROCK_REGION
+    region = getattr(args, "bedrock_region", None) or default_region
+    return mode, region, reason
+
+
 # --------------------------------------------------------------------------- #
 # commands
 # --------------------------------------------------------------------------- #
@@ -193,13 +245,26 @@ def cmd_plan(args) -> int:
             print_google_plan(plan)
         return 0 if plan.deployable else 1
     if target == "bedrock":
+        mode, region, reason = _resolve_bedrock_mode(project, args)
+        if mode == "harness":
+            from .harness_plan import build_harness_plan
+            plan = build_harness_plan(project, diags, region=region,
+                                      skip_unsupported=args.skip_unsupported)
+            if args.json:
+                print(json.dumps(plan.to_dict(), indent=2))
+            else:
+                print(f"Project: {project.root}  (layout: {project.layout})  "
+                      f"target: bedrock  mode: harness")
+                print_harness_plan(plan, mode_reason=reason)
+            return 0 if plan.deployable else 1
         from .bedrock_plan import build_bedrock_plan
-        plan = build_bedrock_plan(project, diags, region=args.bedrock_region,
+        plan = build_bedrock_plan(project, diags, region=region,
                                   skip_unsupported=args.skip_unsupported)
         if args.json:
             print(json.dumps(plan.to_dict(), indent=2))
         else:
-            print(f"Project: {project.root}  (layout: {project.layout})  target: bedrock")
+            print(f"Project: {project.root}  (layout: {project.layout})  "
+                  f"target: bedrock  mode: runtime" + (f"  ({reason})" if reason else ""))
             print_bedrock_plan(plan)
         return 0 if plan.deployable else 1
     plan = build_plan(project, diags, skip_unsupported=args.skip_unsupported)
@@ -279,20 +344,43 @@ def _cmd_deploy_google(args) -> int:
 
 
 def _cmd_deploy_bedrock(args) -> int:
-    """Bedrock AgentCore Runtime deploy.
+    """Bedrock AgentCore deploy -- two primitives behind ``--mode``.
 
-    Sharp, honest semantics (see bedrock_target.py): ``--build-only`` materializes
-    the deployable container artifact + a deploy runbook and exits 0; a bare
-    ``deploy --target bedrock`` refuses the hosted deploy (control-plane, not yet
-    live-verified -- Gate B), fires NO network call, writes NOTHING, and exits
-    non-zero pointing at ``--build-only``."""
-    from .bedrock_plan import build_bedrock_plan
-    from .bedrock_target import HostedDeployNotLiveVerified, deploy_bedrock
+    ``--mode auto`` (default) routes by ``select_bedrock_mode`` (a single skill-less
+    agent -> harness; anything multi-agent / subagent / skill-bearing -> runtime).
+
+      - **harness** (managed, config-only): RUNS a real (preview) CreateHarness /
+        UpdateHarness via boto3 + IAM -- create/update/skip from ``.agentlift-harness.json``,
+        no container. (See ``_cmd_deploy_harness``.)
+      - **runtime** (custom container): ``--build-only`` materializes the deployable
+        container artifact + runbook and exits 0; a bare deploy refuses the hosted
+        create (control-plane not live-verified -- Gate B), fires NO network call,
+        writes NOTHING, and exits non-zero pointing at ``--build-only``."""
     load_env(os.getcwd(), os.path.abspath(args.path))
     project, diags = parse_project(args.path, default_model=args.model)
-    plan = build_bedrock_plan(project, diags, region=args.bedrock_region,
+    mode, region, reason = _resolve_bedrock_mode(project, args)
+    if mode == "harness":
+        # While the harness wire shape has no committed receipt, the live preview
+        # create must be a *typed* opt-in (--mode harness), never the silent result
+        # of the `auto` default. plan/dry-run is unaffected; only deploy is gated.
+        from .harness_plan import harness_auto_deploy_allowed
+        requested = getattr(args, "mode", "auto")
+        if requested != "harness" and not harness_auto_deploy_allowed():
+            print(f"Project: {project.root}  (layout: {project.layout})  "
+                  f"target: bedrock  mode: harness  ({reason})")
+            print("\nauto selected Bedrock AgentCore Harness for this single-agent project, "
+                  "but harness live\ndeploy is still preview and not yet receipt-verified.")
+            print("  Pass --mode harness to opt into the live preview create, or "
+                  "--mode runtime --build-only\n  for the container artifact path.")
+            return 2
+        return _cmd_deploy_harness(args, project, region, reason)
+
+    from .bedrock_plan import build_bedrock_plan
+    from .bedrock_target import HostedDeployNotLiveVerified, deploy_bedrock
+    plan = build_bedrock_plan(project, diags, region=region,
                               skip_unsupported=args.skip_unsupported)
-    print(f"Project: {project.root}  (layout: {project.layout})  target: bedrock")
+    print(f"Project: {project.root}  (layout: {project.layout})  target: bedrock  mode: runtime"
+          + (f"  ({reason})" if reason else ""))
     print_bedrock_plan(plan)
     if not plan.deployable:
         print("\nNot building: fix the errors above (or pass --skip-unsupported to drop "
@@ -300,7 +388,7 @@ def _cmd_deploy_bedrock(args) -> int:
         return 1
 
     if args.build_only:
-        res = deploy_bedrock(project, region=args.bedrock_region,
+        res = deploy_bedrock(project, region=region,
                              skip_unsupported=args.skip_unsupported, build_only=True, log=print)
         print(f"\nBuilt container artifact (no deploy): {res.build_dir}")
         print(f"  next: read {os.path.join(res.build_dir, 'NOTES.txt')} for the build/push + "
@@ -309,15 +397,68 @@ def _cmd_deploy_bedrock(args) -> int:
 
     # bare deploy: refuse the hosted path (no network, no side effect)
     try:
-        deploy_bedrock(project, region=args.bedrock_region,
+        deploy_bedrock(project, region=region,
                        skip_unsupported=args.skip_unsupported, build_only=False)
     except HostedDeployNotLiveVerified as e:
         print("\nHosted deploy to Bedrock AgentCore Runtime is a PREVIEW (not yet live-verified):")
         print("  - Gate A: submit the Anthropic use-case form (Bedrock console -> Model access).")
         print("  - Gate B: AWS IAM creds + an AgentCore execution role (iam:PassRole) + ECR.")
         print(f"\n  {e}")
+        print("\n  (A single skill-less agent can deploy live today with --mode harness -- "
+              "managed, config-only, IAM-only.)")
         return 3
     return 0  # pragma: no cover - deploy_bedrock(build_only=False) always raises today
+
+
+def _cmd_deploy_harness(args, project, region, reason) -> int:
+    """Deploy to a managed AgentCore *harness* (config-only, IAM-only -- no container).
+
+    Unlike the runtime hosted create, this RUNS a real (preview) CreateHarness /
+    UpdateHarness: the live run is how the provisional wire shape earns its receipt.
+    ``--build-only`` is N/A (there is no container). The execution role comes from
+    ``$AGENTLIFT_BEDROCK_EXECUTION_ROLE_ARN`` (or the ``agentcore`` starter toolkit)."""
+    from .harness_plan import build_harness_plan
+    from .harness_target import (EXECUTION_ROLE_ENV, HarnessDeployFailed,
+                                 HarnessExecutionRoleRequired, deploy_harness)
+    plan = build_harness_plan(project, region=region, skip_unsupported=args.skip_unsupported)
+    print(f"Project: {project.root}  (layout: {project.layout})  target: bedrock  mode: harness")
+    print_harness_plan(plan, mode_reason=reason)
+    if not plan.deployable:
+        print("\nNot deploying: fix the errors above (or pass --skip-unsupported to drop "
+              "unsupported pieces; multi-agent / subagent / skill folders deploy with "
+              "--mode runtime, or --mode auto).")
+        return 1
+    if args.build_only:
+        print("\n--build-only is not applicable to the managed harness (config-only, no "
+              "container to build). Deploy it live (drop --build-only), or use "
+              "--mode runtime --build-only for the container artifact.")
+        return 2
+
+    role = os.environ.get(EXECUTION_ROLE_ENV)
+    if not args.yes:
+        if input("\nProceed with the (preview) harness deploy? [y/N] ").strip().lower() != "y":
+            print("aborted.")
+            return 1
+    print(f"Deploying to Amazon Bedrock AgentCore harness  (region={region})")
+    try:
+        res = deploy_harness(project, region=region, execution_role_arn=role,
+                             skip_unsupported=args.skip_unsupported, log=print)
+    except HarnessExecutionRoleRequired as e:
+        print(f"\nerror: {e}", file=sys.stderr)
+        return 2
+    except HarnessDeployFailed as e:
+        print(f"\nerror: harness deploy failed: {e}", file=sys.stderr)
+        return 3
+    verb = {"create": "Deployed", "update": "Updated", "skip": "Up to date"}[res.action]
+    print(f"\n{verb}. harness: {res.harness_arn or res.harness_id}  (status {res.status})")
+    if res.env_var_names and res.action != "skip":
+        print(f"  populated MCP auth header(s) from env: {', '.join(res.env_var_names)}")
+    if not res.live_verified:
+        print("  note: the harness wire shape is PREVIEW (provisional) -- this run helps "
+              "verify it (see the banner above).")
+    print("\nRun it:  agentlift run " + (project.agents[0].name if project.agents else "<agent>") +
+          ' --project "' + args.path + '" --task "your task here"  (data-plane InvokeHarness)')
+    return 0
 
 
 def cmd_deploy(args) -> int:
@@ -543,20 +684,22 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("plan", help="show the deterministic deploy plan (no network)")
     sp.add_argument("path"); sp.add_argument("--json", action="store_true")
     sp.add_argument("--target", default="anthropic", choices=["anthropic", "google", "bedrock"], help="which target's plan to show")
+    sp.add_argument("--mode", default="auto", choices=["auto", "harness", "runtime"], help="Bedrock primitive: harness (managed single agent) | runtime (custom container) | auto = least-powerful mode that preserves semantics")
     sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder map to this")
-    sp.add_argument("--bedrock-region", default="eu-north-1", help="AWS region for the bedrock target; Claude models map to that region's inference profile (native, not remapped)")
+    sp.add_argument("--bedrock-region", default=None, help="AWS region for the bedrock target; defaults to us-west-2 (harness preview) or eu-north-1 (runtime). Claude maps to that region's inference profile (native, not remapped)")
     add_common(sp); sp.set_defaults(func=cmd_plan)
 
     sp = sub.add_parser("diff", help="what a deploy would change (vs the lockfile)")
     sp.add_argument("path"); sp.add_argument("--remote", action="store_true", help="also check the live account for deleted objects")
     add_common(sp); sp.set_defaults(func=cmd_diff)
 
-    sp = sub.add_parser("deploy", help="deploy to a managed runtime (Anthropic, --target google; --target bedrock is build-only preview)")
+    sp = sub.add_parser("deploy", help="deploy to a managed runtime (Anthropic + --target google live; --target bedrock --mode harness live preview, --mode runtime build-only)")
     sp.add_argument("path"); sp.add_argument("--prune", action="store_true", help="archive superseded agent versions")
     sp.add_argument("--target", default="anthropic", choices=["anthropic", "google", "bedrock"], help="managed runtime to deploy to")
+    sp.add_argument("--mode", default="auto", choices=["auto", "harness", "runtime"], help="Bedrock primitive: harness (managed single agent, live preview) | runtime (custom container, build-only) | auto = least-powerful mode that preserves semantics")
     sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder are mapped to this")
-    sp.add_argument("--bedrock-region", default="eu-north-1", help="AWS region for the bedrock target; Claude models map to that region's inference profile (native)")
-    sp.add_argument("--build-only", action="store_true", help="build the deployable source package locally without deploying (google + bedrock)")
+    sp.add_argument("--bedrock-region", default=None, help="AWS region for the bedrock target; defaults to us-west-2 (harness preview) or eu-north-1 (runtime). Claude maps to that region's inference profile (native)")
+    sp.add_argument("--build-only", action="store_true", help="build the deployable source package locally without deploying (google + bedrock --mode runtime; N/A to the config-only harness)")
     sp.add_argument("--yes", "-y", action="store_true", help="skip confirmation"); add_common(sp); sp.set_defaults(func=cmd_deploy)
 
     sp = sub.add_parser("run", help="invoke a deployed agent (or --local)")

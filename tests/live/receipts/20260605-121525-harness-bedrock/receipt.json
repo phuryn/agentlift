@@ -1,0 +1,247 @@
+{
+  "provider": "bedrock-harness",
+  "when": "20260605-121525",
+  "fixture": "harness-single",
+  "primitive": "AgentCore Harness (managed, config-only single agent)",
+  "state": {
+    "provider": "bedrock-harness",
+    "fixture": "harness-single",
+    "when": "20260605-121409",
+    "deploy_seconds": 18.6,
+    "action": "create",
+    "harness_id": "agentlift_assistant-QUe11v5AEB",
+    "harness_arn": "arn:aws:bedrock-agentcore:us-east-1:****:harness/agentlift_assistant-QUe11v5AEB",
+    "region": "us-east-1",
+    "status": "READY",
+    "spec_hash": "c5782d0aab878b2dd15b17593666a8e20169469171e8784e34d3aecfcd1e0804",
+    "display_name": "agentlift-assistant",
+    "deploy_model": "us.amazon.nova-pro-v1:0",
+    "live_verified_at_deploy": true,
+    "plan": {
+      "harness_name": "agentlift_assistant",
+      "display_name": "agentlift-assistant",
+      "bedrock_model": "us.amazon.nova-pro-v1:0",
+      "instruction": "You are the Assistant \u2014 one managed AgentCore Harness agent (no subagents).\n\nTo answer reference questions you MUST use your tools rather than answering from\nmemory:\n- use the `docs` MCP server (DeepWiki) to read a repository's wiki structure and\n  ask questions about it, and\n- use `web_fetch` only to retrieve a specific URL when one is supplied.\n\nTrace tag: include the token HARNESS-AGENT-OK verbatim somewhere in your reply so\nthe live harness can confirm this agent produced the answer.",
+      "description": "A single managed agent that answers reference questions using a remote MCP server (DeepWiki), a built-in web fetch, and a house-style skill.",
+      "mcp": [
+        {
+          "server": "docs",
+          "url": "https://mcp.deepwiki.com/mcp",
+          "auth_env_vars": {}
+        }
+      ],
+      "builtin_tool_types": [
+        "agentcore_browser"
+      ],
+      "allowed_tools": [],
+      "skills": [
+        {
+          "name": "house-style",
+          "content_hash": "c0c73678ebe7182f5a324e6e21d00b67271580dd5629ab34697102d086557f9a"
+        }
+      ],
+      "env_var_names": [],
+      "region": "us-east-1",
+      "mode": "harness",
+      "spec_hash": "c5782d0aab878b2dd15b17593666a8e20169469171e8784e34d3aecfcd1e0804",
+      "live_verified": true,
+      "diagnostics": [
+        {
+          "level": "info",
+          "code": "bedrock.harness.preview",
+          "message": "AgentCore Harness is an AWS PREVIEW feature. agentlift's CreateHarness/InvokeHarness wire shape is live-verified (receipt 20260605-095014-harness-bedrock, Nova on us-east-1: create + agent + base-session sandbox + agentcore_browser EXERCISED). Two honest caveats: a remote_mcp tool is accepted + stored but the harness preview does not surface the MCP server's tools to the model (WIRED, not yet exercisable); and Claude inference runs in the harness but is gated by the per-account Anthropic use-case entitlement (Gate A), which is eventually-consistent.",
+          "where": ""
+        },
+        {
+          "level": "info",
+          "code": "bedrock.harness.skills_via_s3",
+          "message": "skill(s) house-style upload to the deploy S3 bucket ($AGENTLIFT_BEDROCK_S3_BUCKET) and attach via skills[].s3.uri; the harness execution role needs s3:ListBucket + s3:GetObject on that bucket (live-verified).",
+          "where": "assistant"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.mcp.tool_filter_unenforced",
+          "message": "MCP server 'docs' narrows its tools to read_wiki_structure, ask_question, but the harness preview does not enforce a per-tool MCP allowlist (a restrictive `allowedTools` suppresses MCP-tool surfacing entirely \u2014 live-observed). All of the server's tools surface on the harness; keep tool-restricted MCP on Anthropic / --mode runtime (`tool_filter`) if the restriction is load-bearing.",
+          "where": "assistant"
+        },
+        {
+          "level": "info",
+          "code": "bedrock.harness.builtin_mapped",
+          "message": "built-in web tool(s) web_fetch -> harness tool type agentcore_browser (AgentCore Browser; provisional until the live harness receipt).",
+          "where": "assistant"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.model.non_claude",
+          "message": "folder model 'us.amazon.nova-pro-v1:0' is not a Claude id; passing it through verbatim as a Bedrock model id (Bedrock also hosts Nova/Llama/Mistral, but verify the profile id exists in us-east-1).",
+          "where": "assistant"
+        }
+      ],
+      "deployable": true
+    },
+    "versions": {
+      "boto3": "1.43.22",
+      "botocore": "1.43.22",
+      "agentlift": "0.5.0"
+    }
+  },
+  "invocations": [
+    {
+      "prompt": "Use your shell tool to run exactly: echo HARNESS-SHELL-3C5F8A21-OK\nThen report the command's stdout verbatim and include the token HARNESS-AGENT-OK.",
+      "session_id": "agentlift-harness-verify-1-sandbox",
+      "error": null,
+      "tool_uses": [
+        {
+          "name": "shell",
+          "type": ""
+        }
+      ],
+      "usage": {
+        "inputTokens": 5796,
+        "outputTokens": 49,
+        "totalTokens": 5845
+      },
+      "final_text": "<thinking> I need to execute the provided shell command and report the stdout verbatim. </thinking>\n{\"stdout\": \"HARNESS-SHELL-3C5F8A21-OK\\n\", \"stderr\": \"\", \"exit_code\": 0}The stdout of the command `echo HARNESS-SHELL-3C5F8A21-OK` is `HARNESS-SHELL-3C5F8A21-OK`.\n\nHARNESS-AGENT-OK",
+      "label": "sandbox"
+    },
+    {
+      "prompt": "Use the `docs` MCP server (DeepWiki) to read the wiki structure of the facebook/react repository, then list two top-level sections. Use the MCP tool; do not answer from memory. Include the token HARNESS-AGENT-OK verbatim.",
+      "session_id": "agentlift-harness-verify-1-mcp000",
+      "error": null,
+      "tool_uses": [
+        {
+          "name": "docs_read_wiki_structure",
+          "type": ""
+        }
+      ],
+      "usage": {
+        "inputTokens": 6173,
+        "outputTokens": 32,
+        "totalTokens": 6205
+      },
+      "final_text": "<thinking> To complete the task, I need to use the `docs_read_wiki_structure` tool to fetch the wiki structure of the facebook/react repository. Once I have the structure, I will extract and list two top-level sections. </thinking>\nAvailable pages for facebook/react:\n\n- 1 Overview\n  - 1.1 Repository Structure and Packages\n- 2 Feature Flags System\n- 3 Build System and Package Distribution\n  - 3.1 Build Pipeline and Module Forking\n  - 3.2 Release Channels and Environment Forks\n- 4 React Reconciler\n  - 4.1 Fiber Architecture and Data Structures\n  - 4.2 Work Loop and Rendering Phases\n  - 4.3 React Hooks System\n  - 4.4 Lane-Based Scheduling and Priorities\n  - 4.5 Suspense, Error Boundaries, and Offscreen\n  - 4.6 Profiling and Performance Tracking\n- 5 Server-Side Rendering\n  - 5.1 React Fizz (Streaming SSR)\n  - 5.2 React Server Components (Flight)\n  - 5.3 Server Actions and Form Handling\n  - 5.4 Hydration System\n- 6 Platform Renderers\n  - 6.1 Host Configuration Abstraction\n  - 6.2 React DOM Implementation\n  - 6.3 React Native Renderers\n  - 6.4 Test Renderers\n- 7 Developer Tools\n  - 7.1 DevTools Backend Architecture\n  - 7.2 DevTools Frontend and Distribution\n- 8 React Compiler\n  - 8.1 Compiler Architecture and Pipeline\n  - 8.2 Compiler Validation and ESLint Integration\n  - 8.3 Compiler Tooling and Playground\n- 9 Testing Infrastructure\n  - 9.1 Jest Setup and Test Utilities\n  - 9.2 CI/CD and Release Process\n- 10 GlossaryThe two top-level sections of the facebook/react repository wiki are:\n\n1. Overview\n2. Feature Flags System\n\nHARNESS-AGENT-OK",
+      "label": "mcp"
+    },
+    {
+      "prompt": "Fetch the web page at https://httpbingo.org/base64/QUdFTlRMSUZULUhBUk5FU1MtN0IxRDRFOUEtQ0FOQVJZ and tell me, verbatim, the exact text shown on that page. Use a URL-retrieval tool; do not answer from memory. Include the token HARNESS-AGENT-OK verbatim.",
+      "session_id": "agentlift-harness-verify-1-fetch0",
+      "error": null,
+      "tool_uses": [
+        {
+          "name": "browser",
+          "type": ""
+        },
+        {
+          "name": "browser",
+          "type": ""
+        },
+        {
+          "name": "browser",
+          "type": ""
+        },
+        {
+          "name": "browser",
+          "type": ""
+        }
+      ],
+      "usage": {
+        "inputTokens": 6267,
+        "outputTokens": 36,
+        "totalTokens": 6303
+      },
+      "final_text": "<thinking> I need to fetch the web page at the provided URL to retrieve the exact text shown on the page. I will use the `web_fetch` tool to accomplish this. </thinking>\nSession 'fetch-page' not found<thinking> It appears that the session to fetch the web page was not initialized properly. I need to initialize a new session and then navigate to the URL to retrieve the page content. </thinking> Navigated to https://httpbingo.org/base64/QUdFTlRMSUZULUhBUk5FU1MtN0IxRDRFOUEtQ0FOQVJZ<thinking> The session has been initialized and the navigation to the URL has been successful. Now, I need to extract the text content from the page. </thinking> Text content: AGENTLIFT-HARNESS-7B1D4E9A-CANARYThe exact text shown on the page is: \"AGENTLIFT-HARNESS-7B1D4E9A-CANARY\"\n\nHARNESS-AGENT-OK",
+      "label": "fetch"
+    },
+    {
+      "prompt": "Consult and apply your house-style skill, then answer in one sentence: what is a North Star metric? Include the token HARNESS-AGENT-OK verbatim.",
+      "session_id": "agentlift-harness-verify-1-skill0",
+      "error": null,
+      "tool_uses": [
+        {
+          "name": "skills",
+          "type": ""
+        },
+        {
+          "name": "docs_ask_question",
+          "type": ""
+        }
+      ],
+      "usage": {
+        "inputTokens": 6523,
+        "outputTokens": 66,
+        "totalTokens": 6589
+      },
+      "final_text": "<thinking> I need to consult the house-style skill to ensure my response aligns with the team's writing style. Once I have loaded the skill, I will proceed to answer the user's question about a North Star metric. </thinking>\n# House style\n\nWhen you finalize ANY answer, append the exact token `HOUSESTYLE-OK` on its own line.\nThis proves the house-style skill was loaded (from S3 on the harness) and applied.\n\n---\nLocation: /home/.agents/skills/s3/house-style/SKILL.md<thinking> I have loaded the house-style skill and will now answer the user's question about a North Star metric, ensuring the response adheres to the house style. </thinking> A North Star metric, in the context of the `facebook/react` codebase, refers to a key performance indicator that guides optimization efforts, particularly in the area of web performance and user experience . Specifically, the `TARGET_VANITY_METRIC` is identified as a North Star metric, set to 2300 milliseconds, with the goal of achieving a Largest Contentful Paint (LCP) of 2.5 seconds .\n\n## Usage in Performance Optimization\n\nThe `TARGET_VANITY_METRIC` is used within the `revealCompletedBoundariesWithViewTransitions` function to adjust throttling heuristics during the rendering of Suspense boundaries . The purpose is to avoid throttling if doing so would allow the application to meet this target metric .\n\nThe logic checks the current time against `TARGET_VANITY_METRIC` and `FALLBACK_THROTTLE_MS` to determine the `msUntilTimeout` for a `setTimeout` call . If the current time is within a window that would cause the `TARGET_VANITY_METRIC` to be missed due to throttling, the throttle duration is shortened to prioritize hitting the target .\n\nSimilarly, in the `completeBoundary` function, the `TARGET_VANITY_METRIC` is used to calculate the `msUntilTimeout` for scheduling the flushing of a batch of completed boundaries . This ensures that even if the throttle would cause the metric to be missed, the timeout is adjusted to help achieve the target .\n\n## Notes\n\nWhile the term \"North Star metric\" is explicitly mentioned in the context of `TARGET_VANITY_METRIC` for web performance , the codebase also defines various other metrics and priorities. For instance, the `react-mcp-server` tool includes goals for LCP, INP, and CLS, classifying them as good, needs-improvement, or poor . These are performance-related metrics, but `TARGET_VANITY_METRIC` is specifically highlighted as the \"North Star\" for throttling heuristics . The React reconciler also uses a lane model for scheduling and prioritizing updates, with different lanes representing various priority levels like `SyncLane`, `TransitionLanes`, and `IdleLane` . These are internal scheduling priorities rather than user-facing performance metrics.\n\nWiki pages you might want to explore:\n- [Lane-Based Scheduling and Priorities (facebook/react)](/wiki/facebook/react#4.4)\n- [Compiler Tooling and Playground (facebook/react)](/wiki/facebook/react#8.3)\n\nView this search on DeepWiki: https://deepwiki.com/search/what-is-a-north-star-metric_514fb260-82df-4b41-8dd7-ff69dff3d7da\nA North Star metric is a key performance indicator that guides optimization efforts, such as the `TARGET_VANITY_METRIC` in the `facebook/react` codebase, which aims for a Largest Contentful Paint (LCP) of 2.5 seconds. HOUSESTYLE-OK\n\nHARNESS-AGENT-OK",
+      "label": "skill"
+    }
+  ],
+  "matrix": {
+    "tools_seen": [
+      "browser",
+      "docs_ask_question",
+      "docs_read_wiki_structure",
+      "shell",
+      "skills"
+    ],
+    "tool_types_seen": [],
+    "any_error": false,
+    "dimensions": {
+      "create": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "action": "create",
+          "status": "READY",
+          "spec_hash": "c5782d0aab878b2dd15b17593666a8e20169469171e8784e34d3aecfcd1e0804"
+        }
+      },
+      "agent": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "output_tokens": 66,
+          "trace_token": true
+        }
+      },
+      "sandbox": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "shell_tool_call": true,
+          "echo_nonce": true
+        }
+      },
+      "remote_mcp": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "tool_names": [
+            "browser",
+            "docs_ask_question",
+            "docs_read_wiki_structure",
+            "shell",
+            "skills"
+          ],
+          "tool_types": []
+        }
+      },
+      "skills": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "skills_tool_call": true,
+          "skill_marker": true
+        }
+      },
+      "web_fetch": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "browser_tool_call": true,
+          "canary_nonce_in_text": true
+        }
+      }
+    }
+  },
+  "note": "Live, billable. Not run in CI (AWS creds are not shared). The AWS account id is redacted to **** ; the bearer token is never used (control-plane is IAM/SigV4). States: PASS-EXERCISED (objective stream event), PASS-WIRED (in the create body, no runtime event), NOT-PROVEN, FAIL."
+}

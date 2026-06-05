@@ -21,10 +21,16 @@ src/*.egg-info/
 examples/**/.agentlift-lock.json
 tests/live/**/.agentlift-lock.json
 tests/live/**/.agentlift-google.json
+tests/live/**/.agentlift-harness.json
+tests/live/**/.agentlift-bedrock.json
 # live-harness operational state (deploy bookkeeping; points at real/short-lived
 # resources). The committed *receipts* are the evidence; this scratch is not.
 tests/live/receipts/_state-*.json
 tests/live/receipts/_preflight-*.json
+# the un-redacted harness ARN sidecar (carries the real AWS account id) and the
+# read-only inspection dump of a personal harness — operational, never committed.
+tests/live/receipts/_secret-*.json
+tests/live/receipts/_inspect-*.json
 
 # generated Google Agent Engine source package (rebuilt on every deploy)
 .agentlift-build/

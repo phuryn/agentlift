@@ -23,7 +23,9 @@ ever contacting the API:
 - skills are referenced as `@skill:<hash8>` — identical skills collapse to one upload
 - roster agents are referenced as `@agent:<name>`
 
-The planner also:
+The planner also (for the **Anthropic Managed Agents** target — `agent_toolset_20260401`,
+`mcp_toolset`, and `permission_policy` are Anthropic's API wire-shape names, not generic/AWS;
+the Bedrock and Google targets emit their own shapes):
 
 - maps the built-in tool allowlist to `agent_toolset_20260401` configs
 - maps `:ask` / `:allow` tool suffixes to each config's `permission_policy`
