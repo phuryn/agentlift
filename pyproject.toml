@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentlift"
-version = "0.6.0"
+version = "0.7.0"
 description = "Own your agent as a neutral folder; audit its portability, compile it to provider formats (Anthropic YAML / AWS Bedrock AgentCore / Google ADK), and deploy it live (Anthropic, AWS Bedrock AgentCore Harness, Google Agent Engine). Own the definition, rent the runtime."
 readme = "README.md"
 requires-python = ">=3.10"

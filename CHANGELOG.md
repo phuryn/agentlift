@@ -4,6 +4,50 @@ All notable changes to **agentlift** are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and versions match the published PyPI
 releases and git tags ([semantic versioning](https://semver.org/)).
 
+## [0.7.0] — 2026-06-05
+
+**AWS Bedrock AgentCore Runtime is now a live multi-agent hosted deploy** (Stage 2). Both
+AgentCore primitives are live-verified: the single-agent **Harness** (0.6.0) and now the
+custom-container **Runtime**. `--mode auto` routes a single agent → Harness and a multi-agent
+team → Runtime; mapping stays **Claude-native** (no remap), with wire-shape receipts on Nova
+because Claude inference on Bedrock is a one-time per-account entitlement (Gate A), not a code gap.
+
+### Added
+- **`--mode runtime` — live hosted multi-agent deploy.** `agentlift deploy --target bedrock
+  --mode runtime` builds the ARM64 Strands/AgentCore container, creates the ECR repo + logs in +
+  `docker buildx --platform linux/arm64 --push`, calls **`CreateAgentRuntime`** (PUBLIC network,
+  HTTP `serverProtocol`, IAM-only — no JWT authorizer), polls READY, writes
+  `.agentlift-bedrock.json`, and **`InvokeAgentRuntime`**. Gated by `_RUNTIME_LIVE_VERIFIED`
+  (now True) — a bare hosted create refused until a committed receipt.
+- **Subagent delegation live-proven on a Nova receipt** (`tests/live/receipts/20260605-134012-runtime-bedrock`):
+  a coordinator + 2 specialists where create + agent + **delegation** are all PASS-EXERCISED (the
+  coordinator's top-level trace named both specialists). A single-agent smoke
+  (`20260605-133821-runtime-bedrock`) separately got **remote MCP PASS-EXERCISED** (an objective
+  root-level `docs_read_wiki_structure` DeepWiki call).
+- **Top-level tool-call trace in the generated handler** — returns `{result, tool_calls?}` where
+  `tool_calls` is read from `AgentResult.metrics.tool_metrics` (fail-open: trace extraction never
+  breaks the invocation), so the deploy receipt can prove delegation objectively.
+- The `boto3` (`bedrock`) optional dependency now also covers the Runtime hosted deploy.
+
+### Changed
+- The bare `agentlift deploy --target bedrock --mode runtime` now **deploys live** instead of
+  refusing; `--build-only` still emits just the ARM64 container artifact (its `NOTES.txt` now
+  points at the live hosted-create path).
+- `.agentlift-bedrock.json` (the Runtime lock) is now live-writing (spec hash → create/update/skip).
+
+### Notes / honest boundaries
+- **The `/invocations` boundary.** `InvokeAgentRuntime` returns the container's app-defined JSON
+  body, not a tool-event stream. So subagent delegation and **root-level** skill/MCP calls are
+  objective (PASS-EXERCISED), while a specialist's **nested** skill/MCP calls don't cross the
+  boundary → PASS-WIRED + text-corroborated (the runtime analogue of the Google
+  `AgentTool`→`stream_query` grounding-metadata caveat).
+- **MCP per-tool-filter limitation narrowed.** The unenforced-`allowedTools` limitation applies only
+  to the **direct `remote_mcp` attachment** path; for AgentCore **Gateway**-fronted MCP, tool scoping
+  is enforced server-side at the Gateway/Policy layer (AWS-documented; agentlift has not yet
+  live-verified that path).
+- Runtime execution role needs: `bedrock-agentcore.amazonaws.com` trust (`aws:SourceAccount`
+  condition — not a region-locked `SourceArn`), ECR pull, `bedrock:InvokeModel`, CloudWatch Logs.
+
 ## [0.6.0] — 2026-06-05
 
 **AWS Bedrock AgentCore** joins the deploy targets, with two primitives behind `--mode`
