@@ -332,6 +332,49 @@ def test_generated_entrypoint_registered(examples_dir, monkeypatch, tmp_path):
 
 
 # --------------------------------------------------------------------------- #
+# deploy-receipt trace capture: _safe_tool_names reads AgentResult.metrics
+# .tool_metrics (top-level delegation + root tools) and is FAIL-OPEN -- it must
+# never break the invocation, so a bad/absent result yields ([], reason|None).
+# --------------------------------------------------------------------------- #
+class _FakeMetrics:
+    def __init__(self, names): self.tool_metrics = {n: object() for n in names}
+
+
+class _FakeResult:
+    def __init__(self, names): self.metrics = _FakeMetrics(names)
+
+
+class _BoomResult:
+    @property
+    def metrics(self): raise RuntimeError("no metrics on this strands version")
+
+
+def test_safe_tool_names_extracts_top_level_calls(examples_dir, monkeypatch, tmp_path):
+    ns, _ = _exec_generated(_team_plan(examples_dir), monkeypatch, tmp_path)
+    names, err = ns["_safe_tool_names"](_FakeResult(["tool_researcher", "tool_bug_finder", "skills"]))
+    assert names == ["skills", "tool_bug_finder", "tool_researcher"]   # sorted
+    assert err is None
+
+
+def test_safe_tool_names_fail_open(examples_dir, monkeypatch, tmp_path):
+    ns, _ = _exec_generated(_team_plan(examples_dir), monkeypatch, tmp_path)
+    # a result with no metrics (e.g. a plain string) -> empty, no error
+    assert ns["_safe_tool_names"]("just text") == ([], None)
+    # a result whose metrics access raises -> empty + a reason, never propagates
+    names, err = ns["_safe_tool_names"](_BoomResult())
+    assert names == [] and err and "RuntimeError" in err
+
+
+def test_handler_attaches_tool_calls_when_present(examples_dir, monkeypatch, tmp_path):
+    ns, _ = _exec_generated(_team_plan(examples_dir), monkeypatch, tmp_path)
+    # drive the handler with a root that returns a metrics-bearing result
+    monkeypatch.setitem(ns, "_build_lead_agent", lambda ctx: (lambda p: _FakeResult(["tool_researcher"])))
+    out = ns[HANDLER_SYMBOL]({"prompt": "hi"})
+    assert out["tool_calls"] == ["tool_researcher"]
+    assert "trace_error" not in out
+
+
+# --------------------------------------------------------------------------- #
 # REAL-framework exec: build the actual BedrockAgentCoreApp + check /ping.
 # Skipped unless strands + bedrock-agentcore are installed (offline-by-default).
 # --------------------------------------------------------------------------- #

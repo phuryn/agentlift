@@ -19,10 +19,10 @@ network. It:
   5. exposes ``invoke_harness`` (data-plane ``bedrock-agentcore``) for the
      live-verify step that earns the receipt.
 
-**Why this RUNS while the runtime hosted-create refuses.** ``bedrock_target`` *refuses*
-a hosted runtime create -- that path needs a Docker/ECR image build and a
-control-plane shape (``create_agent_runtime``) that is expensive to live-verify
-(Gate B). The harness create is config-only and IAM-only: minutes, no container.
+**Why this is the lighter of the two live paths.** ``bedrock_target``'s hosted
+runtime create needs a Docker/ECR image build and the ``create_agent_runtime``
+control-plane shape (Gate B) -- now live-verified too (``_RUNTIME_LIVE_VERIFIED``).
+The harness create is config-only and IAM-only: minutes, no container, no ECR.
 So agentlift *runs* it -- that live run is precisely how the wire shape earns its
 receipt -- but keeps the confirm-live-before-encoding rule honest with three
 guards: every plan carries the standing ``bedrock.harness.preview`` diagnostic,

@@ -60,6 +60,30 @@ _WEB_TOOLS = {"web_search", "web_fetch"}
 # verified; AgentCore Runtime is GA in 14 regions.
 DEFAULT_BEDROCK_REGION = "eu-north-1"
 
+# Whether agentlift's *hosted* Runtime create (`create_agent_runtime`) wire shape has a
+# committed live receipt. While False, `deploy_bedrock(build_only=False)` refuses the
+# hosted create (the build-only artifact is the shipped path) -- the same
+# confirm-live-before-encoding rule that gated the harness.
+#
+# True since 2026-06-05: a live multi-agent team (coordinator + 2 specialists) was built
+# to an ARM64 image, pushed to ECR, created as an AgentCore Runtime, and invoked on Nova
+# (us-east-1) -- create + agent + subagent DELEGATION all PASS-EXERCISED (the coordinator's
+# top-level tool_calls were ['bug_finder', 'researcher']). A single-agent smoke separately
+# got remote_mcp PASS-EXERCISED (an objective root-level `docs_read_wiki_structure` call).
+# Receipts: tests/live/receipts/20260605-134012-runtime-bedrock (team) +
+# 20260605-133821-runtime-bedrock (smoke). Nested specialist skill/MCP calls do NOT cross
+# the /invocations boundary -> PASS-WIRED (text-corroborated), an honest limitation.
+_RUNTIME_LIVE_VERIFIED = True
+
+
+def runtime_hosted_deploy_allowed() -> bool:
+    """Whether `deploy_bedrock(build_only=False)` may run the live hosted create.
+
+    Gated on a committed live receipt (`_RUNTIME_LIVE_VERIFIED`, now True): a bare hosted
+    deploy RUNS the create. If forced False, the deploy refuses and `--build-only` stays the
+    artifact path. A single reviewable source of truth, no second persisted flag."""
+    return _RUNTIME_LIVE_VERIFIED
+
 # Runtime source-package requirements. strands-agents is the compile target; the
 # bedrock-agentcore package provides BedrockAgentCoreApp (the /invocations+/ping
 # server contract). Floors: Strands' bearer-token-capable boto3 path needs

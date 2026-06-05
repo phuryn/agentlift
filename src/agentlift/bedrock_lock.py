@@ -8,13 +8,12 @@ changed, an ``update_agent_runtime`` (keeping the runtime id/ARN) when the spec
 changed, and a ``create_agent_runtime`` when there is no runtime yet or the
 target region moved.
 
-**Ready infrastructure, write-dead today.** The hosted deploy path
-(``create/update_agent_runtime``) is control-plane and needs AWS IAM + an
-execution role + ECR -- deferred until there is a live receipt (see
-``experiments/bedrock-composition/RESULTS.md``, Gate B). So nothing in the
-shipped CLI writes ``.agentlift-bedrock.json`` yet. This module exists, pure and
-offline-tested, so the create/update/skip policy is settled and the lock is
-ready the moment the live path lands -- not so that the live path can be faked.
+**Live since 2026-06-05.** The hosted deploy path (``create_agent_runtime``) is
+control-plane and needs AWS IAM + an execution role + ECR; it is now live-verified
+(see ``tests/live/receipts/*-runtime-bedrock``), so ``bedrock_target._hosted_deploy``
+writes ``.agentlift-bedrock.json`` after a successful create/update. The decision below
+stays a *pure* function of (lock, spec hash, region) -- the network lives only in the
+target -- so ``agentlift plan --target bedrock`` still shows exactly what a deploy would do.
 
 A region change forces a ``create``: the deployed model ids are *regional*
 inference profiles (``eu.anthropic.*`` vs ``us.anthropic.*``), so the same folder

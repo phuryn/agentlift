@@ -1,0 +1,222 @@
+{
+  "provider": "bedrock-runtime",
+  "when": "20260605-134012",
+  "fixture": "runtime-team",
+  "primitive": "AgentCore Runtime (custom ARM64 container, Strands agents-as-tools)",
+  "state": {
+    "provider": "bedrock-runtime",
+    "fixture": "runtime-team",
+    "when": "20260605-133941",
+    "deploy_seconds": 30.8,
+    "action": "create",
+    "agent_runtime_arn": "arn:aws:bedrock-agentcore:us-east-1:****:runtime/agentlift_lead-JE7k8U2QYj",
+    "region": "us-east-1",
+    "spec_hash": "d382f4ba6423ec4b4615b74c8fbc5014caef966e01365185b01addd127b4847a",
+    "display_name": "agentlift-lead",
+    "deploy_model": "us.amazon.nova-pro-v1:0",
+    "model_override": "us.amazon.nova-pro-v1:0",
+    "agents": [
+      "bug-finder",
+      "researcher",
+      "lead"
+    ],
+    "root": "lead",
+    "plan": {
+      "display_name": "agentlift-lead",
+      "root_agent": "lead",
+      "agents": [
+        {
+          "name": "bug-finder",
+          "safe_name": "bug_finder",
+          "folder_model": "us.amazon.nova-pro-v1:0",
+          "bedrock_model": "us.amazon.nova-pro-v1:0",
+          "instruction": "You are the Bug Finder specialist. Read the code you are given and report the\nsmallest one-line fix.\n\nBefore finalizing, consult your house-style skill and follow it.\n\nTrace tag: include the token RUNTIME-BUGFINDER-OK verbatim in your reply, so the\ncoordinator's relayed answer proves this specialist actually ran (delegation).",
+          "description": "Reads code and reports the smallest one-line bug, citing sources via the house-style skill.",
+          "mcp": [],
+          "skills": [
+            "house-style"
+          ],
+          "sub_agents": []
+        },
+        {
+          "name": "researcher",
+          "safe_name": "researcher",
+          "folder_model": "us.amazon.nova-pro-v1:0",
+          "bedrock_model": "us.amazon.nova-pro-v1:0",
+          "instruction": "You are the Researcher specialist.\n\nTo answer reference questions you MUST use the `docs` MCP server (DeepWiki) \u2014\nread the repository's wiki structure and ask questions about it \u2014 rather than\nanswering from memory.\n\nBefore finalizing, consult your house-style skill and follow it.\n\nTrace tag: include the token RUNTIME-RESEARCHER-OK verbatim in your reply, so the\ncoordinator's relayed answer proves this specialist actually ran (delegation).",
+          "description": "Answers open questions using the shared docs MCP server (DeepWiki). Always cites sources via the house-style skill.",
+          "mcp": [
+            {
+              "server": "docs",
+              "url": "https://mcp.deepwiki.com/mcp",
+              "tool_filter": [
+                "read_wiki_structure",
+                "ask_question"
+              ],
+              "auth_env_vars": {}
+            }
+          ],
+          "skills": [
+            "house-style"
+          ],
+          "sub_agents": []
+        },
+        {
+          "name": "lead",
+          "safe_name": "lead",
+          "folder_model": "us.amazon.nova-pro-v1:0",
+          "bedrock_model": "us.amazon.nova-pro-v1:0",
+          "instruction": "You are the Team Lead \u2014 the coordinator of a multi-agent AgentCore Runtime.\n\nYou have two specialist tools, one per teammate. You MUST delegate, never answer\nyourself:\n- send research / open questions to the `researcher`,\n- send code / bug questions to the `bug_finder`.\n\nAfter a specialist returns, relay its answer to the user VERBATIM \u2014 including any\ntokens or \"Sources:\" lines it produced. Do not paraphrase or strip tokens. If the\nuser's request needs both, call both and combine their verbatim outputs.\n\nTrace tag: include the token RUNTIME-LEAD-OK verbatim somewhere in your final reply.",
+          "description": "Coordinates the team - routes work to the researcher and the bug-finder, then synthesizes one answer.",
+          "mcp": [],
+          "skills": [],
+          "sub_agents": [
+            "researcher",
+            "bug-finder"
+          ]
+        }
+      ],
+      "skill_bundles": [
+        {
+          "name": "house-style",
+          "content_hash": "0bf18747dbbd53a5cf26ddc277f050f768f8d6e6361bae0781a4b34cda2aeb5d",
+          "files": [
+            "house-style/SKILL.md"
+          ],
+          "used_by": [
+            "bug-finder",
+            "researcher"
+          ]
+        }
+      ],
+      "requirements": [
+        "strands-agents>=1.42",
+        "bedrock-agentcore",
+        "boto3>=1.40"
+      ],
+      "env_var_names": [],
+      "region": "us-east-1",
+      "spec_hash": "d382f4ba6423ec4b4615b74c8fbc5014caef966e01365185b01addd127b4847a",
+      "diagnostics": [
+        {
+          "level": "warning",
+          "code": "bedrock.builtin.sandbox_planned",
+          "message": "built-in tool(s) read are not mapped in this Bedrock preview; planned via AgentCore Code Interpreter / shell-exec (these DO map on Bedrock, unlike Google -- pending a live receipt). The agent deploys without them (supply equivalents via a URL MCP server meanwhile).",
+          "where": "bug-finder"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.model.non_claude",
+          "message": "folder model 'us.amazon.nova-pro-v1:0' is not a Claude id; passing it through verbatim as a Bedrock model id (Bedrock also hosts Nova/Llama/Mistral, but verify the profile id exists in us-east-1).",
+          "where": "bug-finder"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.builtin.web_planned",
+          "message": "built-in web tool(s) web_fetch, web_search are not mapped in this Bedrock preview; planned via AgentCore Browser / a fetch tool. The agent deploys without them (supply equivalents via a URL MCP server meanwhile).",
+          "where": "lead"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.builtin.sandbox_planned",
+          "message": "built-in tool(s) bash, edit, glob, grep, read, write are not mapped in this Bedrock preview; planned via AgentCore Code Interpreter / shell-exec (these DO map on Bedrock, unlike Google -- pending a live receipt). The agent deploys without them (supply equivalents via a URL MCP server meanwhile).",
+          "where": "lead"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.model.non_claude",
+          "message": "folder model 'us.amazon.nova-pro-v1:0' is not a Claude id; passing it through verbatim as a Bedrock model id (Bedrock also hosts Nova/Llama/Mistral, but verify the profile id exists in us-east-1).",
+          "where": "lead"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.builtin.sandbox_planned",
+          "message": "built-in tool(s) read are not mapped in this Bedrock preview; planned via AgentCore Code Interpreter / shell-exec (these DO map on Bedrock, unlike Google -- pending a live receipt). The agent deploys without them (supply equivalents via a URL MCP server meanwhile).",
+          "where": "researcher"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.model.non_claude",
+          "message": "folder model 'us.amazon.nova-pro-v1:0' is not a Claude id; passing it through verbatim as a Bedrock model id (Bedrock also hosts Nova/Llama/Mistral, but verify the profile id exists in us-east-1).",
+          "where": "researcher"
+        }
+      ],
+      "deployable": true
+    },
+    "versions": {
+      "boto3": "1.43.22",
+      "botocore": "1.43.22",
+      "agentlift": "0.6.0"
+    }
+  },
+  "invocations": [
+    {
+      "prompt": "Two tasks. (1) Ask the researcher to use the docs MCP server (DeepWiki) to read the wiki structure of facebook/react and list two top-level sections. (2) Ask the bug_finder to find the one-line bug in: def add(a, b): return a - b\nDelegate BOTH, then combine their answers verbatim (keep every token they emit).",
+      "session_id": "agentlift-runtime-verify-session-team",
+      "error": null,
+      "final_text": "The two top-level sections of the Facebook React repository's wiki are:\n1. Overview\n2. Feature Flags System\n\nThe bug in the code is that the function is subtracting instead of adding. The fix is to change the `-` to a `+`.\n\n```python\ndef add(a, b): return a + b\n```\n\nRUNTIME-LEAD-OK\n",
+      "tool_calls": [
+        "bug_finder",
+        "researcher"
+      ],
+      "trace_error": null,
+      "label": "team"
+    }
+  ],
+  "matrix": {
+    "fixture": "team",
+    "tool_calls": [
+      "bug_finder",
+      "researcher"
+    ],
+    "any_error": false,
+    "dimensions": {
+      "create": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "action": "create",
+          "spec_hash": "d382f4ba6423ec4b4615b74c8fbc5014caef966e01365185b01addd127b4847a"
+        }
+      },
+      "agent": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "has_text": true,
+          "trace_error": null
+        }
+      },
+      "subagents": {
+        "state": "PASS-EXERCISED",
+        "reason": "coordinator delegated (top-level tool call) and/or a specialist-only marker was relayed",
+        "evidence": {
+          "tool_calls": [
+            "bug_finder",
+            "researcher"
+          ],
+          "delegation_tool_call": true,
+          "researcher_marker": false,
+          "bugfinder_marker": false
+        }
+      },
+      "skills": {
+        "state": "PASS-WIRED",
+        "reason": "skill bundle embedded + loaded; not consulted this run",
+        "evidence": {
+          "skill_tool_call": false,
+          "skill_marker": false
+        }
+      },
+      "remote_mcp": {
+        "state": "PASS-WIRED",
+        "reason": "MCP client wired into the specialist (streamable-HTTP + tool_filter); nested call does not cross the /invocations boundary -- TEXT-CORROBORATED by relayed DeepWiki content (not an objective tool event)",
+        "evidence": {
+          "mcp_tool_call": false,
+          "text_corroborated": true
+        }
+      }
+    }
+  },
+  "note": "Live, billable. Not run in CI (AWS creds are not shared). Account id + ECR registry redacted to **** ; the bearer token is never used (control plane is IAM/SigV4; model inference uses the role). States: PASS-EXERCISED (objective: control-plane create, or a top-level tool_calls entry), PASS-WIRED (in the build/recipe; nested tool calls do NOT cross the /invocations boundary -- text-corroborated where noted), NOT-PROVEN, FAIL."
+}

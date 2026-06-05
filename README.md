@@ -125,15 +125,17 @@ rates portability per provider *before* you deploy; the table below is what agen
 | Runtime | Deploy status | Model | Notes |
 |---|---|---|---|
 | **Anthropic** Managed Agents | ✅ Live — reference target, fullest mapping | Claude (native) | skills · MCP · `:ask` · coordinator |
-| **AWS** Bedrock AgentCore | ✅ **Live** — single-agent deploy via the managed **Harness** (agent · skills · MCP · sandbox · browser, **6/6 [live-verified](docs/tested-platforms.md#amazon-bedrock-agentcore-runtime--harness)**); the AWS Harness feature is in public preview | Claude (**native, no remap**) | multi-agent → build-only **Runtime** container ([deploy-bedrock.md](docs/deploy-bedrock.md)) |
+| **AWS** Bedrock AgentCore | ✅ **Live** — **both primitives**: managed **Harness** (single agent · skills · MCP · sandbox · browser, **6/6 [live-verified](docs/tested-platforms.md#amazon-bedrock-agentcore-runtime--harness)**) and custom-container **Runtime** (multi-agent; **subagent delegation [live-verified](docs/tested-platforms.md#amazon-bedrock-agentcore-runtime--harness)**); the AWS AgentCore feature is in public preview | Claude (**native, no remap**) | `--mode auto` routes single→Harness, team→Runtime ([deploy-bedrock.md](docs/deploy-bedrock.md)) |
 | **Google** Vertex AI Agent Engine | 🟡 Live (preview) | Claude → Gemini | skills · MCP · web tools; [deploy-google.md](docs/deploy-google.md) |
 | **OpenAI** Agents SDK | 📦 Export / self-host | `gpt-*` | `as_tool` composition; no hosted-deploy path |
 
 Each runtime captures the agent differently (Anthropic YAML, a Strands/AgentCore container, ADK
 Python, an Agents SDK script) — the full cell-by-cell map is
 [docs/provider-matrix.md](docs/provider-matrix.md). **Read the tier before assuming parity:**
-Google is preview, and the AWS Harness is **single-agent** — a multi-agent *team* (subagents +
-per-agent skill/MCP scoping) compiles to the build-only **Runtime** container instead.
+Google is preview; on AWS a single agent deploys to the **Harness** and a multi-agent *team*
+deploys to the custom-container **Runtime** (both live) — and the Runtime's *nested* specialist
+skill/MCP calls are wired + output-corroborated, not independently exercised (the `/invocations`
+response is the container's JSON body, not a tool-event stream).
 
 ## Proof, not assertion
 
@@ -143,11 +145,17 @@ agentlift's claims are pinned by tests and committed live receipts, not prose:
   with all six portability dimensions (agents · subagents · shared/individual MCP ·
   shared/individual skill) **EXERCISED server-side** (committed receipts under
   [`tests/live/receipts/`](tests/live/receipts/)).
-- **AWS Bedrock Harness — live-verified, 6/6** (single agent): a committed Nova receipt shows
-  `CreateHarness → READY` then `InvokeHarness` exercising **agent + base-session sandbox + remote
-  MCP + S3-loaded skill + `agentcore_browser`** — agentlift's full single-agent deploy, end to
-  end. (The AgentCore Harness feature is in AWS public preview; Claude inference runs but is
-  Gate-A-gated, so the wire-shape receipt is on Nova.) Evidence: [docs/tested-platforms.md](docs/tested-platforms.md).
+- **AWS Bedrock AgentCore — both primitives live-verified** (committed Nova receipts):
+  - **Harness, 6/6** (single agent): `CreateHarness → READY` then `InvokeHarness` exercising
+    **agent + base-session sandbox + remote MCP + S3-loaded skill + `agentcore_browser`**.
+  - **Runtime, multi-agent** (the headline): a real team (coordinator + 2 specialists) built to an
+    ARM64 image → ECR → `CreateAgentRuntime → READY` → `InvokeAgentRuntime`, with **subagent
+    DELEGATION exercised** (the coordinator's top-level trace named both specialists); a single-agent
+    smoke separately exercised a root-level MCP call. Nested specialist skill/MCP are wired +
+    text-corroborated (the `/invocations` body isn't a tool-event stream).
+  - Model mapping stays **Claude-native**; the receipts run on **Nova** to prove the control plane,
+    container, invocation path, and delegation while Claude-on-Bedrock access is account-gated (a
+    one-time entitlement, not a code gap). Evidence: [docs/tested-platforms.md](docs/tested-platforms.md).
 - **Managed vs local benchmark** ([benchmarks/results.md](benchmarks/results.md),
   `claude-haiku-4-5`):
 
@@ -202,13 +210,16 @@ Each is surfaced as a `agentlift plan` diagnostic, never a silent surprise — f
 - **Remote MCP only** — local `stdio` servers (`npx …`) can't be deployed; host behind HTTPS.
 - **No inline MCP auth on Anthropic** (Bedrock + Google carry it via runtime env vars).
 - **Knowledge files are inlined** into the system prompt (no persistent FS in the sandbox).
-- **Maturity varies** — Anthropic is live/full; the AWS **Harness** is a live single-agent deploy (the AgentCore feature is in AWS preview; multi-agent → build-only Runtime); Google is live preview; OpenAI is export-only.
+- **Maturity varies** — Anthropic is live/full; AWS is live on **both** AgentCore primitives (Harness single-agent + Runtime multi-agent; the AgentCore feature is in AWS preview); Google is live preview; OpenAI is export-only.
+- **Runtime nested-tool visibility** — on the AWS Runtime, subagent delegation is objectively traced, but a *specialist's* internal skill/MCP calls don't cross the `/invocations` boundary (wired + output-corroborated, not independently exercised).
 
 ## Roadmap
 
-Current focus: turn the AWS Bedrock **Runtime** `--build-only` artifact into a full hosted
-deploy (Gate B: IAM + ECR + role), and a self-hostable `openai-chatkit` export. Per-provider
-gaps and status live in their deploy docs and [docs/provider-matrix.md](docs/provider-matrix.md).
+Current focus: a **same-Claude-brain** AWS receipt (Gate A: the one-time Anthropic
+use-case entitlement — the hosted Runtime + Harness are already live-proven on Nova), surfacing
+the Runtime's nested specialist tool calls past the `/invocations` boundary, and a self-hostable
+`openai-chatkit` export. Per-provider gaps and status live in their deploy docs and
+[docs/provider-matrix.md](docs/provider-matrix.md).
 
 ## License
 

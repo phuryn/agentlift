@@ -2,23 +2,24 @@
 
 What "I ran it across the targets" actually means, with the configuration, the results, and
 the console/docs links for each managed-agent platform. **Two targets are tested as a live
-hosted deploy** (Anthropic, Google); **AWS Bedrock** is tested two ways — the managed
-**Harness** is a **live single-agent deploy, verified by a committed Nova receipt** (create +
-agent + base-session sandbox + `agentcore_browser` EXERCISED), and the custom-container
-**Runtime** is build-only by design plus a **live Strands composition** (bearer-token model
-inference on Nova); **OpenAI** is tested as the **agent-as-tool composition** (it has no
-code-define + host path, so there is nothing to "deploy" — see the audit).
+hosted deploy** (Anthropic, Google); **AWS Bedrock** is now tested two ways, **both live** —
+the managed **Harness** is a **live single-agent deploy, verified by a committed Nova receipt**
+(create + agent + base-session sandbox + `agentcore_browser` EXERCISED), and the custom-container
+**Runtime** is a **live hosted multi-agent deploy, verified by two committed Nova receipts**
+(container → ECR → `CreateAgentRuntime` → READY → `InvokeAgentRuntime`, with objective
+coordinator→subagents delegation EXERCISED); **OpenAI** is tested as the **agent-as-tool
+composition** (it has no code-define + host path, so there is nothing to "deploy" — see the audit).
 
 | Platform | What was tested | How | Result |
 |---|---|---|---|
 | **Anthropic** Managed Agents | live deploy + run + graded output; the 6-dimension coverage matrix | `agentlift deploy` → `agents.create`, run a session, LLM-grade | ✅ `tests/live/` + `benchmarks/` (managed vs local, 100% pass); coverage matrix **6/6 dimensions exercised** (native delegation event, both MCP servers, both skill markers) |
-| **AWS** Bedrock AgentCore (Harness + Runtime) | managed Harness single-agent **live deploy + invoke, 6/6** (committed receipt); live coordinator→subagent→tool composition (bearer token, local); compiled Runtime container artifact | `agentlift deploy --target bedrock --mode harness` then InvokeHarness; `python bedrock_strands_subagents.py` (live Bedrock inference); `agentlift deploy --target bedrock --mode runtime --build-only` | ✅ **Harness 6/6 EXERCISED live** (receipt `20260605-121525`, Nova: create + agent + base-session sandbox `shell` + remote MCP `docs_read_wiki_structure` + S3-loaded skill + `agentcore_browser`; Claude-invoke Gate-A-gated; AWS Harness feature in preview). Strands multi-agent composition **exercised live** locally (agents-as-tools + deterministic tool, Nova); Runtime **hosted** create stays build-only (Gate B/IAM) — multi-agent live is a fast-follow |
+| **AWS** Bedrock AgentCore (Harness + Runtime) | managed Harness single-agent **live deploy + invoke, 6/6** (committed receipt); custom-container Runtime **live hosted multi-agent deploy + invoke** (two committed receipts) | `agentlift deploy --target bedrock --mode harness` then InvokeHarness; `agentlift deploy --target bedrock --mode runtime` (container → ECR → `CreateAgentRuntime` → `InvokeAgentRuntime`) | ✅ **Harness 6/6 EXERCISED live** (receipt `20260605-121525`, Nova: create + agent + base-session sandbox `shell` + remote MCP `docs_read_wiki_structure` + S3-loaded skill + `agentcore_browser`; Claude-invoke Gate-A-gated; AWS Harness feature in preview). ✅ **Runtime hosted multi-agent EXERCISED live** (receipts `20260605-134012` team + `20260605-133821` smoke, Nova us-east-1: coordinator→**both subagents** delegation + root-level remote MCP exercised server-side). Both primitives map Claude **native** (no remap); same-Claude-brain receipt pending Gate A |
 | **Google** Vertex AI Agent Engine | live deploy **+ query** of a coordinator + 2 subagents across **all 6 portability dimensions** | `agentlift deploy --target google` → ADK `sub_agents` / `McpToolset` / embedded skills → `agent_engines.create()`, then query the engine | ✅ live `reasoningEngine`; **6/6 dimensions exercised server-side** (`transfer_to_agent`, MCP tool calls, `load_skill`) |
 | **OpenAI** Agents SDK | coordinator delegates to a subagent **as a tool** | `researcher.as_tool()`, run with `Runner.run` | ✅ trace `function_call ask_researcher` (in-process loop) |
 
 The composition pattern is the same across all four; what differs is **where the
-orchestration loop runs** — the provider's runtime (Anthropic, Google), the AgentCore
-Runtime once hosted (AWS), or your app (OpenAI). See
+orchestration loop runs** — the provider's runtime (Anthropic, Google), the hosted AgentCore
+Runtime (AWS), or your app (OpenAI). See
 [`experiments/subagent-composition/RESULTS.md`](../experiments/subagent-composition/RESULTS.md)
 and [`experiments/bedrock-composition/RESULTS.md`](../experiments/bedrock-composition/RESULTS.md).
 
@@ -39,16 +40,17 @@ classified by what the runtime *actually did* at run time:
 > delegation event, not a completed worker round-trip inside the coordinator's one-shot response.
 >
 > **Why this matrix is two-provider (no AWS column).** It records what ran inside a *hosted*
-> deploy of **this** fixture — a coordinator over two subagents with shared + private skills.
-> Neither Bedrock primitive can host *that* fixture as an exercised 6/6 today: the custom-container
-> **Runtime** is **build-only** (the hosted create is refused until live-verified — see
-> [deploy-bedrock.md](deploy-bedrock.md)), and the managed **Harness** deploys live but is a
-> **single agent** — it has no subagents and uploads no skills, so the multi-agent fixture routes
-> away from it to the Runtime. (Its own live single-agent deploy *is* receipt-verified — but only
-> proves the single-agent cells: one agent + base-session sandbox + `agentcore_browser`, not
-> subagents or cross-agent skills.) Retrofitting an AWS column with caveats would weaken the
-> evidence. Bedrock's live proofs are the **Harness** receipt and the **Strands composition**
-> receipt, called out [in their own section below](#amazon-bedrock-agentcore-runtime--harness).
+> deploy of **this exact fixture** — a coordinator over two subagents with shared + private skills.
+> Bedrock now **hosts a multi-agent team live** (the custom-container **Runtime** is no longer
+> build-only — `CreateAgentRuntime` → `InvokeAgentRuntime` is receipt-verified, see
+> [deploy-bedrock.md](deploy-bedrock.md)), and the managed **Harness** deploys a live **single
+> agent**. But the AWS receipts run their **own** team fixture, not *this* one, and the
+> `/invocations` boundary returns the container's JSON body rather than an event stream, so only
+> the **coordinator's top-level** delegation/tool calls cross as objective events (PASS-EXERCISED);
+> a subagent's *nested* skill/MCP calls stay text-corroborated (PASS-WIRED). Mapping that onto this
+> fixture's six per-cell `EXERCISED` claims one-for-one would overstate the AWS evidence, so AWS
+> keeps its own section. Bedrock's live proofs are the **Runtime** receipts (team + smoke) and the
+> **Harness** receipt, called out [in their own section below](#amazon-bedrock-agentcore-runtime--harness).
 
 | Dimension | Anthropic (reference) | Google (preview) |
 |---|---|---|
@@ -114,21 +116,27 @@ runtimes. Google is unaffected (it loads skills via a SkillToolset, independent 
 
 ## Amazon Bedrock AgentCore (Runtime + Harness)
 
-Bedrock has **two deploy primitives** behind `--mode`, at different maturities. Two live proofs
-on this page: the managed **Harness** (config-only single agent) **deploys + invokes live**, now
-verified by a committed Nova receipt; and the **Strands composition** (the Runtime's brain), run
-locally against Bedrock inference. The Runtime's *hosted* create stays build-only by design.
+Bedrock has **two deploy primitives** behind `--mode`, **both now live-verified by committed Nova
+receipts**: the managed **Harness** (config-only single agent) **deploys + invokes live**, and the
+custom-container **Runtime** (multi-agent) **builds → pushes to ECR → `CreateAgentRuntime` → polls
+READY → `InvokeAgentRuntime`**, with the coordinator's delegation to **both** subagents exercised
+server-side. The earlier local **Strands composition** proof (the Runtime's brain, run against
+Bedrock inference) still stands as a third corroborating data point.
 
 - **Config:** the [`experiments/bedrock-composition`](../experiments/bedrock-composition/)
   script — a `coordinator` agent (Bedrock model) that delegates one factual question to a
   `researcher` specialist (the Strands **agents-as-tools** idiom = a sub-agent) and calls a
   deterministic `population_lookup` `@tool`. Run **locally** against Bedrock model inference,
   authenticated solely by `AWS_BEARER_TOKEN_BEDROCK` (no IAM, no hosted runtime).
-- **How:** `python bedrock_strands_subagents.py` (live inference) for the composition proof;
-  `agentlift deploy --target bedrock --mode runtime --build-only` for the deployable Runtime
-  container artifact (Strands package + ARM64 Dockerfile + `NOTES.txt` runbook);
-  `agentlift deploy --target bedrock --mode harness` for the managed single-agent live deploy
-  (IAM + an execution role, no container — wire shape verified by the committed Nova receipt).
+- **How:** `agentlift deploy --target bedrock --mode runtime` for the hosted multi-agent live
+  deploy — agentlift builds the ARM64 container (Strands package + ARM64 Dockerfile + `NOTES.txt`
+  runbook), creates/logs-in to the ECR repo and pushes it (`docker buildx --platform linux/arm64
+  --push`), then `CreateAgentRuntime` (networkMode=`PUBLIC`, serverProtocol=`HTTP`, IAM-only — no
+  JWT authorizer), polls READY, writes `.agentlift-bedrock.json`, and `InvokeAgentRuntime`s it
+  (`--build-only` still stops at the container artifact). `agentlift deploy --target bedrock --mode
+  harness` for the managed single-agent live deploy (IAM + an execution role, no container — wire
+  shape verified by the committed Nova receipt). `python bedrock_strands_subagents.py` (live
+  inference) for the original local composition proof.
 - **Models:** Claude is **native** on Bedrock — a folder's `claude-haiku-4-5` maps to its
   regional inference profile `eu.anthropic.claude-haiku-4-5-20251001-v1:0` (in `eu-north-1`),
   **no Gemini-style remap**. This is the headline portability story — *as a mapping fact*: the
@@ -136,10 +144,10 @@ locally against Bedrock inference. The Runtime's *hosted* create stays build-onl
   runs, no substitution. The end-to-end *live* same-Claude composition receipt is still
   **pending stable Gate A** (the composition itself is live-proven on Nova — see the proof
   points below).
-- **Orchestration loop:** **your process** today (local inference); the *same* composition
-  runs as **one** AgentCore Runtime once hosted (so Bedrock subagents classify `emulated`,
-  exactly like Google). The Harness runs a **single** agent server-side — no in-runtime
-  delegation — so it is the path for single-agent folders, not the composition.
+- **Orchestration loop:** **hosted** for the Runtime — the whole multi-agent composition runs as
+  **one** AgentCore Runtime container server-side (so Bedrock subagents classify `emulated`,
+  exactly like Google), proven by the receipts below. The Harness runs a **single** agent
+  server-side — no in-runtime delegation — so it is the path for single-agent folders, not a team.
 
 **Proof points (honest status, classified like the matrix above):**
 
@@ -147,11 +155,11 @@ locally against Bedrock inference. The Runtime's *hosted* create stays build-onl
 |---|---|
 | Strands package generation (Runtime) | ✅ offline-tested ([`tests/test_bedrock_*`](../tests/)) |
 | Harness plan + codegen + lock (config-only single agent) | ✅ offline-tested ([`tests/test_harness_*`](../tests/), [`tests/test_cli_harness.py`](../tests/test_cli_harness.py)) |
-| AgentCore Runtime container artifact | ✅ build-only path shipped (`deploy --target bedrock --mode runtime --build-only`) |
+| AgentCore Runtime container artifact | ✅ build path shipped (`--mode runtime --build-only` stops here; a full `--mode runtime` deploys it) |
 | Agents-as-tools composition (coordinator → subagent + deterministic tool) | ✅ **EXERCISED live** — objective tool-call trace, on Amazon Nova Pro |
-| Claude model mapping (both primitives) | ✅ native Bedrock Claude id supported; **no remap** |
-| Claude composition receipt (same brain on AWS) | ⏳ **Gate-A-gated** — Claude *does* run in the live Harness (it answered `INVOKE-OK`), but the per-account Anthropic use-case entitlement (Gate A) is eventually-consistent and flapped back to `ResourceNotFoundException` minutes later; the wire-shape receipt is on Nova (model-agnostic) |
-| Hosted AgentCore **Runtime** create / update | 🚧 **build-only by design** — refused until the control-plane wire shape is live-verified (Gate B/IAM) |
+| Claude model mapping (both primitives) | ✅ native Bedrock Claude id supported; **no remap** (non-Claude like `us.amazon.nova-pro-v1:0` passes through verbatim) |
+| Claude composition receipt (same brain on AWS) | ⏳ **Gate-A-gated** — Claude *does* run live (it answered `INVOKE-OK` in the Harness), but the per-account Anthropic use-case entitlement (Gate A) is eventually-consistent and flapped back to `ResourceNotFoundException` minutes later; the wire-shape receipts are on Nova (model-agnostic). A same-Claude-brain receipt is pending that entitlement — **not a code gap** |
+| Hosted AgentCore **Runtime** create / invoke (agentlift pipeline) | ✅ **EXERCISED live** — `CreateAgentRuntime` → READY → `InvokeAgentRuntime`, multi-agent team, two committed Nova receipts ([see below](#runtime-receipts-team--smoke)) |
 | Managed **Harness** live single-agent deploy (agentlift pipeline) | ✅ **6/6 EXERCISED live** (receipt [`20260605-121525-harness-bedrock`](../tests/live/receipts/)) — `CreateHarness` → READY, then `InvokeHarness`: agent (Nova) + base-session sandbox (`shell`) + remote MCP (`docs_read_wiki_structure`, surfaced as `<server>_<tool>`) + S3-loaded skill (`skills[].s3.uri`) + `agentcore_browser`, all server-side. (AWS Harness feature in preview; per-tool MCP `allowedTools` narrowing not enforced in preview.) |
 
 The composition receipt:
@@ -174,6 +182,53 @@ The composition ran on **Nova Pro** because Gate A flapped at capture time; the 
 separately verified answerable (a clean `BEDROCK_OK` via `converse`). Full write-up + the two
 gates: [`experiments/bedrock-composition/RESULTS.md`](../experiments/bedrock-composition/RESULTS.md)
 and [`docs/deploy-bedrock.md`](deploy-bedrock.md).
+
+### Runtime receipts (team + smoke)
+
+The hosted **Runtime** is now live-verified by **two committed receipts** (Amazon Nova Pro,
+region `us-east-1`), classified with the same four states the coverage matrix uses
+(`PASS-EXERCISED` = an objective runtime event proved it · `PASS-WIRED` = configured + deployed,
+no event crossed the boundary this run · `NOT-PROVEN` = wired but no signal · `FAIL`). The
+pipeline for both: agentlift builds the ARM64 container → pushes to ECR → `CreateAgentRuntime`
+(networkMode=`PUBLIC`, serverProtocol=`HTTP`, IAM-only, no JWT authorizer) → polls READY → writes
+`.agentlift-bedrock.json` → `InvokeAgentRuntime`.
+
+**One honest boundary caveat (the runtime analogue of the Google `AgentTool` → `stream_query`
+metadata caveat above):** `InvokeAgentRuntime` returns the container's **app-defined JSON body**,
+not an event stream. agentlift's handler returns `{result, tool_calls?}`, where `tool_calls` is the
+**coordinator's top-level** trace (`AgentResult.metrics.tool_metrics`, fail-open). So
+coordinator/root tool calls cross as objective events (`PASS-EXERCISED`); a **nested specialist's**
+skill/MCP calls do **not** cross the boundary, so they stay `PASS-WIRED` + text-corroborated.
+
+**Receipt [`20260605-134012-runtime-bedrock`](../tests/live/receipts/) — TEAM (the headline):** a
+coordinator over two specialists (a `researcher` + a `bug-finder`).
+
+| Dimension | Status |
+|---|---|
+| create (`CreateAgentRuntime` → READY) | ✅ PASS-EXERCISED |
+| agent (root invoke returned a fused answer) | ✅ PASS-EXERCISED |
+| **subagents** | ✅ PASS-EXERCISED — the coordinator's top-level trace `tool_calls` was `['bug_finder', 'researcher']`: objective delegation to **both** specialists. The final answer fused react wiki sections from the researcher **and** the bug fix from the bug-finder |
+| skills | 🟡 PASS-WIRED — embedded in the source package; nested in a specialist, so no event crossed the `/invocations` boundary |
+| remote MCP | 🟡 PASS-WIRED — nested in a specialist; text-corroborated by the real react content in the fused answer |
+
+Nothing `FAIL`ed.
+
+**Receipt [`20260605-133821-runtime-bedrock`](../tests/live/receipts/) — SMOKE (single agent):**
+validates the deployment shape **and** root-level trace capture.
+
+| Dimension | Status |
+|---|---|
+| create (`CreateAgentRuntime` → READY) | ✅ PASS-EXERCISED |
+| agent (root invoke) | ✅ PASS-EXERCISED |
+| **remote MCP** | ✅ PASS-EXERCISED — an objective **root-level** `docs_read_wiki_structure` DeepWiki call returning real react wiki sections ("Overview" / "Feature Flags System") — unforgeable from memory |
+| skills | 🟡 PASS-WIRED — embedded in the source package, no event this run |
+
+Both receipts run on **Nova Pro** to prove the control plane, container, invocation path, and
+delegation. The model **mapping** is Claude-native — no remap: a folder's `claude-*` maps to its
+regional Bedrock inference profile, while a non-Claude id like `us.amazon.nova-pro-v1:0` passes
+through verbatim. The same-Claude-brain receipt is pending the one-time per-account Anthropic
+use-case entitlement (Gate A, eventually-consistent) — **a pending entitlement, not a code gap.**
+Nova is **not** claimed equivalent to Claude; it proves the path the Claude brain will ride.
 
 **More:** AgentCore overview → <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html>
 · HTTP contract → <https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-http-protocol-contract.html>
@@ -278,4 +333,5 @@ and [`docs/deploy-bedrock.md`](deploy-bedrock.md).
 are reproducible from [`experiments/subagent-composition/`](../experiments/subagent-composition/)
 (OpenAI/Google) and [`experiments/bedrock-composition/`](../experiments/bedrock-composition/)
 (AWS); the Google live deploy from [`docs/deploy-google.md`](deploy-google.md); the Bedrock
-build artifact + gates from [`docs/deploy-bedrock.md`](deploy-bedrock.md).*
+live Harness + Runtime deploys, the receipts, and the two gates from
+[`docs/deploy-bedrock.md`](deploy-bedrock.md).*

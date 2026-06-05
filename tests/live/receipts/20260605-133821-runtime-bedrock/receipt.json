@@ -1,0 +1,147 @@
+{
+  "provider": "bedrock-runtime",
+  "when": "20260605-133821",
+  "fixture": "runtime-single",
+  "primitive": "AgentCore Runtime (custom ARM64 container, Strands agents-as-tools)",
+  "state": {
+    "provider": "bedrock-runtime",
+    "fixture": "runtime-single",
+    "when": "20260605-133752",
+    "deploy_seconds": 19.8,
+    "action": "create",
+    "agent_runtime_arn": "arn:aws:bedrock-agentcore:us-east-1:****:runtime/agentlift_assistant-MXCoZR8EUJ",
+    "region": "us-east-1",
+    "spec_hash": "797df3b6db873129ca947abf9d739785ce8304e1ad1cd872a4f20c2a071ef22e",
+    "display_name": "agentlift-assistant",
+    "deploy_model": "us.amazon.nova-pro-v1:0",
+    "model_override": "us.amazon.nova-pro-v1:0",
+    "agents": [
+      "assistant"
+    ],
+    "root": "assistant",
+    "plan": {
+      "display_name": "agentlift-assistant",
+      "root_agent": "assistant",
+      "agents": [
+        {
+          "name": "assistant",
+          "safe_name": "assistant",
+          "folder_model": "us.amazon.nova-pro-v1:0",
+          "bedrock_model": "us.amazon.nova-pro-v1:0",
+          "instruction": "You are the Assistant \u2014 one agent in a custom AgentCore Runtime container (no\nsubagents).\n\nTo answer reference questions you MUST use the `docs` MCP server (DeepWiki) \u2014 read\na repository's wiki structure and ask questions about it \u2014 rather than answering\nfrom memory.\n\nBefore finalizing, consult your house-style skill and follow it.\n\nTrace tag: include the token RUNTIME-ASSISTANT-OK verbatim somewhere in your reply.",
+          "description": "A single-agent AgentCore Runtime that answers reference questions using a remote MCP server (DeepWiki) and a house-style skill.",
+          "mcp": [
+            {
+              "server": "docs",
+              "url": "https://mcp.deepwiki.com/mcp",
+              "tool_filter": [
+                "read_wiki_structure",
+                "ask_question"
+              ],
+              "auth_env_vars": {}
+            }
+          ],
+          "skills": [
+            "house-style"
+          ],
+          "sub_agents": []
+        }
+      ],
+      "skill_bundles": [
+        {
+          "name": "house-style",
+          "content_hash": "2d333bffd2687b7d8c20cd11623904e1478018cdd22cc1b94d859a5e52f22509",
+          "files": [
+            "house-style/SKILL.md"
+          ],
+          "used_by": [
+            "assistant"
+          ]
+        }
+      ],
+      "requirements": [
+        "strands-agents>=1.42",
+        "bedrock-agentcore",
+        "boto3>=1.40"
+      ],
+      "env_var_names": [],
+      "region": "us-east-1",
+      "spec_hash": "797df3b6db873129ca947abf9d739785ce8304e1ad1cd872a4f20c2a071ef22e",
+      "diagnostics": [
+        {
+          "level": "warning",
+          "code": "bedrock.builtin.sandbox_planned",
+          "message": "built-in tool(s) read are not mapped in this Bedrock preview; planned via AgentCore Code Interpreter / shell-exec (these DO map on Bedrock, unlike Google -- pending a live receipt). The agent deploys without them (supply equivalents via a URL MCP server meanwhile).",
+          "where": "assistant"
+        },
+        {
+          "level": "warning",
+          "code": "bedrock.model.non_claude",
+          "message": "folder model 'us.amazon.nova-pro-v1:0' is not a Claude id; passing it through verbatim as a Bedrock model id (Bedrock also hosts Nova/Llama/Mistral, but verify the profile id exists in us-east-1).",
+          "where": "assistant"
+        }
+      ],
+      "deployable": true
+    },
+    "versions": {
+      "boto3": "1.43.22",
+      "botocore": "1.43.22",
+      "agentlift": "0.6.0"
+    }
+  },
+  "invocations": [
+    {
+      "prompt": "Use the `docs` MCP server (DeepWiki) to read the wiki structure of the facebook/react repository, then list two top-level sections. Use the MCP tool; do not answer from memory.",
+      "session_id": "agentlift-runtime-verify-session-single",
+      "error": null,
+      "final_text": "The top-level sections of the facebook/react repository's wiki are:\n\n1. **Overview**\n2. **Feature Flags System**\n\nRUNTIME-ASSISTANT-OK\n",
+      "tool_calls": [
+        "docs_read_wiki_structure"
+      ],
+      "trace_error": null,
+      "label": "single"
+    }
+  ],
+  "matrix": {
+    "fixture": "single",
+    "tool_calls": [
+      "docs_read_wiki_structure"
+    ],
+    "any_error": false,
+    "dimensions": {
+      "create": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "action": "create",
+          "spec_hash": "797df3b6db873129ca947abf9d739785ce8304e1ad1cd872a4f20c2a071ef22e"
+        }
+      },
+      "agent": {
+        "state": "PASS-EXERCISED",
+        "reason": "",
+        "evidence": {
+          "has_text": true,
+          "trace_error": null
+        }
+      },
+      "skills": {
+        "state": "PASS-WIRED",
+        "reason": "skill bundle embedded + loaded; not consulted this run",
+        "evidence": {
+          "skill_tool_call": false,
+          "skill_marker": false
+        }
+      },
+      "remote_mcp": {
+        "state": "PASS-EXERCISED",
+        "reason": "root-level MCP tool call in the trace",
+        "evidence": {
+          "mcp_tool_call": true,
+          "text_corroborated": true
+        }
+      }
+    }
+  },
+  "note": "Live, billable. Not run in CI (AWS creds are not shared). Account id + ECR registry redacted to **** ; the bearer token is never used (control plane is IAM/SigV4; model inference uses the role). States: PASS-EXERCISED (objective: control-plane create, or a top-level tool_calls entry), PASS-WIRED (in the build/recipe; nested tool calls do NOT cross the /invocations boundary -- text-corroborated where noted), NOT-PROVEN, FAIL."
+}

@@ -85,7 +85,7 @@ def test_build_artifact_is_clean_rebuilt(examples_dir, tmp_path):
 # --------------------------------------------------------------------------- #
 # NOTES runbook: concrete build/push, MANUAL hosted-create (no guessed wire shape)
 # --------------------------------------------------------------------------- #
-def test_notes_has_gates_and_concrete_build_but_manual_create(examples_dir, tmp_path):
+def test_notes_has_gates_and_points_at_live_hosted_create(examples_dir, tmp_path):
     project, _ = _team(examples_dir, tmp_path)
     notes = render_deploy_notes(build_bedrock_plan(project))
     # two one-time gates surfaced
@@ -94,13 +94,11 @@ def test_notes_has_gates_and_concrete_build_but_manual_create(examples_dir, tmp_
     # the standard Docker/ECR steps are concrete (those are stable, not guessed)
     assert "docker buildx build --platform linux/arm64" in notes
     assert "aws ecr get-login-password" in notes
-    # the hosted-creation step stays MANUAL: agentlift refuses to emit an unverified
-    # control-plane call, even as copy-paste
-    assert "MANUAL" in notes
-    assert "does NOT emit the create-agent-runtime call" in notes
+    # the build-only NOTES now points at the live hosted-create path (Stage 2 shipped):
+    # `--mode runtime` (no --build-only) does CreateAgentRuntime for you
+    assert "CreateAgentRuntime" in notes
+    assert "--mode runtime" in notes
     assert "docs.aws.amazon.com/bedrock-agentcore" in notes
-    # never a concrete create payload masquerading as fact
-    assert "--agent-runtime-artifact" not in notes
 
 
 # --------------------------------------------------------------------------- #
@@ -117,9 +115,14 @@ def test_deploy_build_only_builds_and_writes_no_lock(examples_dir, tmp_path):
     assert not os.path.isfile(os.path.join(root, BEDROCK_LOCKFILE_NAME))
 
 
-def test_hosted_deploy_refuses_with_no_side_effect(examples_dir, tmp_path):
+def test_hosted_deploy_refuses_when_gate_closed(examples_dir, tmp_path, monkeypatch):
+    # the gate MECHANISM: when runtime_hosted_deploy_allowed() is False, a bare hosted
+    # deploy refuses before any work. (The shipped flag is now True -- live-verified --
+    # so we force the gate closed to exercise the refusal path.)
+    import agentlift.bedrock_target as bt
+    monkeypatch.setattr(bt, "runtime_hosted_deploy_allowed", lambda: False)
     project, root = _team(examples_dir, tmp_path)
-    with pytest.raises(HostedDeployNotLiveVerified, match="preview"):
+    with pytest.raises(HostedDeployNotLiveVerified, match="committed live receipt"):
         deploy_bedrock(project, region="eu-north-1", build_only=False)
     # refusal fires BEFORE any work: no build dir, no lock
     assert not os.path.exists(os.path.join(root, ".agentlift-build"))

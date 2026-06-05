@@ -30,7 +30,12 @@ def test_deploy_build_only_exits_zero_and_writes_artifact(examples_dir, tmp_path
     assert not os.path.isfile(os.path.join(root, BEDROCK_LOCKFILE_NAME))
 
 
-def test_bare_deploy_refuses_no_side_effect(examples_dir, tmp_path, capsys):
+def test_bare_deploy_refuses_when_gate_closed(examples_dir, tmp_path, capsys, monkeypatch):
+    # the hosted Runtime create is live-verified (flag True since 2026-06-05), so a real
+    # bare deploy now builds + creates. Force the gate closed to assert the CLI's refusal
+    # path is intact (clean rc 3 + guidance, no side effect) for any future regression.
+    import agentlift.bedrock_target as bt
+    monkeypatch.setattr(bt, "runtime_hosted_deploy_allowed", lambda: False)
     root = _copy(os.path.join(examples_dir, "team"), tmp_path, "team")
     rc = main(["deploy", root, "--target", "bedrock"])
     out = capsys.readouterr().out

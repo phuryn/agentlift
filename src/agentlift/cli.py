@@ -352,10 +352,11 @@ def _cmd_deploy_bedrock(args) -> int:
       - **harness** (managed, config-only): RUNS a real (preview) CreateHarness /
         UpdateHarness via boto3 + IAM -- create/update/skip from ``.agentlift-harness.json``,
         no container. (See ``_cmd_deploy_harness``.)
-      - **runtime** (custom container): ``--build-only`` materializes the deployable
-        container artifact + runbook and exits 0; a bare deploy refuses the hosted
-        create (control-plane not live-verified -- Gate B), fires NO network call,
-        writes NOTHING, and exits non-zero pointing at ``--build-only``."""
+      - **runtime** (custom container): a bare deploy RUNS the live hosted create
+        (build ARM64 image -> ECR -> CreateAgentRuntime -> poll READY ->
+        ``.agentlift-bedrock.json`` -> InvokeAgentRuntime), gated by
+        ``_RUNTIME_LIVE_VERIFIED`` (now True, receipt-verified). ``--build-only`` instead
+        materializes just the deployable container artifact + runbook and exits 0."""
     load_env(os.getcwd(), os.path.abspath(args.path))
     project, diags = parse_project(args.path, default_model=args.model)
     mode, region, reason = _resolve_bedrock_mode(project, args)
@@ -395,19 +396,24 @@ def _cmd_deploy_bedrock(args) -> int:
               f"hosted-create runbook.")
         return 0
 
-    # bare deploy: refuse the hosted path (no network, no side effect)
+    # bare deploy: RUNS the live hosted create (the gate is open, receipt-verified). The
+    # refusal branch only fires if the gate is forced closed (a confirm-live regression guard).
     try:
-        deploy_bedrock(project, region=region,
-                       skip_unsupported=args.skip_unsupported, build_only=False)
+        res = deploy_bedrock(project, region=region,
+                             skip_unsupported=args.skip_unsupported, build_only=False, log=print)
     except HostedDeployNotLiveVerified as e:
-        print("\nHosted deploy to Bedrock AgentCore Runtime is a PREVIEW (not yet live-verified):")
+        print("\nHosted deploy to Bedrock AgentCore Runtime (AgentCore is in AWS PREVIEW) is "
+              "gated off in this build:")
         print("  - Gate A: submit the Anthropic use-case form (Bedrock console -> Model access).")
         print("  - Gate B: AWS IAM creds + an AgentCore execution role (iam:PassRole) + ECR.")
         print(f"\n  {e}")
-        print("\n  (A single skill-less agent can deploy live today with --mode harness -- "
-              "managed, config-only, IAM-only.)")
+        print("\n  (Use --build-only for the container artifact, or --mode harness for a single "
+              "managed agent.)")
         return 3
-    return 0  # pragma: no cover - deploy_bedrock(build_only=False) always raises today
+    print(f"\n{res.action.title()}d AgentCore Runtime: {res.agent_runtime_arn or '(skip)'}")
+    print(f"  region: {res.region}   spec: {res.spec_hash[:12]}   model: {res.deploy_model}")
+    print(f"  lock: {os.path.join(project.root, '.agentlift-bedrock.json')}")
+    return 0
 
 
 def _cmd_deploy_harness(args, project, region, reason) -> int:
@@ -693,10 +699,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("path"); sp.add_argument("--remote", action="store_true", help="also check the live account for deleted objects")
     add_common(sp); sp.set_defaults(func=cmd_diff)
 
-    sp = sub.add_parser("deploy", help="deploy to a managed runtime (Anthropic + --target google live; --target bedrock --mode harness live preview, --mode runtime build-only)")
+    sp = sub.add_parser("deploy", help="deploy to a managed runtime (Anthropic + --target google live; --target bedrock --mode harness AND --mode runtime live, AgentCore preview)")
     sp.add_argument("path"); sp.add_argument("--prune", action="store_true", help="archive superseded agent versions")
     sp.add_argument("--target", default="anthropic", choices=["anthropic", "google", "bedrock"], help="managed runtime to deploy to")
-    sp.add_argument("--mode", default="auto", choices=["auto", "harness", "runtime"], help="Bedrock primitive: harness (managed single agent, live preview) | runtime (custom container, build-only) | auto = least-powerful mode that preserves semantics")
+    sp.add_argument("--mode", default="auto", choices=["auto", "harness", "runtime"], help="Bedrock primitive: harness (managed single agent, live) | runtime (custom container, live hosted multi-agent deploy; --build-only for just the artifact) | auto = least-powerful mode that preserves semantics")
     sp.add_argument("--google-model", default="gemini-2.5-flash", help="model for the Google target; Claude models in the folder are mapped to this")
     sp.add_argument("--bedrock-region", default=None, help="AWS region for the bedrock target; defaults to us-west-2 (harness preview) or eu-north-1 (runtime). Claude maps to that region's inference profile (native)")
     sp.add_argument("--build-only", action="store_true", help="build the deployable source package locally without deploying (google + bedrock --mode runtime; N/A to the config-only harness)")

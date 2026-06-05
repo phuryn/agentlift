@@ -1,9 +1,9 @@
 # Deploying to Amazon Bedrock AgentCore (the credentials path)
 
-> Status: **two primitives behind `--mode`.** AgentCore exposes a *managed* agent
-> (**Harness** — config-only, single agent; a **live `deploy`**) and a *custom-container* agent
-> (**Runtime** — multi-agent, build-only). agentlift maps to both; `--mode auto` (the default)
-> picks the lightest one that preserves your folder's semantics, never a silent downgrade.
+> Status: **two primitives behind `--mode`, both now live.** AgentCore exposes a *managed* agent
+> (**Harness** — config-only, single agent) and a *custom-container* agent (**Runtime** —
+> multi-agent). agentlift deploys **both live**; `--mode auto` (the default) picks the lightest
+> one that preserves your folder's semantics, never a silent downgrade.
 >
 > - **`--mode harness` — ✅ live single-agent deploy.** A single agent — with its **skills, remote
 >   MCP, sandbox, and browser** — deploys **live over IAM, no container**, via the control-plane
@@ -16,13 +16,17 @@
 >   receipt is model-agnostic for the wire shape). Per-tool MCP `allowedTools` narrowing isn't
 >   enforced in preview (a restrictive allowlist suppresses MCP surfacing, so agentlift emits none +
 >   diagnoses).
-> - **`--mode runtime --build-only` — build-only.** Compiles the folder to a **Strands Agents**
->   source package and materializes a complete, deployable **AgentCore Runtime** container
->   artifact — an ARM64 image serving `POST /invocations` + `GET /ping` on `:8080`, plus a
->   `Dockerfile`, `.dockerignore`, and a `NOTES.txt` runbook. A `--mode runtime` deploy
->   *without* `--build-only` (the hosted create) **refuses** — it raises before any AWS call,
->   makes no network request, writes nothing — because the `create_agent_runtime` control-plane
->   wire shape is not live-verified here (the *confirm-live-before-encoding* rule).
+> - **`--mode runtime` — ✅ live hosted multi-agent deploy.** A multi-agent *team* compiles to a
+>   **Strands Agents** source package and deploys **live, end-to-end**: agentlift builds the ARM64
+>   container context → creates the ECR repo + `docker login` + `docker buildx build --platform
+>   linux/arm64 --push` → `CreateAgentRuntime` (`networkMode=PUBLIC`, `serverProtocol=HTTP`,
+>   IAM-only — no JWT/OIDC authorizer) → polls `READY` → writes `.agentlift-bedrock.json` →
+>   `InvokeAgentRuntime`. Gated by `_RUNTIME_LIVE_VERIFIED` (now **True**). Two committed Nova
+>   receipts prove it: [`20260605-134012-runtime-bedrock`](../tests/live/receipts/) (a **team** —
+>   coordinator + 2 specialists, with **subagent delegation EXERCISED**) and
+>   [`20260605-133821-runtime-bedrock`](../tests/live/receipts/) (a single-agent **smoke** with
+>   **remote MCP EXERCISED**). `--build-only` still materializes *just* the ARM64 build context
+>   under `<path>/.agentlift-build/bedrock/` for inspection or a manual build, with no AWS call.
 >
 > Both emit the **Claude model mapping native** — Claude is a first-class Bedrock model, so
 > unlike Google the compiler does **no model remap**; a folder's `claude-*` id is emitted as
@@ -50,7 +54,8 @@ the managed `bedrock-agentcore-control.create_harness` and the custom-container
 `create_agent_runtime` — are SigV4/IAM operations needing IAM credentials, an execution role,
 and `iam:PassRole`. (The Runtime additionally needs an **ECR image**; the **Harness needs no
 container, no ECR, no Docker** — that is the whole point of the managed primitive, and why its
-preview create is cheap enough to *run* rather than refuse.) The bearer token is exactly what
+preview create is the cheapest path to land. The Runtime's heavier container pipeline is now
+wired end-to-end too — agentlift builds, pushes, creates, and invokes it.) The bearer token is exactly what
 the local [bedrock-composition experiment](../experiments/bedrock-composition/) used — that
 runs the agent locally against Bedrock model inference; it does not deploy anything. This is
 the same split Google has (an API key ran the local ADK experiment but could not create a
@@ -88,10 +93,12 @@ AgentCore execution role (with `iam:PassRole`)** — which the bearer token cann
 primitives differ in how much *else* they need:
 
 - **Harness** — IAM + an execution role, **no ECR, no Docker, no image build**. That is the
-  whole reason agentlift *runs* the harness preview create rather than refusing it: minutes,
-  not a container pipeline. Set the role in `$AGENTLIFT_BEDROCK_EXECUTION_ROLE_ARN` (below).
-- **Runtime** — IAM + an execution role **+ an ECR repository + a pushed ARM64 image**. That
-  heavier path is why the runtime hosted create stays manual (see below).
+  whole reason the harness create is minutes, not a container pipeline. Set the role in
+  `$AGENTLIFT_BEDROCK_EXECUTION_ROLE_ARN` (below).
+- **Runtime** — IAM + an execution role **+ an ECR repository + a pushed ARM64 image**.
+  agentlift now runs that whole heavier path itself (build → ECR → `CreateAgentRuntime` →
+  invoke); see [The hosted Runtime path](#the-hosted-runtime-path-live-multi-agent-deploy)
+  below for the role trust policy and ARM64 build prerequisite.
 
 The pure `*_plan.py` + offline tests + codegen + target build paths all run *without* IAM;
 only a live create needs it. **Gate A applies only when the model is Claude** — a Nova-backed
@@ -159,13 +166,98 @@ default region is a harness-preview region (`us-west-2`);
 > idempotency, and it carries `live_verified: false` — it is operational state, not proof. Only
 > a committed *receipt* flips the verified flag and lets docs claim the cells `EXERCISED`.
 
-## The build-only Runtime path (multi-agent container artifact)
+## The hosted Runtime path (live multi-agent deploy)
+
+✅ **Live** — `--mode runtime` deploys a real hosted AgentCore Runtime. A folder with
+**subagents** (or more than one agent) routes to the custom-container Runtime —
+a Strands coordinator with its specialists as agents-as-tools. `--mode auto` selects it for any
+multi-agent *team*; `--mode runtime` forces it. agentlift runs the whole pipeline:
+
+```bash
+pip install "agentlift[bedrock]"          # boto3 + the build path
+
+# IAM creds on PATH (NOT the bearer token), an execution role, + a skills/staging context:
+export AGENTLIFT_BEDROCK_EXECUTION_ROLE_ARN=arn:aws:iam::<account>:role/agentlift-runtime
+
+agentlift plan   ./examples/team --target bedrock                # auto -> shows the runtime plan
+agentlift deploy ./examples/team --target bedrock --mode runtime # builds, pushes, creates, invokes — live
+agentlift deploy ./examples/team --target bedrock                # auto: team -> same runtime, live
+```
+
+What the deploy does, end to end:
+
+1. builds the pure `BedrockDeployPlan` (`agentlift plan --target bedrock --mode runtime --json`
+   shows it: resolved Claude inference-profile model, coordinator + agents-as-tools roster,
+   `MCPClient` tools, embedded skill bundles, MCP-auth env-var names, the spec hash),
+2. materializes the ARM64 container build context (same layout as `--build-only`, below),
+3. creates the **ECR repository** (idempotent), `docker login`s, and runs
+   `docker buildx build --platform linux/arm64 --push` to the repo,
+4. calls `CreateAgentRuntime` (`networkConfiguration.networkMode=PUBLIC`,
+   `protocolConfiguration.serverProtocol=HTTP`, **IAM-only — no JWT/OIDC authorizer**), or
+   `UpdateAgentRuntime` / skip, decided by the spec hash in `.agentlift-bedrock.json`,
+5. polls until `READY`, records the lock, then `InvokeAgentRuntime` runs the team.
+
+**What the live receipts prove (on Nova Pro, `us-east-1`).** Two committed receipts
+(`_RUNTIME_LIVE_VERIFIED = True`):
+
+- [`tests/live/receipts/20260605-134012-runtime-bedrock`](../tests/live/receipts/) — the
+  **team headline**: a coordinator + 2 specialists. **Create + agent + subagent delegation all
+  PASS-EXERCISED** — the coordinator's top-level `tool_calls` were `['bug_finder', 'researcher']`,
+  an objective server-side trace. Nested skills + `remote_mcp` are PASS-WIRED (text-corroborated;
+  see the trace-boundary note below).
+- [`tests/live/receipts/20260605-133821-runtime-bedrock`](../tests/live/receipts/) — a
+  single-agent **smoke**: **create + agent + remote MCP PASS-EXERCISED** (a root-level
+  `docs_read_wiki_structure` DeepWiki call returning real `react` wiki sections); skills PASS-WIRED.
+
+These prove the **wire shape, container, invocation path, and observed delegation** on Nova —
+**not** that Claude is the running brain. The model **mapping** is Claude-native (below); a
+same-Claude-brain receipt is pending Gate A (an account entitlement, **not** a code gap).
+
+### The `/invocations` trace boundary (an honest limitation)
+
+`InvokeAgentRuntime` returns the **container's app-defined JSON body**, not an event stream.
+agentlift's generated handler returns `{result, tool_calls?}`, where `tool_calls` is the
+coordinator's **top-level** trace (read from `AgentResult.metrics.tool_metrics`, fail-open so it
+never breaks the invocation). So **coordinator/root tool calls are objective** (PASS-EXERCISED),
+but **nested specialist skill/MCP calls do not cross the boundary** → PASS-WIRED +
+text-corroborated. This is the runtime analogue of the Google `AgentTool` → `stream_query`
+grounding-metadata caveat: the composition runs, but the inner trace stays inside the box.
+
+### Execution role for the Runtime
+
+The runtime's execution role differs from the harness's in two ways — the **trust policy** and
+the **container/log permissions**:
+
+- **Trust policy:** trust `bedrock-agentcore.amazonaws.com`, gated by an `aws:SourceAccount`
+  `StringEquals` condition. Do **not** use a region-locked `aws:SourceArn` condition — the
+  runtime ARN does not exist yet at create-time validation, so an `aws:SourceArn` lock causes a
+  chicken-and-egg failure. `aws:SourceAccount` avoids it.
+- **Permissions:** ECR pull (`ecr:GetAuthorizationToken`, `ecr:BatchGetImage`,
+  `ecr:GetDownloadUrlForLayer`, `ecr:BatchCheckLayerAvailability`), `bedrock:InvokeModel`
+  (+ `bedrock:InvokeModelWithResponseStream`), and CloudWatch Logs.
+
+Set it in `$AGENTLIFT_BEDROCK_EXECUTION_ROLE_ARN`.
+
+**ARM64 build on an x86 host** needs QEMU `binfmt` registered once so `buildx` can emit an arm64
+image:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+```
+
+The default region for the runtime is `eu-north-1`; `--bedrock-region` overrides it, and the
+region flows into the Claude inference-profile prefix (`us.` / `eu.` / `apac.` / `global.`), so
+changing it forces a fresh create.
+
+## The `--build-only` Runtime artifact (offline, no AWS call)
+
+To inspect the container context or build it yourself without any AWS call:
 
 ```bash
 agentlift deploy ./examples/team --target bedrock --mode runtime --build-only
 ```
 
-materializes the container build context under `./examples/team/.agentlift-build/bedrock/`:
+materializes the build context under `./examples/team/.agentlift-build/bedrock/`:
 
 ```
 agentlift_runtime/
@@ -174,39 +266,12 @@ agentlift_runtime/
 requirements.txt           # strands-agents>=1.42, bedrock-agentcore, boto3>=1.40
 Dockerfile                 # FROM --platform=linux/arm64 python:3.12-slim ; EXPOSE 8080
 .dockerignore
-NOTES.txt                  # the build/push + hosted-create runbook (below)
+NOTES.txt                  # the build/push + create runbook
 ```
 
-The `NOTES.txt` is the runbook: the two-gate readiness checklist, **concrete** `docker
-buildx build --platform linux/arm64` + `aws ecr` build/push commands (those are stable
-Docker/ECR steps, not guessed), and a **MANUAL** hosted-create section. That last section
-deliberately does **not** emit a `create-agent-runtime` call — it points at the AgentCore
-starter toolkit (`agentcore configure`/`launch`) and the current AWS docs, because the
-control-plane wire shape is not live-verified here. Building a guessed create call as
-copy-paste would be exactly the kind of unverified encoding this repo refuses.
-
-## What a hosted *Runtime* deploy will require (Gate B, step by step)
-
-(The managed Harness needs only steps 1 + 3 — no ECR, no image build. These extra steps are
-the Runtime's container pipeline.)
-
-```bash
-# 1. AWS IAM credentials on PATH (env vars, profile, or instance role) — NOT the bearer token
-aws sts get-caller-identity                      # should resolve your IAM identity
-
-# 2. an ECR repository in the deploy region
-aws ecr create-repository --repository-name agentlift-lead --region eu-north-1
-
-# 3. an AgentCore execution role with iam:PassRole (the runtime assumes it)
-#    see the AgentCore custom-container deploy docs (linked from NOTES.txt)
-
-# 4. build + push the ARM64 image (from the build dir)
-aws ecr get-login-password --region eu-north-1 \
-  | docker login --username AWS --password-stdin <acct>.dkr.ecr.eu-north-1.amazonaws.com
-docker buildx build --platform linux/arm64 -t <acct>.dkr.ecr.eu-north-1.amazonaws.com/agentlift-lead:latest --push .
-
-# 5. create the runtime from that image (MANUAL today — starter toolkit or create-agent-runtime)
-```
+This is exactly the context the live `--mode runtime` deploy builds and pushes for you — the
+flag just stops after writing it, makes no network request, and creates nothing. Use it to audit
+the generated Strands code, build on a different host, or wire the image into your own CI.
 
 ## What agentlift will read
 
@@ -250,7 +315,7 @@ today, the Runtime has them as `PLANNED`:
 
 - **Harness:** the managed base session **always carries** shell + file_operations
   (`@builtin`), so the sandbox built-ins map onto those native tools — config-only, nothing
-  added. (This is provisional with the rest of the harness shape until the receipt.)
+  added (the `shell` cell is EXERCISED in the committed harness receipt).
 - **Runtime:** Bedrock genuinely offers a **real** sandbox — the AgentCore **Code Interpreter**
   (shell + filesystem) — but agentlift does not wire it into the container yet, so it is
   surfaced as `PLANNED`. Until then, expose equivalents through a **URL MCP server** (which
