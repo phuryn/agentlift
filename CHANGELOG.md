@@ -4,14 +4,23 @@ All notable changes to **agentlift** are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and versions match the published PyPI
 releases and git tags ([semantic versioning](https://semver.org/)).
 
-## [Unreleased]
+## [0.8.0] — 2026-06-08
 
 **`agentlift import` — read a live agent back into the folder (the inverse of `deploy`).**
 A new reverse pipeline reconstructs a neutral `.managed-agents/` folder from a live managed
 runtime, so a runtime now round-trips both ways — and **migration between runtimes falls out
-for free** (import from one provider, `deploy` to another). Anthropic import is **full**; AWS
-Bedrock import covers the config-only **Harness**. The work is implemented and offline-tested
-(full suite green) — this entry is a **draft for review, not yet released**.
+for free**. Anthropic import is **full**; AWS Bedrock import covers the config-only **Harness**.
+
+Migrate by pairing `import` with `deploy` — the folder is the neutral pivot:
+
+```bash
+# Anthropic → AWS Bedrock
+agentlift import anthropic ./agent
+agentlift deploy ./agent --target bedrock --mode harness
+# …and back
+agentlift import bedrock ./agent --harness-name my-agent --bedrock-region us-west-2
+agentlift deploy ./agent
+```
 
 ### Added
 - **`agentlift import <anthropic|bedrock> <out> [--agent N …] [--mode harness] [--harness-id|--harness-name] [--bedrock-region R] [--dry-run]`** —

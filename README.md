@@ -35,6 +35,26 @@ agentlift import anthropic    ./my-agent     # ← read a live agent back into t
 > `agentlift` not found after install? Run it module-style — `python -m agentlift.cli <cmd>`
 > (the launcher just landed off `PATH`; [add it](docs/deploying.md) if you prefer the short form).
 
+### Migrate between runtimes
+
+Because the folder is the neutral pivot, **import + deploy is a migration** — pull an agent out of
+one runtime and push it into another:
+
+```bash
+# Anthropic → AWS Bedrock
+agentlift import anthropic ./agent                          # read the live agent into ./agent
+agentlift deploy ./agent --target bedrock --mode harness    # redeploy it to AWS Bedrock AgentCore
+# (or `agentlift export bedrock-strands ./agent` for a self-host container instead)
+
+# …and back the other way
+agentlift import bedrock ./agent --harness-name my-agent --bedrock-region us-west-2
+agentlift deploy ./agent                                    # → Anthropic Managed Agents
+```
+
+Anything that doesn't survive a given hop is surfaced as a `agentlift plan` diagnostic *before* you
+deploy — never a silent lossy copy. See [docs/import.md](docs/import.md) for the round-trip details
+and the one-way limitations.
+
 ## Why this exists
 
 Adopt a provider's native tooling — Anthropic YAML, a Bedrock Strands container, Google ADK
