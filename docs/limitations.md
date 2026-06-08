@@ -93,6 +93,34 @@ The API rejects a `SKILL.md` frontmatter `description` that contains XML-like ta
 (`skill.xml_in_description`) so you get a clear error instead of a deploy-time 400.
 The skill *body* may contain anything; only the description is validated.
 
+## Import is read-only, and four things are one-way
+
+`agentlift import` reads a live managed agent back into a neutral `.managed-agents/` folder
+(the inverse of `deploy`). It never creates, updates, or archives anything, and after writing
+it re-runs the real parse+plan and prints **"Round-trip OK"**. Anthropic import is **full** and
+Bedrock **Harness** import is supported (`--mode harness`); a few mappings don't round-trip
+losslessly, and each loss is surfaced as a `agentlift import` diagnostic — never a silent drop.
+The full guide is [import.md](import.md).
+
+- **Knowledge inlining is one-way.** Deploy folds `knowledge/*.md` into the system prompt
+  (see [*Knowledge files are inlined*](#knowledge-files-are-inlined) above); import can't tell
+  which part of a prompt came from a knowledge file, so it leaves that text in the prompt body
+  rather than re-splitting it back into `knowledge/`.
+- **Custom tools / harness inline functions are dropped.** A provider-side tool that has no
+  neutral-folder representation (e.g. a harness inline function) is dropped with a diagnostic
+  rather than invented.
+- **MCP auth values are not recoverable.** The auth secret lives provider-side; import recovers
+  only the header / env-var **name** (the mirror of deploy, which only ever writes the name into
+  source/plan/lockfile), never the value.
+- **Anthropic first-party skills are reference-only.** A `type: anthropic` (first-party) skill
+  has no downloadable content, so it is recorded as a reference, not pulled into the folder.
+
+Not importable: the AWS Bedrock AgentCore **Runtime** (`--mode runtime`). Its agent definition
+is baked into an opaque ARM64 container image — `GetAgentRuntime` returns only a `containerUri`
+— so `import bedrock --mode runtime` refuses with that reason. This is the import analogue of
+the [Runtime `/invocations` trace boundary](#runtime-invocations-traces-top-level-tool-calls-only-bedrockruntimenested_trace_boundary)
+above. (Google and OpenAI import are not implemented.)
+
 ## Targets differ by handoff
 
 The parser and planner are provider-agnostic — the plan is just "operations" — so the

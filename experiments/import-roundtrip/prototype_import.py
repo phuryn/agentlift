@@ -1,5 +1,10 @@
 """Prototype: Anthropic Managed Agent  ->  .managed-agents/ folder (the INVERSE of the planner).
 
+⚠️  SUPERSEDED — this spike has shipped. The real implementation lives in
+`src/agentlift/importer.py` (mapping) + `folder_writer.py` (folder) + the network
+edges `anthropic_source.py` / `harness_source.py`, exposed as `agentlift import`.
+This file is kept only as the historical de-risking experiment; do not import it.
+
 This is a *spike*, not shipped code. It exists to de-risk the import feature by
 proving the hard part offline: that a provider's read-API wire shape can be
 mapped back into agentlift's neutral folder and survive a clean round-trip

@@ -4,6 +4,58 @@ All notable changes to **agentlift** are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and versions match the published PyPI
 releases and git tags ([semantic versioning](https://semver.org/)).
 
+## [Unreleased]
+
+**`agentlift import` — read a live agent back into the folder (the inverse of `deploy`).**
+A new reverse pipeline reconstructs a neutral `.managed-agents/` folder from a live managed
+runtime, so a runtime now round-trips both ways — and **migration between runtimes falls out
+for free** (import from one provider, `deploy` to another). Anthropic import is **full**; AWS
+Bedrock import covers the config-only **Harness**. The work is implemented and offline-tested
+(full suite green) — this entry is a **draft for review, not yet released**.
+
+### Added
+- **`agentlift import <anthropic|bedrock> <out> [--agent N …] [--mode harness] [--harness-id|--harness-name] [--bedrock-region R] [--dry-run]`** —
+  a **read-only** command (never creates/updates/archives). It fetches the live agent, maps it to
+  a neutral project, writes the folder, and **self-verifies** by re-running the real parse + plan
+  (prints `Round-trip OK` only if the result is deployable again). `--dry-run` is the import
+  analogue of `plan` (prints the mapping + diagnostics, writes nothing).
+- **Anthropic import (full).** `agents.list`/`agents.retrieve` + `skills.versions.download`
+  recover system/description/model, built-in tools **with `:ask`/`:allow` permission policies**,
+  URL MCP servers + per-server tool filters, **custom skill content**, and a coordinator's
+  **`subagents`** (roster ids resolved to names; selecting a coordinator pulls its subagents into
+  the closure automatically). Skills/MCP used identically by >1 agent are hoisted to `shared/`
+  (skills keyed by content hash, MCP by full identity) — the inverse of the planner's dedup.
+- **Bedrock Harness import** (`import bedrock --mode harness`). `get_harness` + S3 skill bundles,
+  with a **reverse model-map** (regional inference profile → folder Claude id, e.g.
+  `eu.anthropic.claude-haiku-4-5-20251001-v1:0` → `claude-haiku-4-5`), `agentCoreBrowser` → web
+  tools, `agentCoreCodeInterpreter` → sandbox builtins, and `remote_mcp` → URL MCP. Single-agent
+  by nature, so an import never produces subagents.
+- **New modules**, mirroring the deploy pipeline in reverse (pure core + thin network edge):
+  `import_model.py`, `importer.py` (inverse of `planner.py`), `folder_writer.py` (inverse of
+  `parser.py`) — all pure and offline-tested — plus the network edges `anthropic_source.py` and
+  `harness_source.py`.
+- **End-to-end tests.** `tests/test_importer.py` (the mapping contract), `tests/test_import_roundtrip.py`
+  (provider responses → folder → real parser → real planner, including **subagent delegation with
+  shared *and* custom skills and MCP servers**), `tests/test_import_source.py` (fetch wiring via
+  fake clients, no network), `tests/test_cli_import.py`, and a gated read-only live test
+  `tests/live/test_import_anthropic.py` (`AGENTLIFT_LIVE_IMPORT=1`).
+- **Docs.** New [docs/import.md](docs/import.md); import notes added across the convention,
+  how-it-works, provider-matrix, anthropic-mapping, deploy-bedrock, deploying, and limitations docs.
+
+### Notes / honest boundaries
+- **The Bedrock Runtime is not importable.** A Runtime bakes its agent definition into an opaque
+  ARM64 **container image** (`GetAgentRuntime` returns only a `containerUri`), so it can't be read
+  back; `import bedrock --mode runtime` refuses with that reason. This is the import analogue of
+  the deploy-time `/invocations` trace boundary. Google/OpenAI import is not implemented yet.
+- **Four one-way losses, each surfaced as a Diagnostic (never silent):** knowledge inlining is
+  one-way (it stays in the prompt body on import); custom tools / harness inline functions are
+  dropped; MCP auth **values** are provider-side, so only the header/env-var **name** is recovered;
+  Anthropic first-party (`type: anthropic`) skills are referenced by id with no downloadable content.
+- **One wire-format item pending a live download:** the Anthropic skill-bundle archive layout (a
+  zip whose members carry the `<name>/…` prefix) is the documented shape but is **not yet confirmed
+  against a live download** — the unpack is defensive and emits `import.skill_archive_shape` if the
+  payload is anything else (the repo's confirm-live-before-trusting rule).
+
 ## [0.7.0] — 2026-06-05
 
 **AWS Bedrock AgentCore Runtime is now a live multi-agent hosted deploy** (Stage 2). Both

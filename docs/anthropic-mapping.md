@@ -93,6 +93,27 @@ frontmatter `subagents: [a, b]` → `agents.create(multiagent={"type":"coordinat
 Across the built-in toolset + every `mcp_toolset`, the API allows ≤128 tool
 configurations. agentlift errors with `tools.too_many` past that.
 
+## Reverse mapping (import)
+
+`agentlift import anthropic <out-dir>` inverts every field rule above, reading a live agent
+back into a neutral `.managed-agents/` folder. It is **read-only** — `agents.list`/
+`agents.retrieve` plus `skills.versions.download` for custom-skill content; it never creates,
+updates, or archives anything, and self-verifies by re-running the real parse+plan and printing
+**"Round-trip OK"**.
+
+It recovers system prompt / description / model, built-in tools **with their `:ask`/`:allow`
+permission policies**, URL MCP servers **with per-server tool filters**, custom skills (content,
+re-keyed to a `<name>/` bundle), and coordinator `subagents` (roster ids resolved back to names;
+selecting a coordinator pulls its subagents into the import closure automatically). Skills and
+MCP servers used identically by more than one agent are hoisted to `shared/` (skills keyed by
+content hash, MCP by full identity) — the inverse of the dedup/sharing rule above.
+
+Four mappings are one-way and each surfaces as a diagnostic: **knowledge inlining** (the
+`# Reference material` fold stays in the prompt body — import can't re-split it into
+`knowledge/`), **first-party skills** (`type: anthropic` is reference-only, no downloadable
+content), **inline MCP auth** (only the header/env-var *name* is recoverable, never the secret),
+and any **custom tool** with no neutral-folder form (dropped). See [import.md](import.md).
+
 ## What is NOT yet mapped
 
 - **Vaults / secrets** — authenticated remote MCP. The agent-create shape in this

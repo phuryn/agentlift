@@ -73,6 +73,37 @@ than duplicated.
   `SKILL.md` inlined into the system prompt. This is the portability check: one
   definition, two runtimes.
 
+## The reverse pipeline: import  (`agentlift.importer`)
+
+`import` is `deploy` run backwards — it reads a **live** managed agent back into the
+neutral `.managed-agents/` folder, so you can migrate a runtime you only have in the
+cloud. It mirrors **parse → plan → apply** in reverse:
+
+```
+live runtime ──fetch──▶ raw resources ──import──▶ ImportedProject ──folder_writer──▶ folder
+              (network)                  (pure)                       (pure)
+```
+
+- **fetch** (`anthropic_source` / `harness_source`) — the only networked edge: list +
+  retrieve the agents, download skill versions, read the harness config + its S3 skills.
+- **import** (`agentlift.importer`) — the inverse of `planner`: provider wire-shape →
+  `AgentSpec`s. It reverses the planner's dedup (skills/MCP used identically by more than
+  one agent are *hoisted* to `shared/` — skills keyed by content hash, MCP by full
+  identity), reverse-maps the model id (Bedrock's regional inference profile → the folder
+  `claude-*` id), and pulls a coordinator's subagent closure in by roster id → name.
+- **folder_writer** (`agentlift.folder_writer`) — the inverse of `parser`: writes
+  `agent.md` frontmatter + system prompt, `skills/<name>/SKILL.md`, `mcp.json`, exactly
+  the [folder convention](convention.md) a hand-written project uses.
+
+Same discipline as deploy — **pure core, thin network edge, the mapping is the contract**:
+`importer` and `folder_writer` are pure and offline-tested; only the two `*_source.py`
+modules touch the network. After writing the folder, `import` **self-verifies** by
+re-running the real `parse` + `plan` over what it just wrote and printing `Round-trip OK`.
+`import --dry-run` is the import analogue of `plan`: it prints the imported project +
+diagnostics and writes nothing. Whatever does not survive the round-trip becomes a
+`Diagnostic` (knowledge inlining is one-way; MCP auth values are provider-side; etc.) —
+never a silent loss. Full details and the per-provider coverage in [import.md](import.md).
+
 ## Confirmed wire format
 
 Everything above targets the shape confirmed live against the API (2026-06-02):

@@ -10,6 +10,7 @@ subagent roster). agentlift then treats each managed-agent runtime as a back-end
 
 - `audit` — report, per provider, what is `native` / `emulated` / `degraded` / `unsupported` (offline).
 - `export` — compile the folder to a provider-native artifact: `anthropic-yaml` (for the `ant` CLI), `bedrock-strands`, `google-adk`, `openai-agents` (offline).
+- `import` — the **inverse of `deploy`**: read a *live* managed agent back into a neutral folder (read-only, no writes to the account). **Anthropic** (full) and **AWS Bedrock `--mode harness`** today; a Bedrock Runtime is an opaque container → not importable. Because the folder is the neutral pivot, import + deploy = **migration between runtimes**. See [docs/import.md](docs/import.md).
 - `deploy` — push to a live managed runtime via API: **Anthropic** (full); **Google `--target google`** (preview); **AWS Bedrock `--target bedrock`** with two primitives behind `--mode` (`auto` picks the least-powerful that preserves semantics, never a silent downgrade) — **both now live-verified**: **`--mode harness`** is a **✅ live single-agent deploy** via `CreateHarness` (IAM-only, no container; **6/6 cells receipt-verified on Nova** — agent + base-session sandbox + remote MCP + S3-loaded skill + `agentcore_browser`; AWS Harness feature in public preview), and **`--mode runtime`** is a **✅ live multi-agent hosted deploy** via `CreateAgentRuntime` (custom ARM64 container → ECR → runtime; **subagent delegation receipt-verified on Nova** — the coordinator's top-level trace named both specialists; `--build-only` still emits just the artifact). Both are **Claude-native, no model remap**; receipts are on **Nova** because Claude inference is Gate-A-gated (an account entitlement, not a code gap). Honest Runtime boundary: `InvokeAgentRuntime` returns the container's JSON body, not an event stream, so coordinator/root tool calls are objective (PASS-EXERCISED) while **nested** specialist skill/MCP calls are PASS-WIRED + text-corroborated.
 
 Tagline: *Own the definition. Rent the runtime.*
@@ -31,6 +32,23 @@ folder ──parse──▶ Project ──plan──▶ DeployPlan ──apply�
 - **apply** ([anthropic_target.py](src/agentlift/anthropic_target.py)) — the only Anthropic networking. Resolves symbolic refs to real IDs, uploads skills (deduped via lockfile), creates agents in dependency order, writes `.agentlift-lock.json` for idempotent re-deploys.
 - **run** ([runtime.py](src/agentlift/runtime.py)) — invoke a deployed agent by ID, or run the same folder locally (`--local`).
 
+### The reverse pipeline: `fetch → import → write` (`import`)
+
+```
+live runtime ──fetch──▶ raw dicts ──import──▶ ImportedProject ──write──▶ folder
+            (network)             (pure)                    (pure)
+```
+
+`import` mirrors `deploy` in reverse and keeps the **same discipline** — a pure core with a
+thin network edge, the mapping is the contract, asserted offline. **fetch**
+([anthropic_source.py](src/agentlift/anthropic_source.py) / [harness_source.py](src/agentlift/harness_source.py))
+is the only networking; **import** ([importer.py](src/agentlift/importer.py)) is the *inverse of
+the planner* (decode toolsets → `tools:` + `:ask`/`:allow`, regional inference profile →
+folder Claude id, roster ids → names, hoist shared resources by content-hash/identity); **write**
+([folder_writer.py](src/agentlift/folder_writer.py)) is the *inverse of the parser*. After writing,
+the `import` command re-runs the real parse + plan and prints `Round-trip OK` only if the result
+re-deploys — so an import is a verified, deployable folder, never a lossy copy.
+
 ## Module map (`src/agentlift/`)
 
 | File | Role | Pure? |
@@ -38,6 +56,11 @@ folder ──parse──▶ Project ──plan──▶ DeployPlan ──apply�
 | [model.py](src/agentlift/model.py) | dataclasses: `Project`, `AgentSpec`, `SkillSpec`, `McpServerSpec`; `BUILTIN_TOOL_MAP` | ✅ |
 | [parser.py](src/agentlift/parser.py) | folder → `Project` (frontmatter, skills, MCP, knowledge, shared/local refs) | ✅ |
 | [planner.py](src/agentlift/planner.py) | `Project` → `DeployPlan` (Anthropic wire shape, symbolic refs) | ✅ |
+| [import_model.py](src/agentlift/import_model.py) | dataclasses for the reverse pipeline: `ImportedProject`/`ImportedAgent`/`ImportedSkill`/`ImportedMcp` (skills held as in-memory bytes) | ✅ |
+| [importer.py](src/agentlift/importer.py) | raw provider dicts → `ImportedProject` (**inverse of `planner`**): tool decode, Bedrock model reverse-map, roster id→name, shared hoisting. Entry points `import_anthropic_agents` / `import_bedrock_harness` | ✅ |
+| [folder_writer.py](src/agentlift/folder_writer.py) | `ImportedProject` → `.managed-agents/` files (**inverse of `parser`**): `agent.md`, `mcp.json`, `skills/*`, `shared/*` | ✅ |
+| [anthropic_source.py](src/agentlift/anthropic_source.py) | live Anthropic → raw dicts (`agents.list/retrieve`, `skills.versions.download`; roster closure; zip unpack) | ❌ network |
+| [harness_source.py](src/agentlift/harness_source.py) | live Bedrock harness → raw dict (`get_harness` + S3 skill bundles) | ❌ network |
 | [capabilities.py](src/agentlift/capabilities.py) | the provider capability map (`anthropic`/`bedrock`/`google`/`openai` × feature → tier) — **single source of truth** for `audit` and `export` annotations | ✅ |
 | [audit.py](src/agentlift/audit.py) | cross-reference folder features against `capabilities` | ✅ |
 | [export.py](src/agentlift/export.py) | `Project`/`DeployPlan` → text artifact (anthropic-yaml, google-adk, openai-agents) | ✅ |
@@ -218,6 +241,7 @@ agentlift audit    <path> --targets anthropic,bedrock,google,openai
 agentlift export   <target> <path> [--out DIR]   # anthropic-yaml | bedrock-strands | google-adk | openai-agents
 agentlift diff     <path> [--remote]
 agentlift deploy   <path> [--target anthropic|bedrock|google] [--mode auto|harness|runtime] [--build-only] [--bedrock-region R] [--prune] [-y]   # bedrock: both --mode harness AND --mode runtime deploy live (AgentCore preview); --build-only just emits the runtime artifact
+agentlift import   <anthropic|bedrock> <out> [--agent N ...] [--mode harness] [--harness-id|--harness-name X] [--bedrock-region R] [--dry-run]   # read-only inverse of deploy; self-verifies (Round-trip OK). bedrock --mode runtime refuses (opaque container)
 agentlift run <agent> --project <path> --task "..." [--local]
 agentlift list/destroy/bench ...
 ```
@@ -271,6 +295,7 @@ last step before `git add`.
 ## Key docs
 
 - [docs/convention.md](docs/convention.md) — the `.managed-agents/` spec
+- [docs/import.md](docs/import.md) — `agentlift import` (the reverse pipeline): provider → folder, the round-trip + migration story, what can't round-trip (one-way losses as diagnostics)
 - [docs/anthropic-mapping.md](docs/anthropic-mapping.md) — exact local → Managed Agents field mapping
 - [docs/deploy-bedrock.md](docs/deploy-bedrock.md) — AWS Bedrock AgentCore: the two primitives (`--mode harness` live · `--mode runtime` live hosted deploy / `--build-only`), bearer-token vs IAM, the two gates, the `/invocations` trace boundary, MCP-auth env_vars
 - [docs/deploy-google.md](docs/deploy-google.md) — Google ADC/credentials/setup

@@ -12,7 +12,9 @@
 **Agent runtimes all want your agent in a different shape.** agentlift lets you define it
 **once** as a neutral `.managed-agents/` folder — system prompt, skills, MCP servers, tool
 allowlist, subagents — then **audit**, **export**, or **deploy** it to Anthropic Managed
-Agents, AWS Bedrock AgentCore, Google Agent Engine, or OpenAI Agents SDK.
+Agents, AWS Bedrock AgentCore, Google Agent Engine, or OpenAI Agents SDK. And now **`import`**
+reads a live agent back into the folder — so you can **migrate between runtimes**, not just
+deploy to them.
 
 > **Own the definition. Rent the runtime.**
 
@@ -27,6 +29,7 @@ agentlift deploy ./my-agent                  # → Anthropic Managed Agents (ref
 agentlift deploy ./my-agent --target bedrock # → AWS Bedrock AgentCore (Claude-native)
 agentlift deploy ./my-agent --target google  # → Google Vertex AI Agent Engine (preview)
 agentlift export openai-agents ./my-agent    # → an OpenAI Agents SDK script (self-host)
+agentlift import anthropic    ./my-agent     # ← read a live agent back into the folder
 ```
 
 > `agentlift` not found after install? Run it module-style — `python -m agentlift.cli <cmd>`
@@ -181,8 +184,11 @@ pytest -m live         # deploy to the real API, run, LLM-grade (needs credentia
   the hosted agent pauses for caller approval — the deployable form of a hook.
 - **Deploy how you work** — a command (`deploy --yes`), a [git-push workflow](examples/deploy-workflow/),
   or [from inside Claude Code](examples/claude-code-skill/). Idempotent via the lockfile.
-- **A full CLI** — `validate` · `plan` · `audit` · `export` · `diff` · `deploy` · `run` ·
-  `list` · `destroy` · `bench`. See [docs/deploying.md](docs/deploying.md).
+- **A full CLI** — `validate` · `plan` · `audit` · `export` · `diff` · `deploy` · `import` ·
+  `run` · `list` · `destroy` · `bench`. See [docs/deploying.md](docs/deploying.md).
+- **Round-trip, so you can migrate** — `import` reads a live Anthropic agent (or a Bedrock
+  harness) back into the folder; deploy it elsewhere and the folder is the neutral pivot.
+  See [docs/import.md](docs/import.md).
 
 ## Documentation
 
@@ -190,6 +196,7 @@ pytest -m live         # deploy to the real API, run, LLM-grade (needs credentia
 |---|---|
 | [docs/convention.md](docs/convention.md) | The `.managed-agents/` folder spec — frontmatter, skills, MCP, `:ask`, subagents |
 | [docs/how-it-works.md](docs/how-it-works.md) | `parse → plan → apply → run`, determinism, idempotency, the lockfile |
+| [docs/import.md](docs/import.md) | `import` — read a live agent back into the folder; the round-trip + migration story, one-way losses |
 | [docs/deploying.md](docs/deploying.md) | The three deploy paths, commands, the lockfile, install/PATH |
 | [docs/provider-matrix.md](docs/provider-matrix.md) | Cell-by-cell capability matrix across all four runtimes |
 | [docs/anthropic-mapping.md](docs/anthropic-mapping.md) | Exact local → Managed Agents field mapping |
@@ -212,6 +219,7 @@ Each is surfaced as a `agentlift plan` diagnostic, never a silent surprise — f
 - **Knowledge files are inlined** into the system prompt (no persistent FS in the sandbox).
 - **Maturity varies** — Anthropic is live/full; AWS is live on **both** AgentCore primitives (Harness single-agent + Runtime multi-agent; the AgentCore feature is in AWS preview); Google is live preview; OpenAI is export-only.
 - **Runtime nested-tool visibility** — on the AWS Runtime, subagent delegation is objectively traced, but a *specialist's* internal skill/MCP calls don't cross the `/invocations` boundary (wired + output-corroborated, not independently exercised).
+- **Import is read-only, and one-way in places** — `import` reads Anthropic (full) and the Bedrock **harness** back into the folder; a Bedrock **Runtime** is an opaque container and refuses. Knowledge inlining, custom tools, and MCP auth *values* don't round-trip (each flagged as a diagnostic). See [docs/import.md](docs/import.md).
 
 ## Roadmap
 

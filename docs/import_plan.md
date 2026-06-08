@@ -9,9 +9,14 @@ Once a runtime can be read *in* and written *out*, **migration falls out for fre
 > Tagline today is *"Own the definition. Rent the runtime."* Import makes it
 > *"…and take the definition back out of any runtime you rented."*
 
-*Status: planning spike. The feasibility claims below are backed by offline
-experiments in [`experiments/import-roundtrip/`](../experiments/import-roundtrip/)
-run against the real SDKs (anthropic 0.107.1, boto3 1.43.24) — see Evidence.*
+*Status: **implemented** (Phase 1 Anthropic + Phase 2 Bedrock harness), offline-tested,
+unreleased/under review. This document is kept as the design record; the shipped feature
+is documented for users in [import.md](import.md). The feasibility claims below are backed
+by offline experiments in [`experiments/import-roundtrip/`](../experiments/import-roundtrip/)
+run against the real SDKs (anthropic 0.107.1, boto3 1.43.24) — see Evidence — and are now
+realised in `importer.py` / `folder_writer.py` / `anthropic_source.py` / `harness_source.py`,
+covered by `tests/test_importer.py`, `tests/test_import_roundtrip.py`, `tests/test_import_source.py`,
+and `tests/test_cli_import.py`.*
 
 ---
 

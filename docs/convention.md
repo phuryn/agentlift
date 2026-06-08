@@ -25,6 +25,10 @@ The name is deliberate: it can't be confused with `.claude/agents/`, where Claud
 The structure inside each agent folder is the same embedded-agent model you already
 use with the Claude Agent SDK — only the parent folder name is new.
 
+`agentlift import` writes **exactly this layout** — it is the inverse of the parser, so a
+folder reconstructed from a live runtime is identical in shape to a hand-written one (and
+re-deployable as-is). See [import.md](import.md).
+
 ## 2. A single agent directory
 
 Point agentlift straight at a folder that contains `agent.md` or `CLAUDE.md` and it

@@ -62,6 +62,28 @@ not a tool-event stream, so the handler surfaces the coordinator's **top-level**
 text-corroborated** — the direct analogue of the Google `AgentTool`→`stream_query` grounding-
 metadata caveat noted below.
 
+## Importable? (reading a live agent back into the folder)
+
+`agentlift import` is the inverse of `deploy` — it reads a live managed agent back into a
+neutral `.managed-agents/` folder. It is **read-only** (never creates, updates, or archives
+anything), and after writing it re-runs the real parse+plan and prints **"Round-trip OK"**.
+Pair it with `deploy` to a *different* runtime and you have a migration; the folder is the
+neutral pivot. Full guide: [import.md](import.md).
+
+| Runtime | Importable? | Notes |
+|---|---|---|
+| Anthropic Managed Agents | ✅ **full** | `agents.list`/`agents.retrieve` + custom-skill content via `skills.versions.download`. Recovers system/description/model, built-in tools **with `:ask`/`:allow` policies**, URL MCP + per-server tool filters, custom skills (content), and coordinator `subagents` (roster ids → names; selecting a coordinator pulls its subagents into the closure). Skills/MCP used by >1 agent are hoisted to `shared/`. |
+| AWS **Harness** (`--mode harness`) | ✅ | `get_harness` + skills loaded from their `s3://` URIs. Reverse model-map (regional inference profile → folder Claude id, e.g. `eu.anthropic.claude-haiku-4-5-20251001-v1:0` → `claude-haiku-4-5`); `agentCoreBrowser`→`web_search`/`web_fetch`, `agentCoreCodeInterpreter`→sandbox builtins, `remote_mcp`→URL MCP. Single-agent → import never produces subagents. |
+| AWS **Runtime** (`--mode runtime`) | ❌ refused | The agent definition is baked into an opaque ARM64 container image; `GetAgentRuntime` returns only a `containerUri`. The import analogue of the `/invocations` trace boundary. |
+| Google (`--target google`) | 🚧 not yet | Not implemented. |
+| OpenAI | 🚧 not yet | Not implemented (no hosted engine to read back). |
+
+One-way losses are each surfaced as a **Diagnostic** (never silent): knowledge inlining is
+one-way (it stays in the prompt body on import); custom tools / harness inline functions are
+dropped; only the MCP auth header/env-var **name** is recovered (never the secret value); and
+Anthropic first-party skills (`type: anthropic`) are reference-only (no downloadable content).
+See [limitations.md](limitations.md) and [import.md](import.md).
+
 ## How to read the non-obvious cells
 
 - **Handoff (Bedrock) — two primitives behind `--mode`.** `auto` (the default) picks the

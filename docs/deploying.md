@@ -35,10 +35,17 @@ just put the launcher in a Scripts directory that isn't on your `PATH`. Two fixe
 agentlift plan .            # dry run — see exactly what will happen
 agentlift deploy . --yes    # upload skills + create agents, write the lockfile
 agentlift run lead --project . --task "..."
+agentlift import anthropic ./out   # inverse of deploy: read a live agent back to a folder
 ```
 
 Best for solo work and first runs. `plan` is a pure dry-run (no network), so you
 always see the diff before anything ships.
+
+`import` is `deploy` reversed — it reads a **live** managed agent (`anthropic`, or a
+Bedrock harness with `--mode harness`) back into a neutral `.managed-agents/` folder,
+read-only. It is also how you **migrate between runtimes**: `import` from one + `deploy`
+to another (Anthropic ⇄ Bedrock-harness today), with the folder as the neutral pivot. See
+[import.md](import.md).
 
 ## 2. Git push (teams) — recommended
 

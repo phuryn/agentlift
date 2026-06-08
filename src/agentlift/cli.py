@@ -572,6 +572,89 @@ def cmd_destroy(args) -> int:
     return 0
 
 
+def print_imported(project) -> None:
+    """Summarise an ImportedProject (the import analogue of print_plan)."""
+    print(f"Imported {len(project.agents)} agent(s) from {project.source}:")
+    for a in project.agents:
+        bits = []
+        if a.subagents:
+            bits.append(f"coordinator -> [{', '.join(a.subagents)}]")
+        if a.builtin_tools is None:
+            bits.append("tools=all")
+        elif a.builtin_tools:
+            bits.append("tools=[" + ", ".join(
+                f"{t}:{a.builtin_tool_policies[t]}" if t in a.builtin_tool_policies else t
+                for t in a.builtin_tools) + "]")
+        if a.skill_refs:
+            bits.append(f"skills=[{', '.join(a.skill_refs)}]")
+        if a.mcp_refs:
+            bits.append(f"mcp=[{', '.join(a.mcp_refs)}]")
+        print(f"  {a.name}  ({a.model})" + ("  " + "  ".join(bits) if bits else ""))
+    if project.shared_skills:
+        print(f"  shared skills: {', '.join(s.name for s in project.shared_skills)}")
+    if project.shared_mcp:
+        print(f"  shared mcp: {', '.join(s.name for s in project.shared_mcp)}")
+
+
+def cmd_import(args) -> int:
+    from .folder_writer import write_project
+    from .importer import import_anthropic_agents, import_bedrock_harness
+
+    out = os.path.abspath(args.out)
+    if args.source == "anthropic":
+        from .anthropic_source import fetch_anthropic_project
+        load_env(os.getcwd(), out)
+        client = get_client()
+        agents_raw, skill_bundles, diags = fetch_anthropic_project(
+            client, agent_names=args.agent or None)
+        if diags.errors:   # e.g. a requested --agent was not found
+            print_diagnostics(diags)
+            return 1
+        project = import_anthropic_agents(agents_raw, skill_bundles, diags)
+    elif args.source == "bedrock":
+        if args.mode == "runtime":
+            print("error: a Bedrock Runtime bakes its agent definition into an opaque "
+                  "container image and cannot be read back. Only --mode harness is "
+                  "importable (keep the source folder for a Runtime).", file=sys.stderr)
+            return 2
+        from .harness_source import fetch_harness
+        load_env(os.getcwd(), out)
+        region = args.bedrock_region or "us-west-2"
+        harness, skill_bundles, diags = fetch_harness(
+            region, harness_id=args.harness_id, harness_name=args.harness_name)
+        if diags.errors:
+            print_diagnostics(diags)
+            return 1
+        project = import_bedrock_harness(harness, skill_bundles, diags)
+    else:
+        print(f"unknown import source '{args.source}'", file=sys.stderr)
+        return 2
+
+    print_imported(project)
+    if project.diagnostics.items:
+        print()
+        print_diagnostics(project.diagnostics)
+    if project.diagnostics.errors:
+        return 1
+
+    if args.dry_run:
+        print("\n(dry run — no files written)")
+        return 0
+
+    root = write_project(project, out)
+    # prove the round-trip: the written folder must re-parse + re-plan cleanly
+    reparsed, pdiags = parse_project(out)
+    plan = build_plan(reparsed, pdiags)
+    print(f"\nWrote {len(project.agents)} agent(s) to {root}")
+    if not plan.deployable:
+        print("warning: the imported folder did not re-plan cleanly:")
+        print_diagnostics(plan.diagnostics)
+        return 1
+    print(f"Round-trip OK: re-parsed {len(reparsed.agents)} agent(s), "
+          f"plan deployable ({len(plan.skill_uploads)} skill upload(s)).")
+    return 0
+
+
 def cmd_bench(args) -> int:
     load_env(os.getcwd(), os.path.abspath(args.project))
     client = get_client()
@@ -719,6 +802,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("destroy", help="archive every agent in the lockfile")
     sp.add_argument("path"); sp.add_argument("--yes", "-y", action="store_true"); sp.set_defaults(func=cmd_destroy)
+
+    sp = sub.add_parser("import", help="read live agents back into a .managed-agents/ folder (the inverse of deploy)")
+    sp.add_argument("source", choices=["anthropic", "bedrock"], help="runtime to read from")
+    sp.add_argument("out", help="directory to write the .managed-agents/ folder into")
+    sp.add_argument("--agent", action="append", default=[], help="anthropic: import only this agent (repeatable); roster subagents are pulled in automatically")
+    sp.add_argument("--mode", default="harness", choices=["harness", "runtime"], help="bedrock: only 'harness' is importable (a runtime container is opaque)")
+    sp.add_argument("--harness-id", default=None, help="bedrock: harness id to import")
+    sp.add_argument("--harness-name", default=None, help="bedrock: harness name to import (resolved via list_harnesses)")
+    sp.add_argument("--bedrock-region", default=None, help="bedrock: AWS region (default us-west-2, the harness preview region)")
+    sp.add_argument("--dry-run", action="store_true", help="print the imported project + diagnostics, write no files (the import analogue of `plan`)")
+    sp.set_defaults(func=cmd_import)
 
     sp = sub.add_parser("bench", help="managed vs local: latency / tokens / cost / pass")
     sp.add_argument("agent"); sp.add_argument("--project", default="."); sp.add_argument("--task", required=True)

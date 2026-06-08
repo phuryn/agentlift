@@ -223,6 +223,16 @@ but **nested specialist skill/MCP calls do not cross the boundary** → PASS-WIR
 text-corroborated. This is the runtime analogue of the Google `AgentTool` → `stream_query`
 grounding-metadata caveat: the composition runs, but the inner trace stays inside the box.
 
+The same boundary decides what is **importable**. `agentlift import bedrock --mode harness`
+reads a live **Harness** back into a `.managed-agents/` folder (`get_harness` + its S3
+skills, with the regional inference profile reverse-mapped to the folder `claude-*` id, and
+`agentcore_browser` → web built-ins, code-interpreter → sandbox built-ins, `remote_mcp` →
+URL MCP). The **Runtime is not importable**: it is an opaque ARM64 container —
+`GetAgentRuntime` returns only a `containerUri`, not the folder semantics — so `import
+bedrock --mode runtime` **refuses**. That is the import analogue of the `/invocations`
+boundary above: what doesn't cross the boundary at invoke time can't be reconstructed at
+import time. See [import.md](import.md).
+
 ### Execution role for the Runtime
 
 The runtime's execution role differs from the harness's in two ways — the **trust policy** and
